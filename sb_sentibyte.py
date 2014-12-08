@@ -14,6 +14,7 @@ class valueState(object):
         self.setBounds(boundsCheck(lower_min), span)
         self.setBase()
         self.params['current'] = float(self['base'])
+        self.fluct_c = getCoefficient(.05, .1)
         
         self.update()
         
@@ -73,68 +74,134 @@ class valueState(object):
         base_quadrant = catRoll(base_quadrants)
         self.params['base'] = uniform(base_quadrant[0], base_quadrant[1])
         
+    def fluctuate(self):
+        positive_chance = float(0)
+        
+        if self['current'] >= self['base']:
+            dist_from_upper = self['upper'] - self['current']
+            upper_range = self['upper'] - self['base']
+            positive_chance = (dist_from_upper/upper_range) * .5
+            
+        else:
+            dist_from_lower = self['current'] - self['lower']
+            lower_range = self['base'] - self['lower']
+            positive_chance = 1 - ((dist_from_lower/lower_range) * .5)
+            
+        value_change = self.fluct_c * (self['upper'] - self['lower'])
+        
+        if not booRoll(positive_chance):
+            value_change *= -1
+            
+        self.changeCurrent(self['current'] + value_change)
+        if self['current'] > self['upper']:
+            self.changeCurrent(float(self['upper']))
+                
+        elif self['current'] < self['lower']:
+            self.changeCurrent(float(self['lower']))
+        
 class perception(object):
     def __init__(self, perceived, owner):
         self.perceived = perceived
         self.owner = owner
         self.p_traits = {}
         self.entries = 0
-        self.p_states = {}
+        self.rating = owner.p_traits['regard']['current']
         
         # assume other's traits and states are same as owner's, adjust for regard
         for key in owner.d_traits.keys():
             assumed_value = owner.i_traits[key]['base']
             self.p_traits[key] = self.guessValue(assumed_value)
             
-        for key in owner.states.keys():
-            assumed_value = owner[key]['base']
-            self.p_states[key] = self.guessValue(assumed_value)
+    def __getitem__(self, index):
+        return self.p_traits[index]
+    
+    def __eq__(self, other):
+        return self.rating == other.rating
+        
+    def __ne__(self, other):
+        return self.rating != other.rating
+    
+    def __lt__(self, other):
+        return self.rating < other.rating
+        
+    def __le__(self, other):
+        return self.rating <= other.rating
+        
+    def __gt__(self, other):
+        return self.rating > other.rating
+        
+    def __ge__(self, other):
+        return self.rating >= other.rating
             
     def addInteraction(self, interaction):
         sb_ID = str(self.perceived)
-        #self.i_traits['impressionability'] = valueState(2, 5)
-        #self.i_traits['communication range'] = valueState(10, 90)
-        #self.i_traits['energy range'] = valueState()
-        #self.i_traits['talkative'] = valueState(10, 60)
-        #self.i_traits['expressive'] = valueState()
-        #self.i_traits['stamina'] = valueState(95, 99)
-        #self.i_traits['sociable'] = valueState(10, 90)
+        ratings = list()
         
+        #self.d_traits['impressionability'] = valueState(2, 5)
+        #self.d_traits['positivity range'] = valueState(10, 90)
+        #self.d_traits['energy range'] = valueState()
+        #self.d_traits['expressive'] = valueState()
+        #self.d_traits['stamina'] = valueState(95, 99)
+        #self.d_traits['sociable'] = valueState(10, 90)
+        
+        # TALKATIVE
         # initial guess from data
         talkative_guess = float(interaction.data['total']['count']) / \
                             float(interaction.rounds_present) * 100
         # adjust for regard
         talkative_guess = self.guessValue(talkative_guess)
-        
         # update with weighted average           
         self.p_traits['talkative'] = weightedAverage(talkative_guess, interaction.rounds_present, 
                         self.p_traits['talkative'], self.entries)
-                            
+                
+        # POSITIVITY        
+        # initial guess from data
+        positivity_guess = float(interaction.data['total']['avg positivity'])
+        # adjust for regard
+        positivity_guess = self.guessValue(positivity_guess)
+        # update with weighted average           
+        self.p_traits['positivity'] = weightedAverage(positivity_guess, interaction.rounds_present, 
+                        self.p_traits['positivity'], self.entries)
+         
+        # ENERGY               
+        # initial guess from data
+        energy_guess = float(interaction.data['total']['avg energy'])
+        # adjust for regard
+        energy_guess = self.guessValue(energy_guess)
+        # update with weighted average           
+        self.p_traits['energy'] = weightedAverage(energy_guess, interaction.rounds_present, 
+                        self.p_traits['energy'], self.entries)
+        
         self.entries += interaction.rounds_present
+        self.calcRating()
         
         #communicative = total / rounds present (modified for perceptiveness)
-        #talkative = total statements / rounds present (modified for perceptiveness)
         #expressive = total body language / rounds present (modified for perceptiveness)
         #communication range = (((max - avg) + (avg - min)) / 2) / 100 (modified for perceptiveness)
         #engergy range = " " " " " "
-        pass
+        
+    def calcRating(self):
+        ratings = list()
+        for key in self.p_traits:
+            delta = abs(self.owner.d_traits[key]['current'] - self.p_traits[key])
+            ratings.append(100 - delta)
+            
+        self.rating = sum(ratings) / len(ratings)
             
     def guessValue(self, assumed_value):
-        regard_offset = (self.owner['regard']['coefficient'] - .5) * 100
+        # adjust so regard makes perceived trait closer to desired, not increase or decrease
+        regard_offset = (self.owner.p_traits['regard']['coefficient'] - .5) * 100
         adjusted_value = boundsCheck(assumed_value + regard_offset)
         return (assumed_value + adjusted_value) / 2 
             
     def printPerception(self):
         print "%s perception of %s...." % (self.owner, self.perceived),
         print "(%d entries)" % (self.entries)
-        
-        for key in self.p_states.keys():
-            print "\t%s: %f" % (key, self.p_states[key])
+        print "overall rating: ", self.rating
             
         for key in self.p_traits.keys():
             print "\t%s: %f" % (key, self.p_traits[key])
             
-        
 class sentibyte(object):
     def __init__(self, user):
         self.user_ID = user
@@ -151,14 +218,9 @@ class sentibyte(object):
         self.net_mood_change = float(0)
         self.net_communication_change = float(0)
         
-        # mood states
-        self.states = {}
-        self.states['positivity'] = valueState()
-        self.states['regard'] = valueState()
-        self.states['energy'] = valueState()
-        
         # personal characteristics
         self.p_traits = {}
+        self.p_traits['regard'] = valueState()
         self.p_traits['volatility'] = valueState(5, 55)
         self.p_traits['moodiness'] = valueState(2, 20)
         self.p_traits['perception range'] = valueState()
@@ -168,8 +230,10 @@ class sentibyte(object):
         
         # interpersonal characteristics
         self.i_traits = {}
+        self.i_traits['positivity'] = valueState()
+        self.i_traits['energy'] = valueState()
         self.i_traits['impressionability'] = valueState(2, 5)
-        self.i_traits['communication range'] = valueState(10, 90)
+        self.i_traits['positivity range'] = valueState(10, 90)
         self.i_traits['energy range'] = valueState()
         self.i_traits['talkative'] = valueState(10, 60)
         self.i_traits['expressive'] = valueState()
@@ -178,8 +242,10 @@ class sentibyte(object):
         
         # desired interpersonal characteristics of others
         self.d_traits = {}
+        self.d_traits['positivity'] = valueState()
+        self.d_traits['energy'] = valueState()
         self.d_traits['impressionability'] = valueState(2, 5)
-        self.d_traits['communication range'] = valueState(10, 90)
+        self.d_traits['positivity range'] = valueState(10, 90)
         self.d_traits['energy range'] = valueState()
         self.d_traits['talkative'] = valueState(10, 60)
         self.d_traits['expressive'] = valueState()
@@ -193,7 +259,7 @@ class sentibyte(object):
         #self.traits['friend preference'] = valueState() # procs connection to friend
         
     def __getitem__(self, index):
-        return self.states[index]
+        return self.i_traits[index]
         
     def __eq__(self, other):
         return self.sentibyte_ID == other.sentibyte_ID
@@ -210,9 +276,6 @@ class sentibyte(object):
             
         elif trait in self.i_traits.keys():
             return self.i_traits[trait].proc()
-            
-        elif trait in self.states.keys():
-            return self.states[trait].proc()
             
         else:
             print "key not found"
@@ -238,6 +301,7 @@ class sentibyte(object):
     def interpretTransmission(self, sent):
         source = str(sent.source)
         
+        # add modifiers for interpretation
         self.current_interactions[source].addTransmission(sent)
         if self in sent.targets:
             self.receiveTransmission(sent)
@@ -279,50 +343,42 @@ class sentibyte(object):
         self.net_communication_change += self['positivity']['current'] - original_positivity
         
     def broadcast(self, targets):
-        positivity = calcAccuracy(self['positivity']['current'], self.i_traits['communication range']['coefficient'])
+        positivity = calcAccuracy(self['positivity']['current'], self.i_traits['positivity range']['coefficient'])
         energy = calcAccuracy(self['energy']['current'], self.i_traits['energy range']['coefficient'])
             
         return transmission(self, choice(targets), positivity, energy)
-        
-    def moodChange(self):
-        original_positivity = self['positivity']['current']
-        positive_chance = float(0)
-        
-        if self['positivity']['current'] >= self['positivity']['base']:
-            dist_from_upper = self['positivity']['upper'] - self['positivity']['current']
-            upper_range = self['positivity']['upper'] - self['positivity']['base']
-            positive_chance = (dist_from_upper/upper_range) * .5
-            
-        else:
-            dist_from_lower = self['positivity']['current'] - self['positivity']['lower']
-            lower_range = self['positivity']['base'] - self['positivity']['lower']
-            positive_chance = 1 - ((dist_from_lower/lower_range) * .5)
-            
-        
-        positivity_change = self.p_traits['moodiness']['coefficient'] * \
-                    (self['positivity']['upper'] - self['positivity']['lower'])
-        
-        if not booRoll(positive_chance):
-            positivity_change *= -1
-            
-        self['positivity'].changeCurrent(original_positivity + positivity_change)
-        if self['positivity']['current'] > self['positivity']['upper']:
-            self['positivity'].changeCurrent(float(self['positivity']['upper']))
-                
-        elif self['positivity']['current'] < self['positivity']['lower']:
-            self['positivity'].changeCurrent(float(self['positivity']['lower']))
-            
-        self.net_mood_change += self['positivity']['current'] - original_positivity
                     
     def cycle(self):
         if self.proc('volatility'):
-            self.moodChange()
+            original_positivity = self['positivity']['current']
+            for trait in self.p_traits:
+                self.p_traits[trait].fluctuate()
+                
+            for trait in self.d_traits:
+                self.d_traits[trait].fluctuate()
+                
+            for trait in self.i_traits:
+                self.i_traits[trait].fluctuate()
+                
+            self.net_mood_change += self['positivity']['current'] - original_positivity
             
         if self.proc('sociable'):
             self.joinSession()
             
     def chooseOther(self, members):
-        return choice(members)
+        options = {}
+        
+        for member in members:
+            if str(member) in self.perceptions.keys():
+                options[member] = self.perceptions[str(member)].rating 
+                
+        if len(options) > 0:
+            selected = catRoll(options)
+        
+            return members(selected)
+            
+        else:
+            return choice(members)
             
     def joinSession(self):
         available_sessions = self.community.sessions[:]
@@ -337,13 +393,9 @@ class sentibyte(object):
         else:
             choice(available_sessions).addParticipant(self)
         
-    def printInfo(self, traits=False):
+    def printInfo(self, traits=False, memory=False):
         print "unique ID: ", self.sentibyte_ID
         print "name: ", self.name
-        
-        for state in self.states:
-            print "%s: %f" % (state, self.states[state]['current'])
-            
         print "net_mood_change: ", self.net_mood_change
         print "net_communication_change: ", self.net_communication_change
         print "net change: ", self.net_communication_change + self.net_mood_change
@@ -359,8 +411,8 @@ class sentibyte(object):
             for item in self.current_interactions:
                 print "%s......" % item
                 self.current_interactions[item].printStats()
-                
-        if len(self.memory) > 0:
+         
+        if len(self.memory) > 0 and memory == True:
             print "memory: "
             for item in self.memory:
                 print "%s......" % item
@@ -388,55 +440,4 @@ class sentibyte(object):
         for i in range(len(self.perceptions)):
             print "connection %d..." % i
             self.perceptions[i].printInfo()
-        
-    def setPositivity(self, upper=-1, lower=-1, base=-1, current=-1):
-        temp_upper = self['positivity']['upper']
-        temp_lower = self['positivity']['lower']
-        temp_base = self['positivity']['base']
-        temp_current = self['positivity']['current']
-        
-        if upper != -1:
-            temp_upper = upper
-        if lower != -1:
-            temp_lower = lower
-        if base != -1:
-            temp_base = base
-        if current != -1:
-            temp_current = current
-            
-        if temp_current < temp_lower or temp_current > temp_upper or \
-            temp_base < temp_lower or temp_base > temp_upper:
-                print "invalid bounds"
-            
-        else:
-            self['positivity']['upper'] = temp_upper
-            self['positivity']['lower'] = temp_lower
-            self['positivity']['base'] = temp_base
-            self['positivity']['current'] = temp_current
-            
-    def setRegard(self, upper=-1, lower=-1, base=-1, current=-1):
-        temp_upper = self.regard_upper_bound
-        temp_lower = self.regard_lower_bound
-        temp_base = self.regard_base
-        temp_current = self.regard_current
-        
-        if upper != -1:
-            temp_upper = upper
-        if lower != -1:
-            temp_lower = lower
-        if base != -1:
-            temp_base = base
-        if current != -1:
-            temp_current = current
-            
-        if temp_current < temp_lower or temp_current > temp_upper or \
-            temp_base < temp_lower or temp_base > temp_upper or \
-            temp_lower < 0 or temp_upper > 99:
-                print "invalid bounds"
-            
-        else:
-            self.regard_upper_bound = temp_upper
-            self.regard_lower_bound = temp_lower
-            self.regard_base = temp_base
-            self.regard_current = temp_current
             
