@@ -2,34 +2,44 @@ from random import random, randint
 from sb_utilities import newAverage
 
 class transmission(object):
-    def __init__(self, source, targets, positivity, energy):
+    def __init__(self, source, targets, positivity, energy, t_type):
         self.positivity = positivity
         self.energy = energy
         self.source = source
         self.targets = list()
         self.targets.append(targets)
+        self.t_type = t_type
         
     def printStats(self):
         print "TESTING"
 
 class interaction(object):
     def __init__(self, owner, other):
+        self.first_cycle = owner.getSession().current_cycle
         self.owner = owner
         self.other = other
+        self.others_present = list()
+        self.rating = None
+        if str(other) not in owner.perceptions.keys():
+            self.rating = owner['regard']['current']
+            
+        else:
+            self.rating = owner.getRating(other)
         
-        self.rounds_present = 0
+        self.cycles_present = 1
         
         recorded_data = ('owner', 'others', 'total')
         
         self.data = {}
         for item in recorded_data:
             self.data[item] = {
-                'count': 0, 'avg positivity': 0, 'avg energy': 0, 'min': 0, 'max': 0}
-            
-        self.priority = 0
-        
-        self.rating = float(50)
-            
+                'count': 0, 'statements': 0,
+                'avg positivity': 0, 'avg energy': 0, 
+                'min positivity': 0, 'min energy': 0, 
+                'max positivity': 0, 'max energy': 0,
+                'first positivity': 0, 'first energy': 0,
+                'last positivity': 0, 'last energy': 0}
+
     def __eq__(self, other):
         return self.rating == other.rating
         
@@ -48,58 +58,103 @@ class interaction(object):
     def __le__(self, other):
         return self.rating <= other.rating
         
+    def __getitem__(self, index):
+        return self.data[index]
+        
     def printStats(self):
         categories = self.data.keys()
-        print "\trounds_present: ", self.rounds_present
+        print "\tcycles_present: ", self.cycles_present
         for category in categories:
             print "\t%s: " % category,
             print self.data[category]['count'], "(count)",
             print self.data[category]['avg positivity'], "(avg positivity)", 
             print self.data[category]['avg energy'], "(avg energy)"
+        print "\toverall rating: ", self.rating
         
     def addTransmission(self, transmission):
+        self.others_present = [item for item in transmission.targets if item != self.owner]
+            
+        audience = ['total'] 
+            
         if not self.owner in transmission.targets:
-            self.data['others']['avg positivity'] = \
-                newAverage(self.data['others']['count'], 
-                self.data['others']['avg positivity'], transmission.positivity)
-                
-            self.data['others']['avg energy'] = \
-                newAverage(self.data['others']['count'], 
-                self.data['others']['avg energy'], transmission.energy)
+            audience.append('others')
             
-            self.data['others']['count'] += 1
-                
         elif len(transmission.targets) == 1:
-            self.data['owner']['avg positivity'] = \
-                newAverage(self.data['owner']['count'], 
-                self.data['owner']['avg positivity'], transmission.positivity)
+            audience.append('owner')
             
-            self.data['owner']['avg energy'] = \
-                newAverage(self.data['owner']['count'], 
-                self.data['owner']['avg energy'], transmission.energy)
+        for item in audience:
+            self.data[item]['avg positivity'] = \
+                newAverage(self.data[item]['count'], 
+                self.data[item]['avg positivity'], transmission.positivity)
+                
+            self.data[item]['avg energy'] = \
+                newAverage(self.data[item]['count'], 
+                self.data[item]['avg energy'], transmission.energy)
+                
+            if self.data[item]['count'] == 0:
+                self.data[item]['first positivity'] = transmission.positivity
+                self.data[item]['first energy'] = transmission.energy
+            self.data[item]['last positivity'] = transmission.positivity
+            self.data[item]['last energy'] = transmission.positivity
             
-            self.data['owner']['count'] += 1
+            if transmission.positivity > self.data[item]['max positivity']:
+                self.data[item]['max positivity'] = transmission.positivity
+            if transmission.positivity < self.data[item]['min positivity']:
+                self.data[item]['min positivity'] = transmission.positivity
+                
+            if transmission.energy > self.data[item]['max energy']:
+                self.data[item]['max energy'] = transmission.energy
+            if transmission.energy < self.data[item]['min energy']:
+                self.data[item]['min energy'] = transmission.energy
             
-        self.data['total']['avg positivity'] = \
-            newAverage(self.data['total']['count'], 
-                        self.data['total']['avg positivity'], 
-                        transmission.positivity)
-                        
-        self.data['total']['avg energy'] = \
-            newAverage(self.data['total']['count'], 
-                        self.data['total']['avg energy'], 
-                        transmission.energy)
+            if transmission.t_type == 'statement':
+                self.data[item]['statements'] +=1
+            self.data[item]['count'] += 1
             
-        self.data['total']['count'] += 1
+    def closeInteraction(self, leaving):
+        self.cycles_present = 1 + (self.owner.getSession().current_cycle - self.first_cycle)
+        interaction_guesses = {}
         
-    def interpretInteraction(self):
-        pass
+        if leaving != self.owner:
+            # STAMINA
+            interaction_guesses['stamina'] = (1.0 - (1/self.cycles_present)) * 99
+            
+        # COMMUNICATIVE
+        # initial guess from data
+        communicative_guess = float(self.data['total']['count']) / \
+                            (float(self.cycles_present) * 20.0)
+        interaction_guesses['communicative'] = communicative_guess * 99
+                        
+        # TALKATIVE
+        if self.data['total']['count'] > 0:
+            talkative_guess = float(self.data['total']['statements']) / \
+                                float(self.data['total']['count']) * 99
+            interaction_guesses['talkative'] = talkative_guess
+        
+        # POSITIVITY (possibly change average to first)
+        interaction_guesses['positivity'] = float(self.data['total']['first positivity'])
+
+        # ENERGY               
+        interaction_guesses['energy'] = float(self.data['total']['first energy'])
+
+        
+        tolerance_threshold = self.owner['tolerance']['coefficient'] * 10
+        tolerance_met = 0
+        for key in interaction_guesses:
+            print "%s guess: %f, desired: %f" % (key, interaction_guesses[key], self.owner.getDesired(key))
+            delta = abs(self.owner.getDesired(key) - interaction_guesses[key])
+            if delta <= tolerance_threshold:
+                tolerance_met += 1
+        print "tolerance_met: %d" % tolerance_met
+        self.rating = float(tolerance_met / len(interaction_guesses)) * 99
+        
+        return self.rating
 
 class session(object):
     def __init__(self):
         self.session_ID = randint(0, 10000)
         self.participants = list()
-        self.cycles = 0
+        self.current_cycle = 0
         self.session_open = True
         
     def __eq__(self, other):
@@ -128,15 +183,15 @@ class session(object):
     def removeParticipant(self, leaving):
         other_participants = self.getAllOthers(leaving)
         for participant in other_participants:
-            leaving.endInteraction(participant)
-            participant.endInteraction(leaving)
+            leaving.endInteraction(participant, leaving)
+            participant.endInteraction(leaving, leaving)
     
         leaving.removeSession()
         self.participants.remove(leaving)
         
     def transmissionPhase(self, transmission_list):
         for participant in self.participants:
-            if participant.proc('talkative'):
+            if participant.proc('communicative'):
                 available_targets = self.getAllOthers(participant)
                 if len(available_targets) > 0:
                     transmission_list.append(participant.broadcast(available_targets))
@@ -166,17 +221,13 @@ class session(object):
         self.session_open = False
                 
     def cycle(self):
-        transmission_list = list()
-        
-        self.transmissionPhase(transmission_list)
-        self.interpretPhase(transmission_list)
-        
-        for participant in self.participants:
-            participant.incrementInteractions()
+        for i in range(20):
+            transmission_list = list()
+            self.transmissionPhase(transmission_list)
+            self.interpretPhase(transmission_list)
         
         self.leavePhase()
-        
-        self.cycles += 1
+        self.current_cycle += 1
             
 class community(object):
     def __init__(self):
@@ -200,9 +251,9 @@ class community(object):
         new_session.addParticipant(second)
         self.sessions.append(new_session)
         
-    def printMembers(self):
+    def printMembers(self, traits=False, memory=False):
         for member in self.members:
-            member.printInfo(traits=True)
+            member.printInfo(traits=traits, memory=memory)
         
     def cycle(self):
         for session in self.sessions:
