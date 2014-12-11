@@ -24,16 +24,15 @@ class sentibyte(object):
         
         # personal characteristics
         self.p_traits = {}
-        self.p_traits['regard'] = valueState()
-        self.p_traits['volatility'] = valueState(5, 55)
-        self.p_traits['sensitivity'] = valueState(10, 90)
+        self.p_traits['regard'] = valueState(10, 90)
+        self.p_traits['volatility'] = valueState(5, 25)
+        self.p_traits['sensitivity'] = valueState(5, 25)
         self.p_traits['observant'] = valueState(70, 99)
         self.p_traits['pickiness'] = valueState() #determines likelihood of picking favored contacts
-        self.p_traits['sociable'] = valueState(10, 90)
         self.p_traits['impressionability'] = valueState(1, 15)
-        self.p_traits['tolerance'] = valueState(5, 95)
-        self.p_traits['positivity range'] = valueState(10, 90)
-        self.p_traits['energy range'] = valueState(10, 90)
+        self.p_traits['tolerance'] = valueState(70, 99)
+        self.p_traits['positivity_range'] = valueState(10, 90)
+        self.p_traits['energy_range'] = valueState(10, 90)
         
         # interpersonal characteristics
         self.i_traits = {}
@@ -42,6 +41,7 @@ class sentibyte(object):
         self.i_traits['talkative'] = valueState(10, 90)
         self.i_traits['stamina'] = valueState(50, 90)
         self.i_traits['communicative'] = valueState(10, 90)
+        self.i_traits['sociable'] = valueState(10, 99)
         
         # desired interpersonal characteristics of others
         self.d_traits = {}
@@ -50,6 +50,7 @@ class sentibyte(object):
         self.d_traits['talkative'] = valueState(10, 90) #chance for broadcast to be statement
         self.d_traits['stamina'] = valueState(50, 90)
         self.d_traits['communicative'] = valueState(10, 90) #chance to broadcast
+        self.d_traits['sociable'] = valueState(10, 99)
         
         # other characteristics
         #self.traits['manipulative'] = valueState() #increases bonds with impressionable others
@@ -88,6 +89,17 @@ class sentibyte(object):
             print "trait (%s) not found" % trait
             return False
             
+    def getCurrent(self, index):
+        if index in self.p_traits.keys():
+            return self.p_traits[index].params['current']
+            
+        elif index in self.i_traits.keys():
+            return self.i_traits[index].params['current']
+
+        else:
+            print "trait (%s) not found" % index
+            return None
+            
     def getSession(self):
         return self.current_session
         
@@ -100,6 +112,7 @@ class sentibyte(object):
             
     def removeSession(self):
         self.current_session = None
+        self.i_traits['positivity'].params['current'] = self.i_traits['positivity'].params['base'] 
             
     def interpretTransmission(self, sent):
         source = str(sent.source)
@@ -147,8 +160,8 @@ class sentibyte(object):
         self['positivity'].influence(received.positivity)
         
     def broadcast(self, targets):
-        positivity = calcAccuracy(self['positivity']['current'], self.p_traits['positivity range']['coefficient'])
-        energy = calcAccuracy(self['energy']['current'], self.p_traits['energy range']['coefficient'])
+        positivity = calcAccuracy(self['positivity']['current'], self.p_traits['positivity_range']['coefficient'])
+        energy = calcAccuracy(self['energy']['current'], self.p_traits['energy_range']['coefficient'])
         t_type = None
         if self.proc('talkative'):
             t_type = 'statement'
@@ -162,23 +175,24 @@ class sentibyte(object):
         if self.proc('volatility'):
             for trait in self.p_traits:
                 self.p_traits[trait].fluctuate()
+                pass
                 
             for trait in self.d_traits:
                 self.d_traits[trait].fluctuate()
+                pass
                 
             for trait in self.i_traits:
                 self.i_traits[trait].fluctuate()
+                pass
             
         if self.proc('sociable'):
             if not self.joinSession():
                 self['positivity'].influence(self['positivity']['lower'])
             
     def wantsToContact(self, other):
-        regard_threshold = self['tolerance']['coefficient'] * 10
-        min_required = self['regard']['current'] - regard_threshold
-        min_required = boundsCheck(min_required)
-        
-        return self.getRating(other) >= min_required
+        regard_threshold = self['tolerance']['coefficient'] * 30
+        threshold_min = self['regard']['current'] - regard_threshold
+        return self.getRating(other) >= threshold_min
             
     def joinSession(self):
         perception_list = list()
@@ -193,6 +207,9 @@ class sentibyte(object):
             return False
                
         perception_list.sort()
+        top10 = len(perception_list) - 10 if len(perception_list) > 10 else 0
+        perception_list = perception_list[top10:]
+
         weighed_options = {}
         for i in range(len(perception_list)):
             sb = perception_list[i].perceived
@@ -214,9 +231,9 @@ class sentibyte(object):
     def getRating(self, other):
         sb_ID = str(other)
         if sb_ID not in self.perceptions.keys():
-            return None
+            self.addPerception(other)
         else:
-            return self.perceptions[sb_ID].getCurrent()
+            return self.perceptions[sb_ID].rating
             
     def getDesired(self, trait):
         return self.d_traits[trait]['current']
@@ -240,13 +257,13 @@ class sentibyte(object):
                 return True
                 
         elif self.proc('sensitivity'):
-            print "sensitivity proc'ed"
+            #print "sensitivity proc'ed"
             self.perceptions[str(other)].addRejection()
             
         else:
             self.perceptions[str(other)].addUnavailable()
         
-    def printInfo(self, traits=False, memory=False):
+    def printInfo(self, traits=False, memory=False, perceptions=False):
         print '-' * 10
         print "unique ID: ", self.sentibyte_ID
         print "name: ", self.name
@@ -255,12 +272,12 @@ class sentibyte(object):
         if traits:       
             self.printTraits()
         
-        if len(self.perceptions) > 0:
+        if len(self.perceptions) > 0 and perceptions:
             print "current perceptions: "
             for key in self.perceptions:
                 self.perceptions[key].printPerception()
          
-        if len(self.memory) > 0 and memory == True:
+        if len(self.memory) > 0 and memory:
             print "memory: "
             for item in self.memory:
                 print "%s......" % item
@@ -271,13 +288,13 @@ class sentibyte(object):
     def printTraits(self):
         print "personal traits..."
         for trait in self.p_traits:
-            print "\t%s: %f" % (trait, self.p_traits[trait]['current'])
+            print "\t%s: %f (%f base)" % (trait, self[trait]['current'], self[trait]['base'])
         print "interpersonal traits..."
         for trait in self.i_traits:
-            print "\t%s: %f" % (trait, self.i_traits[trait]['current'])
+            print "\t%s: %f (%f base)" % (trait, self[trait]['current'], self[trait]['base'])
         print "desired traits..."
         for trait in self.d_traits:
-            print "\t%s: %f" % (trait, self.d_traits[trait]['current'])
+            print "\t%s: %f (%f base)" % (trait, self.getDesired(trait), self[trait]['base'])
         
     def printConnections(self):
         print '-' * 10

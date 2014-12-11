@@ -51,7 +51,7 @@ class valueState(object):
         self.setBase()
         self.params['current'] = float(self['base'])
         # fluct_c determines size of fluctuations relative to upper - lower
-        self.fluct_c = getCoefficient(.05, .1)
+        self.fluct_c = getCoefficient(.02, .05)
         # sensitivity determines how much level is affected by outside influences
         self.sensitivity = getCoefficient(.02, .2)
         
@@ -79,8 +79,7 @@ class valueState(object):
         delta = self['current'] - self['lower']
         value_range = self['upper'] - self['lower']
         self.params['relative'] = delta / value_range
-        
-        self.params['coefficient'] = self['current'] / 99.0
+        self.params['coefficient'] = float(self['current']) / 100.0
         
     def influence(self, value, coefficient=-1):
         if coefficient == -1:
@@ -89,7 +88,10 @@ class valueState(object):
         value_change = calcInfluence(self['current'], value, coefficient)
         self.params['current'] = self['current'] + value_change
         
+        self.update()
+        
     def proc(self):
+        self.update()
         return random.random() < self['coefficient']
         
     def setBounds(self, lower_min, span):
@@ -156,3 +158,5 @@ class valueState(object):
                 
         elif self['current'] < self['lower']:
             self.params['current'] = float(self['lower'])
+            
+        self.update()

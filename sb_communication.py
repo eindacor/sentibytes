@@ -19,14 +19,15 @@ class interaction(object):
         self.owner = owner
         self.other = other
         self.others_present = list()
-        self.rating = None
+        self.overall_rating = None
         if str(other) not in owner.perceptions.keys():
-            self.rating = owner['regard']['current']
+            self.overall_rating = owner['regard']['current']
             
         else:
-            self.rating = owner.getRating(other)
+            self.overall_rating = owner.getRating(other)
         
-        self.cycles_present = 1
+        self.g_traits = {}
+        self.cycles_present = 0
         
         recorded_data = ('owner', 'others', 'total')
         
@@ -41,22 +42,22 @@ class interaction(object):
                 'last positivity': 0, 'last energy': 0}
 
     def __eq__(self, other):
-        return self.rating == other.rating
+        return self.overall_rating == other.overall_rating
         
     def __ne__(self, other):
-        return self.rating != other.rating
+        return self.overall_rating != other.overall_rating
         
     def __gt__(self, other):
-        return self.rating > other.rating
+        return self.overall_rating > other.overall_rating
         
     def __ge__(self, other):
-        return self.rating >= other.rating
+        return self.overall_rating >= other.overall_rating
         
     def __lt__(self, other):
-        return self.rating < other.rating
+        return self.overall_rating < other.overall_rating
         
     def __le__(self, other):
-        return self.rating <= other.rating
+        return self.overall_rating <= other.overall_rating
         
     def __getitem__(self, index):
         return self.data[index]
@@ -69,7 +70,7 @@ class interaction(object):
             print self.data[category]['count'], "(count)",
             print self.data[category]['avg positivity'], "(avg positivity)", 
             print self.data[category]['avg energy'], "(avg energy)"
-        print "\toverall rating: ", self.rating
+        print "\toverall rating: ", self.overall_rating
         
     def addTransmission(self, transmission):
         self.others_present = [item for item in transmission.targets if item != self.owner]
@@ -112,43 +113,68 @@ class interaction(object):
             self.data[item]['count'] += 1
             
     def closeInteraction(self, leaving):
-        self.cycles_present = 1 + (self.owner.getSession().current_cycle - self.first_cycle)
-        interaction_guesses = {}
+        self.cycles_present = (self.owner.getSession().current_cycle - self.first_cycle)
         
+        '''
         if leaving != self.owner:
             # STAMINA
             interaction_guesses['stamina'] = (1.0 - (1/self.cycles_present)) * 99
+        '''
             
         # COMMUNICATIVE
         # initial guess from data
         communicative_guess = float(self.data['total']['count']) / \
                             (float(self.cycles_present) * 20.0)
-        interaction_guesses['communicative'] = communicative_guess * 99
+        self.g_traits['communicative'] = communicative_guess * 99
                         
         # TALKATIVE
         if self.data['total']['count'] > 0:
             talkative_guess = float(self.data['total']['statements']) / \
                                 float(self.data['total']['count']) * 99
-            interaction_guesses['talkative'] = talkative_guess
+            self.g_traits['talkative'] = talkative_guess
         
         # POSITIVITY (possibly change average to first)
-        interaction_guesses['positivity'] = float(self.data['total']['first positivity'])
+        self.g_traits['positivity'] = float(self.data['total']['first positivity'])
 
         # ENERGY               
-        interaction_guesses['energy'] = float(self.data['total']['first energy'])
-
+        self.g_traits['energy'] = float(self.data['total']['first energy'])
         
-        tolerance_threshold = self.owner['tolerance']['coefficient'] * 10
+        #print '-' * 5
+        #print "%s interpretation of interaction" % self.owner
+        ratings = list()
+        for key in self.g_traits:
+            delta = abs(self.owner.getDesired(key) - self.g_traits[key])
+            rating = 99 - float(delta)
+            ratings.append(rating)
+            #print "%s guess: %f, desired: %f, actual: %f, rating: %f" % (key, self.g_traits[key], self.owner.getDesired(key), self.other[key]['current'], rating)
+        
+        self.overall_rating = float(sum(ratings)) / float(len(ratings))
+        
+        #print "overall rating: %f" % self.overall_rating
+        #print '-' * 5
+        return self.overall_rating
+        
+        
+        '''
+        print '-' * 5
+        print "%s interpretation of interaction" % self.owner
+        tolerance_threshold = self.owner['tolerance']['coefficient'] * 20
         tolerance_met = 0
         for key in interaction_guesses:
-            print "%s guess: %f, desired: %f" % (key, interaction_guesses[key], self.owner.getDesired(key))
+            print "%s guess: %f, desired: %f, actual: %f" % (key, interaction_guesses[key], self.owner.getDesired(key), self.other[key]['current'])
             delta = abs(self.owner.getDesired(key) - interaction_guesses[key])
             if delta <= tolerance_threshold:
                 tolerance_met += 1
         print "tolerance_met: %d" % tolerance_met
-        self.rating = float(tolerance_met / len(interaction_guesses)) * 99
+        print "tolerance_threshold: %f" % tolerance_threshold
+        print "tolerance coefficient: %f" % self.owner['tolerance']['coefficient']
+        print "current tolerance: %f" % self.owner['tolerance']['current']
+        print "current tolerance: %f" % self.owner['tolerance'].params['current']
+        print '-' * 5
+        self.rating = float(tolerance_met) / float(len(interaction_guesses)) * 99.0
         
         return self.rating
+        '''
 
 class session(object):
     def __init__(self):
@@ -226,9 +252,16 @@ class session(object):
             self.transmissionPhase(transmission_list)
             self.interpretPhase(transmission_list)
         
-        self.leavePhase()
         self.current_cycle += 1
-            
+        self.leavePhase()
+        
+        
+'''
+class chatlog(object):
+    def __init__(self):
+        self.members
+'''
+        
 class community(object):
     def __init__(self):
         self.community_ID = randint(0, 100000)
@@ -251,9 +284,9 @@ class community(object):
         new_session.addParticipant(second)
         self.sessions.append(new_session)
         
-    def printMembers(self, traits=False, memory=False):
+    def printMembers(self, traits=False, memory=False, perceptions=False):
         for member in self.members:
-            member.printInfo(traits=traits, memory=memory)
+            member.printInfo(traits=traits, memory=memory, perceptions=perceptions)
         
     def cycle(self):
         for session in self.sessions:
