@@ -12,6 +12,9 @@ class perception(object):
         self.rating = owner.getCurrent('regard')
         #self.rating = owner['regard'].duplicate()
         self.contacts = {'accepted' : 0, 'declined': 0, 'rejected': 0, 'total': 0}
+        # invitations from perceived to owner
+        self.invitations = 0
+        self.memories = 0
             
     def __getitem__(self, index):
         return self.p_traits[index]
@@ -34,30 +37,14 @@ class perception(object):
     def __ge__(self, other):
         return self.rating >= other.rating
             
-    def addInteraction(self, interaction):
-        '''
-        regard_range = self.owner['regard']['upper'] - self.owner['regard']['lower']
-        relative_rating = (float(interaction.overall_rating/99) * regard_range) + self.owner['regard']['lower']
-        self.rating.influence(relative_rating)
-
-        self.rating.params['current'] = weightedAverage(self.rating.params['current'], self.entries, interaction.overall_rating, 1)
+    def addInteraction(self, interaction, memory=False):
         
-        
-        self.broadcasts += interaction['total']['count']
-        self.cycles_present += interaction.cycles_present
-        
-        for key in interaction.g_traits.keys():
-            if key not in self.p_traits.keys():
-                self.p_traits[key] = interaction.g_traits[key]
-                
-            else:
-                self.p_traits[key] = weightedAverage(self.p_traits[key], self.entries, interaction.g_traits[key], 1)
-                
-        self.entries += 1
-        '''
-        
-        self.broadcasts += interaction['total']['count']
-        self.cycles_present += interaction.cycles_present
+        if not memory:
+            self.broadcasts += interaction['total']['count']
+            self.cycles_present += interaction.cycles_present
+            
+        else:
+            self.memories += 1
         
         for key in interaction.g_traits.keys():
             if key not in self.p_traits.keys():
@@ -99,7 +86,6 @@ class perception(object):
         regard_range = self.owner['regard']['upper'] - self.owner['regard']['lower']
         self.rating = (regard_range * rating_coefficient) + self.owner['regard']['lower']
         
-        
     def addRejection(self):
         #print "\t\t%s rejects %s" % (self.perceived, self.owner)
         #print "\t\t\t%s perception of %s: %f" % (self.perceived, self.owner, self.perceived.getRating(self.owner))
@@ -109,6 +95,9 @@ class perception(object):
         self.updateRating()
         #print "\t\t\t%s perception of %s after: %f" % (self.owner, self.perceived, self.owner.getRating(self.perceived))
         
+    def addInvitation(self):
+        self.invitations += 1
+            
     def addAcceptance(self):
         #print "\t\t%s accepts %s" % (self.perceived, self.owner)
         #print "\t\t\t%s perception of %s: %f" % (self.perceived, self.owner, self.perceived.getRating(self.owner))
@@ -133,26 +122,20 @@ class perception(object):
             self.p_traits['sociable'] = self.contacts['accepted'] / (self.contacts['accepted'] + self.contacts['declined'])
         self.updateRating()
         #print "\t\t\t%s perception of %s after: %f" % (self.owner, self.perceived, self.owner.getRating(self.perceived))
-      
-    '''      
-    def guessValue(self, assumed_value):
-        # adjust so regard makes perceived trait closer to desired, not increase or decrease
-        regard_offset = (self.owner.p_traits['regard']['coefficient'] - .5) * 100
-        adjusted_value = boundsCheck(assumed_value + regard_offset)
-        return (assumed_value + adjusted_value) / 2 
-    '''
             
     def printPerception(self):
         regard_range = self.owner['regard']['upper'] - self.owner['regard']['lower']
         delta_to_min = self.rating - self.owner['regard']['lower']
-        relative_rating = delta_to_min / regard_range
-        print "%s perception of %s: %f (%f relative)" % (self.owner, self.perceived, self.rating, relative_rating)
+        relative_rating = (delta_to_min / regard_range) * 99
+        print "\t%s perception of %s: %f (%f relative)" % (self.owner, self.perceived, self.rating, relative_rating)
         #print "%s perception of %s: %f" % (self.perceived, self.owner, self.perceived.getRating(self.owner))
-        print "(%d entries, %d cycles, %d broadcasts)" % (self.entries, self.cycles_present, self.broadcasts)
+        print "\t(%d entries, %d cycles, %d broadcasts)" % (self.entries, self.cycles_present, self.broadcasts)
+        print "\t%s has sent %d invitations to %s)" % (self.perceived, self.invitations, self.owner)
+        print "\t%s has sent %d invitations to %s)" % (self.owner, self.contacts['total'], self.perceived)
         for key in self.contacts.keys():
-            print "\t%s: %d" % (key, self.contacts[key])
+            print "\t\t%s: %d" % (key, self.contacts[key])
             
         for key in self.p_traits.keys():
-            print "\t%s: %f" % (key, self.p_traits[key]), 
+            print "\t\t%s: %f" % (key, self.p_traits[key]), 
             print " (%f desired)" % self.owner.d_traits[key]['base'], 
             print " (%f actual)" % self.perceived.i_traits[key]['base']

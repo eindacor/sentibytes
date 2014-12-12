@@ -4,6 +4,9 @@ import subprocess
 from sys import argv
 from sb_parser import generateSentibyte
 from os import path
+import random
+
+random.seed()
 
 def pageBreak(title):
     print "-" * 40
@@ -25,7 +28,7 @@ if len(argv) == 1:
         test_community.addMember(generateSentibyte(full_path))
 
 if len(argv) > 1 and argv[1] == 'random':
-    num_names = 50
+    num_names = 120
     
     namefile = open("names.txt")
     for i, line in enumerate(namefile):
@@ -35,7 +38,7 @@ if len(argv) > 1 and argv[1] == 'random':
     namefile.close()
     
 pageBreak('START')
-test_community.printMembers(traits=False, memory=False, perceptions=False)
+test_community.printMembers(traits=False, memory=False, perceptions=False, friends=False)
 
 turns = 1000
 
@@ -46,7 +49,10 @@ for i in range(turns):
     test_community.cycle()
         
 pageBreak('END')
-test_community.printMembers(traits=True, memory=False, perceptions=False)
+
+for member in test_community.members:
+    member.updateFriends()
+test_community.printMembers(traits=True, memory=False, perceptions=False, friends=True)
 
 pageBreak('RELATIONSHIPS')
 best_friend1 = None
@@ -77,4 +83,5 @@ best_friend2.perceptions[str(best_friend1)].printPerception()
 print "worst enemies: %s & %s" % (worst_enemy1, worst_enemy2)
 worst_enemy1.perceptions[str(worst_enemy2)].printPerception()
 worst_enemy2.perceptions[str(worst_enemy1)].printPerception()
+
 

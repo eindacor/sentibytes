@@ -6,8 +6,7 @@ class transmission(object):
         self.positivity = positivity
         self.energy = energy
         self.source = source
-        self.targets = list()
-        self.targets.append(targets)
+        self.targets = targets[:]
         self.t_type = t_type
         
     def printStats(self):
@@ -42,22 +41,40 @@ class interaction(object):
                 'last positivity': 0, 'last energy': 0}
 
     def __eq__(self, other):
-        return self.overall_rating == other.overall_rating
+        if self.cycles_present < 4:
+            return self.cycles_present == other.cycles_present
+        else:
+            return self.overall_rating == other.overall_rating
         
     def __ne__(self, other):
-        return self.overall_rating != other.overall_rating
+        if self.cycles_present < 4:
+            return self.cycles_present != other.cycles_present
+        else:
+            return self.overall_rating != other.overall_rating
         
     def __gt__(self, other):
-        return self.overall_rating > other.overall_rating
+        if self.cycles_present < 4:
+            return self.cycles_present > other.cycles_present
+        else:
+            return self.overall_rating > other.overall_rating
         
     def __ge__(self, other):
-        return self.overall_rating >= other.overall_rating
+        if self.cycles_present < 4:
+            return self.cycles_present >= other.cycles_present
+        else:
+            return self.overall_rating >= other.overall_rating
         
     def __lt__(self, other):
-        return self.overall_rating < other.overall_rating
+        if self.cycles_present < 4:
+            return self.cycles_present < other.cycles_present
+        else:
+            return self.overall_rating < other.overall_rating
         
     def __le__(self, other):
-        return self.overall_rating <= other.overall_rating
+        if self.cycles_present < 4:
+            return self.cycles_present <= other.cycles_present
+        else:
+            return self.overall_rating <= other.overall_rating
         
     def __getitem__(self, index):
         return self.data[index]
@@ -73,6 +90,7 @@ class interaction(object):
         print "\toverall rating: ", self.overall_rating
         
     def addTransmission(self, transmission):
+        # adjust stamina levels based on mood, stay longer for good results
         self.others_present = [item for item in transmission.targets if item != self.owner]
             
         audience = ['total'] 
@@ -112,14 +130,11 @@ class interaction(object):
                 self.data[item]['statements'] +=1
             self.data[item]['count'] += 1
             
-    def closeInteraction(self, leaving):
-        self.cycles_present = (self.owner.getSession().current_cycle - self.first_cycle)
-        
-        '''
-        if leaving != self.owner:
-            # STAMINA
-            interaction_guesses['stamina'] = (1.0 - (1/self.cycles_present)) * 99
-        '''
+            self.updateInteraction()
+            
+    def updateInteraction(self):
+        # adjusted
+        self.cycles_present = 1 + (self.owner.getSession().current_cycle - self.first_cycle)
             
         # COMMUNICATIVE
         # initial guess from data
@@ -153,28 +168,6 @@ class interaction(object):
         #print "overall rating: %f" % self.overall_rating
         #print '-' * 5
         return self.overall_rating
-        
-        
-        '''
-        print '-' * 5
-        print "%s interpretation of interaction" % self.owner
-        tolerance_threshold = self.owner['tolerance']['coefficient'] * 20
-        tolerance_met = 0
-        for key in interaction_guesses:
-            print "%s guess: %f, desired: %f, actual: %f" % (key, interaction_guesses[key], self.owner.getDesired(key), self.other[key]['current'])
-            delta = abs(self.owner.getDesired(key) - interaction_guesses[key])
-            if delta <= tolerance_threshold:
-                tolerance_met += 1
-        print "tolerance_met: %d" % tolerance_met
-        print "tolerance_threshold: %f" % tolerance_threshold
-        print "tolerance coefficient: %f" % self.owner['tolerance']['coefficient']
-        print "current tolerance: %f" % self.owner['tolerance']['current']
-        print "current tolerance: %f" % self.owner['tolerance'].params['current']
-        print '-' * 5
-        self.rating = float(tolerance_met) / float(len(interaction_guesses)) * 99.0
-        
-        return self.rating
-        '''
 
 class session(object):
     def __init__(self):
@@ -194,6 +187,7 @@ class session(object):
         return self.session_ID != other.session_ID
         
     def addParticipant(self, entering):
+        #print "%s joins session %d" % (entering, self.session_ID)
         entering.current_session = self
         for sb in self.participants:
             sb.addInteraction(entering)
@@ -202,15 +196,16 @@ class session(object):
         self.participants.append(entering)
         
     def getAllOthers(self, participant):
-        other_participants = self.participants[:]
-        other_participants.remove(participant)
+        other_participants = [p for p in self.participants if p != participant]
+        #other_participants.remove(participant)
         return other_participants
     
     def removeParticipant(self, leaving):
+        #print "%s leaves session %d" % (leaving, self.session_ID)
         other_participants = self.getAllOthers(leaving)
         for participant in other_participants:
-            leaving.endInteraction(participant, leaving)
-            participant.endInteraction(leaving, leaving)
+            leaving.endInteraction(participant)
+            participant.endInteraction(leaving)
     
         leaving.removeSession()
         self.participants.remove(leaving)
@@ -255,13 +250,6 @@ class session(object):
         self.current_cycle += 1
         self.leavePhase()
         
-        
-'''
-class chatlog(object):
-    def __init__(self):
-        self.members
-'''
-        
 class community(object):
     def __init__(self):
         self.community_ID = randint(0, 100000)
@@ -270,6 +258,10 @@ class community(object):
         self.sessions = list()
         
     def addMember(self, new):
+        for member in self.members:
+            #member.addPerception(new)
+            #new.addPerception(member)
+            pass
         self.members.append(new)
         new.addCommunity(self)
         
@@ -284,9 +276,9 @@ class community(object):
         new_session.addParticipant(second)
         self.sessions.append(new_session)
         
-    def printMembers(self, traits=False, memory=False, perceptions=False):
+    def printMembers(self, traits=False, memory=False, perceptions=False, friends=False):
         for member in self.members:
-            member.printInfo(traits=traits, memory=memory, perceptions=perceptions)
+            member.printInfo(traits=traits, memory=memory, perceptions=perceptions, friends=friends)
         
     def cycle(self):
         for session in self.sessions:
