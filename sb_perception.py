@@ -37,9 +37,9 @@ class perception(object):
     def __ge__(self, other):
         return self.rating >= other.rating
             
-    def addInteraction(self, interaction, memory=False):
+    def addInteraction(self, interaction, isMemory=False):
         
-        if not memory:
+        if not isMemory:
             self.broadcasts += interaction['total']['count']
             self.cycles_present += interaction.cycles_present
             

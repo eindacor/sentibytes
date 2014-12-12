@@ -2,12 +2,13 @@ from random import random, randint
 from sb_utilities import newAverage
 
 class transmission(object):
-    def __init__(self, source, targets, positivity, energy, t_type):
+    def __init__(self, source, targets, positivity, energy, t_type, information):
         self.positivity = positivity
         self.energy = energy
         self.source = source
         self.targets = targets[:]
         self.t_type = t_type
+        self.information = information
         
     def printStats(self):
         print "TESTING"
@@ -33,7 +34,7 @@ class interaction(object):
         self.data = {}
         for item in recorded_data:
             self.data[item] = {
-                'count': 0, 'statements': 0,
+                'count': 0, 'statements': 0, 'declarations': 0,
                 'avg positivity': 0, 'avg energy': 0, 
                 'min positivity': 0, 'min energy': 0, 
                 'max positivity': 0, 'max energy': 0,
@@ -128,6 +129,10 @@ class interaction(object):
             
             if transmission.t_type == 'statement':
                 self.data[item]['statements'] +=1
+        
+            if transmission.information != None:
+                self.data[item]['declarations'] +=1
+        
             self.data[item]['count'] += 1
             
             self.updateInteraction()
@@ -147,6 +152,12 @@ class interaction(object):
             talkative_guess = float(self.data['total']['statements']) / \
                                 float(self.data['total']['count']) * 99
             self.g_traits['talkative'] = talkative_guess
+            
+        # INTELLECTUAL
+        if self.data['total']['statements'] > 0:
+            intellectual_guess = float(self.data['total']['declarations']) / \
+                                float(self.data['total']['statements']) * 99
+            self.g_traits['intellectual'] = intellectual_guess
         
         # POSITIVITY (possibly change average to first)
         self.g_traits['positivity'] = float(self.data['total']['first positivity'])

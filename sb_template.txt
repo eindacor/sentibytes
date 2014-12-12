@@ -13,6 +13,7 @@ p_energy_range =        10, 50, 90
 p_adventurous =         10, 50, 90
 p_private =             10, 50, 90
 p_reflective =          10, 50, 90
+p_trusting =            10, 50, 90
         $INTERPERSONAL
 i_positivity =          10, 50, 90
 i_energy =              10, 50, 90
@@ -20,6 +21,7 @@ i_talkative =           10, 50, 90
 i_stamina =             10, 50, 90
 i_communicative =       10, 50, 90
 i_sociable =            10, 50, 90
+i_intellectual =        10, 50, 90
         $DESIRED INTERPERSONAL
 d_positivity =          10, 20, 30
 d_energy =              10, 20, 30
@@ -27,3 +29,4 @@ d_talkative =           10, 20, 30
 d_stamina =             10, 20, 30
 d_communicative =       10, 20, 30
 d_sociable =            10, 50, 90
+d_intellectual =        10, 50, 90

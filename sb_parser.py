@@ -1,6 +1,6 @@
 from sb_sentibyte import sentibyte
 
-def generateSentibyte(sb_file):
+def generateSentibyte(sb_file, the_truth):
     file = open(sb_file, 'r')
     lines = file.readlines()
     file.close()
@@ -42,7 +42,7 @@ def generateSentibyte(sb_file):
         elif trait_type == 'desired':
             desired_traits[trait] = [lower, base, upper]
             
-    new_sb = sentibyte(name)
+    new_sb = sentibyte(name, the_truth)
     
     for trait in personal_traits.keys():
         new_sb.p_traits[trait].params['lower'] = personal_traits[trait][0]
