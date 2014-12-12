@@ -6,7 +6,7 @@ def generateSentibyte(sb_file):
     file.close()
     lines = [line.replace(' ', '') for line in lines if '$' not in line]
     lines = [line.replace('\n', '') for line in lines]
-    name = lines[0].replace('Name=', '')
+    name = "--" + lines[0].replace('Name=', '') + "--"
     lines.pop(0)
     
     personal_traits = {}
