@@ -1,5 +1,5 @@
 from random import random, randint
-from sb_utilities import newAverage
+from sb_utilities import newAverage, boundsCheck
 
 class transmission(object):
     def __init__(self, source, targets, positivity, energy, t_type, information):
@@ -170,8 +170,13 @@ class interaction(object):
         #print "%s interpretation of interaction" % self.owner
         ratings = list()
         for key in self.g_traits:
+            acceptable_range = self.owner.d_traits[key]['upper'] - self.owner.d_traits[key]['lower']
             delta = abs(self.owner.getDesired(key) - self.g_traits[key])
+            rating = acceptable_range - float(delta)
+            '''
             rating = 99 - float(delta)
+            '''
+            rating = boundsCheck(rating)
             priority = self.owner.desire_priority[key]
             for i in range(priority):
                 ratings.append(rating)

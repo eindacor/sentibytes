@@ -34,7 +34,7 @@ if len(argv) == 1:
         test_community.addMember(generateSentibyte(full_path, the_truth))
 
 if len(argv) > 1 and argv[1] == 'random':
-    num_names = 128
+    num_names = 256
     
     namefile = open("names.txt")
     for i, line in enumerate(namefile):
@@ -67,10 +67,18 @@ worst_enemy1 = None
 worst_enemy2 = None
 best_rating = 0
 worst_rating = 200
+ratings_total = 0
+rel_ratings_total = 0
+ratings_given = 0
+rel_ratings_given = 0
 for member in test_community.members:
     for other in member.memory.keys():
         sb = member.contacts[other]
         rating = sb.getRating(member) + member.getRating(sb)
+        ratings_total += sb.getRating(member)
+        ratings_given += 1
+        rel_ratings_total += sb.getRating(member, relative=True)
+        rel_ratings_given += 1
         
         if rating > best_rating:
             best_friend1 = member
@@ -81,6 +89,11 @@ for member in test_community.members:
             worst_enemy1 = member
             worst_enemy2 = sb
             worst_rating = rating
+            
+rating_average = ratings_total / float(ratings_given)
+rel_rating_average = rel_ratings_total / float(rel_ratings_given)
+print "average rating: %f" % (rating_average)
+print "average relative rating: %f" % (rel_rating_average)
             
 print "best friends: %s & %s" % (best_friend1, best_friend2)
 best_friend1.perceptions[str(best_friend2)].printPerception()
