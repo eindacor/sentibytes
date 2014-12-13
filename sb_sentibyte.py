@@ -1,4 +1,4 @@
-from random import randrange, randint, choice, uniform
+from random import randrange, randint, choice, uniform, shuffle
 import random
 from jep_loot.jeploot import catRoll
 from sb_communication import session, transmission, interaction
@@ -25,6 +25,10 @@ class sentibyte(object):
         self.the_truth = the_truth
         self.learned_on_own = 0
         self.learned_from_others = 0
+        self.met_through_others = 0
+        self.invitations_to_friends = 0
+        self.invitations_to_contacts = 0
+        self.invitaitons_to_strangers = 0
         
         # personal characteristics
         self.p_traits = {}
@@ -41,26 +45,32 @@ class sentibyte(object):
         self.p_traits['private'] = valueState()
         self.p_traits['reflective'] = valueState()
         self.p_traits['trusting'] = valueState()
+        self.p_traits['stamina'] = valueState()
         
         # interpersonal characteristics
         self.i_traits = {}
         self.i_traits['positivity'] = valueState()
         self.i_traits['energy'] = valueState()
         self.i_traits['talkative'] = valueState(10, 90)
-        self.i_traits['stamina'] = valueState()
         self.i_traits['communicative'] = valueState(10, 90)
         self.i_traits['sociable'] = valueState(10, 99)
-        self.i_traits['intellectual'] = valueState()
+        self.i_traits['intellectual'] = valueState(0, 50)
         
         # desired interpersonal characteristics of others
         self.d_traits = {}
         self.d_traits['positivity'] = valueState()
         self.d_traits['energy'] = valueState()
         self.d_traits['talkative'] = valueState(10, 90) #chance for broadcast to be statement
-        self.d_traits['stamina'] = valueState()
         self.d_traits['communicative'] = valueState(10, 90) #chance to broadcast
         self.d_traits['sociable'] = valueState(10, 99)
         self.d_traits['intellectual'] = valueState()
+        
+        desired_list = self.d_traits.keys()
+        shuffle(desired_list)
+        self.desire_priority = {}
+        for i in range(len(desired_list)):
+            priority = i + 1
+            self.desire_priority[desired_list[i]] = priority
         
         self.learn()
         
@@ -137,7 +147,7 @@ class sentibyte(object):
     def addInteraction(self, other):
         self.addPerception(other)
         
-        toAdd = interaction(self, other)
+        toAdd = interaction(self, other, self.current_session)
         
         sb_ID = str(other)
         self.current_interactions[sb_ID] = toAdd
@@ -277,14 +287,19 @@ class sentibyte(object):
         if self.proc('adventurous') or len(self.friend_list) == 0:
             #print "proc adventurous"
             target_list = self.getStrangers()
+            self.invitaitons_to_strangers += 1
             
         elif self.proc('pickiness'):
             #print "proc pickiness"
             target_list = self.getFriends()
+            self.invitations_to_friends += 1
         
         else:
             #print "generating targets from contacts"
             target_list = self.getContacts()
+            self.invitations_to_contacts += 1
+        
+        target_list = [sb for sb in target_list if self.wantsToContact(sb)]
         
         weighed_options = {}
         for other in target_list:
@@ -335,7 +350,7 @@ class sentibyte(object):
     # must be separate from "contact" function to filter out potential contact attempts
     # not just for denying invitations, also for determining who to invite
     def wantsToContact(self, other):
-        regard_threshold = self['tolerance']['coefficient'] * 30
+        regard_threshold = self['tolerance']['coefficient'] * 10
         threshold_min = self['regard']['current'] - regard_threshold
         return self.getRating(str(other)) >= threshold_min
         
@@ -361,6 +376,10 @@ class sentibyte(object):
                 return True
                 
             else:
+                for participant in other.current_session.participants:
+                    if str(self) not in participant.contacts.keys():
+                        self.met_through_others += 1
+                        participant.met_through_others += 1
                 other.current_session.addParticipant(self)
                 return True
                 
@@ -382,6 +401,10 @@ class sentibyte(object):
         print "learned from others: %d" % self.learned_from_others
         print "learned on own: %d" % self.learned_on_own
         print "others met: %d" % len(self.contacts)
+        print "others met through mutual contacts: %d" % self.met_through_others
+        print "invitations to strangers: %d" % self.invitaitons_to_strangers
+        print "invitations to contacts: %d" % self.invitations_to_contacts
+        print "invitations to friends: %d" % self.invitations_to_friends
         print "current session: ", self.current_session
         
         if traits:       
@@ -420,7 +443,9 @@ class sentibyte(object):
             print "\t%s: %f (%f base)" % (trait, self[trait]['current'], self[trait]['base'])
         print "desired traits..."
         for trait in self.d_traits:
-            print "\t%s: %f" % (trait, self.getDesired(trait))
+            print "\t%s: %f" % (trait, self.getDesired(trait)), 
+            priority = self.desire_priority[trait]
+            print " (%d priority weight)" % priority
         
     def printConnections(self):
         print '-' * 10

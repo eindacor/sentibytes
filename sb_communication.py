@@ -14,8 +14,9 @@ class transmission(object):
         print "TESTING"
 
 class interaction(object):
-    def __init__(self, owner, other):
-        self.first_cycle = owner.getSession().current_cycle
+    def __init__(self, owner, other, session):
+        self.session = session
+        self.first_cycle = self.session.current_cycle
         self.owner = owner
         self.other = other
         self.others_present = list()
@@ -144,7 +145,7 @@ class interaction(object):
         # COMMUNICATIVE
         # initial guess from data
         communicative_guess = float(self.data['total']['count']) / \
-                            (float(self.cycles_present) * 20.0)
+                            (float(self.cycles_present) * self.session.communications_per_cycle)
         self.g_traits['communicative'] = communicative_guess * 99
                         
         # TALKATIVE
@@ -171,7 +172,9 @@ class interaction(object):
         for key in self.g_traits:
             delta = abs(self.owner.getDesired(key) - self.g_traits[key])
             rating = 99 - float(delta)
-            ratings.append(rating)
+            priority = self.owner.desire_priority[key]
+            for i in range(priority):
+                ratings.append(rating)
             #print "%s guess: %f, desired: %f, actual: %f, rating: %f" % (key, self.g_traits[key], self.owner.getDesired(key), self.other[key]['current'], rating)
         
         self.overall_rating = float(sum(ratings)) / float(len(ratings))
@@ -186,6 +189,7 @@ class session(object):
         self.participants = list()
         self.current_cycle = 0
         self.session_open = True
+        self.communications_per_cycle = 12
         
     def __eq__(self, other):
         if other == None:
@@ -253,7 +257,8 @@ class session(object):
         self.session_open = False
                 
     def cycle(self):
-        for i in range(20):
+        #
+        for i in range(self.communications_per_cycle):
             transmission_list = list()
             self.transmissionPhase(transmission_list)
             self.interpretPhase(transmission_list)

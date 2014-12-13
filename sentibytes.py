@@ -34,7 +34,7 @@ if len(argv) == 1:
         test_community.addMember(generateSentibyte(full_path, the_truth))
 
 if len(argv) > 1 and argv[1] == 'random':
-    num_names = 120
+    num_names = 128
     
     namefile = open("names.txt")
     for i, line in enumerate(namefile):
@@ -46,7 +46,7 @@ if len(argv) > 1 and argv[1] == 'random':
 pageBreak('START')
 test_community.printMembers(traits=False, memory=False, perceptions=False, friends=False)
 
-turns = 1000
+turns = 512
 
 for i in range(turns):
     if i == turns/2:
@@ -93,7 +93,9 @@ worst_enemy2.perceptions[str(worst_enemy1)].printPerception()
 pageBreak('KNOWLEDGE')
 smartest = None
 dumbest = None
+knowledge_total = 0
 for member in test_community.members:
+    knowledge_total += len(member.knowledge)
     if type(smartest) == type(None) or len(member.knowledge) > len(smartest.knowledge):
         smartest = member
         
@@ -104,4 +106,5 @@ print "smartest:"
 smartest.printInfo(traits=True, memory=False, perceptions=False, friends=True)
 print "dumbest:"
 dumbest.printInfo(traits=True, memory=False, perceptions=False, friends=True)
+print "average knowledge:", knowledge_total / float(len(test_community.members))
 

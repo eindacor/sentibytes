@@ -73,7 +73,8 @@ class perception(object):
             
         else:
             rating_coefficient = self.owner['regard']['relative']
-            
+        
+        '''
         if self.contacts['total'] > 0:
             rejected = self.contacts['rejected']
             accepted = self.contacts['accepted']
@@ -82,6 +83,7 @@ class perception(object):
             
             contact_rating = (accepted + declined) / total
             rating_coefficient = (rating_coefficient + contact_rating) / 2.0
+        '''
             
         regard_range = self.owner['regard']['upper'] - self.owner['regard']['lower']
         self.rating = (regard_range * rating_coefficient) + self.owner['regard']['lower']
@@ -138,4 +140,5 @@ class perception(object):
         for key in self.p_traits.keys():
             print "\t\t%s: %f" % (key, self.p_traits[key]), 
             print " (%f desired)" % self.owner.d_traits[key]['base'], 
-            print " (%f actual)" % self.perceived.i_traits[key]['base']
+            print " (%f actual)" % self.perceived.i_traits[key]['base'],
+            print " (%d priority weight)" % self.owner.desire_priority[key]
