@@ -86,6 +86,7 @@ def updateLog(community, traits=True, friends=True):
     
     stats = list()
     
+    stats.append("members: %d" % mem_count)
     stats.append("cycles: %d" % community.current_cycle)
     stats.append("average knowledge: %f" % avg_knowledge)
     stats.append("average learned from others: %f" % avg_learned_from_others)
