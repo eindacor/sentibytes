@@ -36,7 +36,8 @@ class sentibyte(object):
         self.p_traits['volatility'] = valueState(5, 25)
         self.p_traits['sensitivity'] = valueState(5, 20)
         self.p_traits['observant'] = valueState(70, 99)
-        self.p_traits['pickiness'] = valueState(40, 99) #determines likelihood of picking favored contacts
+        # pickiness determines likelihood of picking favored contacts
+        self.p_traits['pickiness'] = valueState(40, 99)
         self.p_traits['impressionability'] = valueState(1, 15)
         self.p_traits['tolerance'] = valueState()
         self.p_traits['positivity_range'] = valueState(10, 90)
@@ -60,8 +61,10 @@ class sentibyte(object):
         self.d_traits = {}
         self.d_traits['positivity'] = valueState()
         self.d_traits['energy'] = valueState()
-        self.d_traits['talkative'] = valueState(10, 90) #chance for broadcast to be statement
-        self.d_traits['communicative'] = valueState(10, 90) #chance to broadcast
+        # talkative chance for broadcast to be statement
+        self.d_traits['talkative'] = valueState(10, 90) 
+        # communicative determines likelihood of broadcasting while interacting
+        self.d_traits['communicative'] = valueState(10, 90) 
         self.d_traits['sociable'] = valueState(10, 99)
         self.d_traits['intellectual'] = valueState()
         
@@ -75,10 +78,10 @@ class sentibyte(object):
         self.learn()
         
     def __getitem__(self, index):
-        if index in self.p_traits.keys():
+        if index in self.p_traits:
             return self.p_traits[index]
             
-        elif index in self.i_traits.keys():
+        elif index in self.i_traits:
             return self.i_traits[index]
             
         else:
@@ -95,10 +98,10 @@ class sentibyte(object):
         return self.sentibyte_ID
         
     def proc(self, trait):
-        if trait in self.p_traits.keys():
+        if trait in self.p_traits:
             return self.p_traits[trait].proc()
             
-        elif trait in self.i_traits.keys():
+        elif trait in self.i_traits:
             return self.i_traits[trait].proc()
             
         else:
@@ -106,10 +109,10 @@ class sentibyte(object):
             return False
             
     def getCurrent(self, index):
-        if index in self.p_traits.keys():
+        if index in self.p_traits:
             return self.p_traits[index].params['current']
             
-        elif index in self.i_traits.keys():
+        elif index in self.i_traits:
             return self.i_traits[index].params['current']
 
         else:
@@ -128,7 +131,7 @@ class sentibyte(object):
             
     def removeSession(self):
         self.current_session = None
-        self.i_traits['positivity'].params['current'] = self.i_traits['positivity'].params['base'] 
+        self.i_traits['positivity'].params['current'] = self['positivity']['base'] 
             
     def interpretTransmission(self, sent):
         source = str(sent.source)
@@ -141,7 +144,7 @@ class sentibyte(object):
                 self.receiveTransmission(sent)
         
     def addPerception(self, other):
-        if str(other) not in self.perceptions.keys():
+        if str(other) not in self.perceptions:
             self.perceptions[str(other)] = perception(other, self)
            
     def addInteraction(self, other):
@@ -152,13 +155,14 @@ class sentibyte(object):
         sb_ID = str(other)
         self.current_interactions[sb_ID] = toAdd
             
-        if str(other) not in self.contacts.keys():
+        if str(other) not in self.contacts:
             self.contacts[str(other)] = other
         
     def updateFriends(self):
         num_friends = 12
         
-        perception_list = [p for p in self.perceptions.values() if str(p.perceived) in self.contacts.keys()]
+        perception_list = [self.perceptions[p] for p in self.contacts]
+    
         perception_list.sort()
         
         length = len(perception_list)
@@ -166,7 +170,7 @@ class sentibyte(object):
         if length > num_friends:
             perception_list = perception_list[length - num_friends:]
             
-        self.friend_list = [str(perception.perceived) for perception in perception_list]
+        self.friend_list = [str(p.perceived) for p in perception_list]
                 
     def getFriends(self):
         self.updateFriends()
@@ -175,7 +179,7 @@ class sentibyte(object):
     
     def getStrangers(self):
         stranger_list = [m for m in self.community.members 
-                        if m != self and str(m) not in self.memory.keys()]
+                        if m != self and str(m) not in self.memory]
               
         return stranger_list
         
@@ -194,7 +198,7 @@ class sentibyte(object):
         self.perceptions[sb_ID].addInteraction(target)
         
         # add to memory
-        if sb_ID not in self.memory.keys():
+        if sb_ID not in self.memory:
             self.memory[sb_ID] = list()
             
         heappush(self.memory[sb_ID], self.current_interactions[sb_ID])
@@ -212,13 +216,17 @@ class sentibyte(object):
         if received.information != None and self.proc('trusting') and self.proc('intellectual'):
             index = received.information[0]
             data = received.information[1]
-            if index not in self.knowledge.keys():
+            if index not in self.knowledge:
                 self.knowledge[index] = data
                 self.learned_from_others += 1
         
     def broadcast(self, targets):
-        positivity = calcAccuracy(self['positivity']['current'], self.p_traits['positivity_range']['coefficient'])
-        energy = calcAccuracy(self['energy']['current'], self.p_traits['energy_range']['coefficient'])
+        positivity_current = self['positivity']['current']
+        positivity_co = self.p_traits['positivity_range']['coefficient']
+        positivity = calcAccuracy(positivity_current, positivity_co)
+        energy_current = self['energy']['current']
+        energy_co = self.p_traits['energy_range']['coefficient']
+        energy = calcAccuracy(energy_current, energy_co)
         t_type = None
         information = None
         if self.proc('talkative'):
@@ -243,7 +251,8 @@ class sentibyte(object):
         if len(selected_targets) == 0:
             selected_targets.append(choice(targets))
             
-        toSend = transmission(self, selected_targets, positivity, energy, t_type, information)
+        toSend = transmission(self, selected_targets, positivity, 
+                                energy, t_type, information)
         return toSend
         
     def reflect(self):
@@ -252,7 +261,7 @@ class sentibyte(object):
     
     def learn(self):
         if len(self.knowledge) != len(self.the_truth):
-            unknown = [i for i in self.the_truth.keys() if i not in self.knowledge.keys()]
+            unknown = [i for i in self.the_truth if i not in self.knowledge]
             new_index = choice(unknown)
             
             self.knowledge[new_index] = self.the_truth[new_index]
@@ -281,21 +290,17 @@ class sentibyte(object):
             
     def joinSession(self):
         self.updateFriends()
-        #print "%s attempts to join a session" % self
         # generate list of targets (strangers, contacts, or friends)
         target_list = list()
         if self.proc('adventurous') or len(self.friend_list) == 0:
-            #print "proc adventurous"
             target_list = self.getStrangers()
             self.invitaitons_to_strangers += 1
             
         elif self.proc('pickiness'):
-            #print "proc pickiness"
             target_list = self.getFriends()
             self.invitations_to_friends += 1
         
         else:
-            #print "generating targets from contacts"
             target_list = self.getContacts()
             self.invitations_to_contacts += 1
         
@@ -303,7 +308,7 @@ class sentibyte(object):
         
         weighed_options = {}
         for other in target_list:
-            if str(other) in self.perceptions.keys():
+            if str(other) in self.perceptions:
                 weighed_options[other] = self.getRating(str(other), relative=True)
             else:
                 weighed_options[other] = self['regard']['current']
@@ -318,19 +323,20 @@ class sentibyte(object):
             del weighed_options[selected]
             
             if len(weighed_options) == 0:
-                #print "weighed options empty"
                 return False
          
             selected = catRoll(weighed_options)
          
-        #print "\tselected: %s" % selected
         return True
         
+    # returns rating of particular sentibyte by ID or object
+    # if the target is yet to make contact with self, returns self's current
+    # regard level
     def getRating(self, other, relative=False):
         if type(other) == sentibyte:
             other = other.sentibyte_ID
             
-        if other not in self.perceptions.keys():
+        if other not in self.perceptions:
             rating = self['regard']['current']
         
         else:
@@ -353,15 +359,14 @@ class sentibyte(object):
         regard_threshold = self['tolerance']['coefficient'] * 10
         threshold_min = self['regard']['current'] - regard_threshold
         return self.getRating(str(other)) >= threshold_min
-        
+       
+    # returns true if a session is successfully joined or created
     def contact(self, other):
-        #print "%s contacts %s" % (self, other)
         other.addPerception(self)
         self.addPerception(other)
         other.perceptions[str(self)].addInvitation()
         
         if not other.wantsToContact(self):
-            #print "%s rejected %s" % (other, self)
             self.perceptions[str(other)].addRejection()
             
         elif type(other.current_session) != type(None) and len(other.current_session.participants) > 10:
@@ -377,62 +382,77 @@ class sentibyte(object):
                 
             else:
                 for participant in other.current_session.participants:
-                    if str(self) not in participant.contacts.keys():
+                    if str(self) not in participant.contacts:
                         self.met_through_others += 1
                         participant.met_through_others += 1
                 other.current_session.addParticipant(self)
                 return True
                 
         elif self.proc('sensitivity'):
-            #print "sensitivity proc'ed, %s rejected %s" % (other, self)
             self.perceptions[str(other)].addRejection()
             return False
             
         else:
-            #print "%s declined %s" % (other, self)
             self.perceptions[str(other)].addUnavailable()
             return False
         
-    def printInfo(self, traits=False, memory=False, perceptions=False, friends=False):
-        print '-' * 10
-        print "unique ID: ", self.sentibyte_ID
-        print "name: ", self.name
-        print "acquired knowledge: %d" % len(self.knowledge)
-        print "learned from others: %d" % self.learned_from_others
-        print "learned on own: %d" % self.learned_on_own
-        print "others met: %d" % len(self.contacts)
-        print "others met through mutual contacts: %d" % self.met_through_others
-        print "invitations to strangers: %d" % self.invitaitons_to_strangers
-        print "invitations to contacts: %d" % self.invitations_to_contacts
-        print "invitations to friends: %d" % self.invitations_to_friends
-        print "current session: %s" % self.current_session
+    def getInfo(self, traits=False, memory=False, perceptions=False, friends=False):
+        lines = list()
+        lines.append("unique ID: %s" % self.sentibyte_ID)
+        lines.append("name: %s" % self.name)
+        lines.append("acquired knowledge: %d" % len(self.knowledge))
+        lines.append("learned from others: %d" % self.learned_from_others)
+        lines.append("learned on own: %d" % self.learned_on_own)
+        lines.append("others met: %d" % len(self.contacts))
+        lines.append("others met through mutual contacts: %d" % self.met_through_others)
+        lines.append("invitations to strangers: %d" % self.invitaitons_to_strangers)
+        lines.append("invitations to contacts: %d" % self.invitations_to_contacts)
+        lines.append("invitations to friends: %d" % self.invitations_to_friends)
+        lines.append("current session: %s" % self.current_session)
         
-        if traits:       
-            self.printTraits()
+        if traits:   
+            #update
+            lines.append("personal traits...")
+            for trait in self.p_traits:
+                lines.append("\t%s: %f (%f base)" % (
+                            trait, self[trait]['current'], self[trait]['base']))
+            lines.append("interpersonal traits...")
+            for trait in self.i_traits:
+                lines.append("\t%s: %f (%f base)" % (
+                            trait, self[trait]['current'], self[trait]['base']))
+            lines.append("desired traits...")
+            for trait in self.d_traits:
+                lines.append("\t%s: %f (%d priority weight)" % (
+                            trait, self.getDesired(trait), self.desire_priority[trait]))
             
         if len(self.friend_list) > 0 and friends:
-            print "friends:"
-            for member in self.friend_list:
-                self.perceptions[str(member)].printPerception()
+            lines.append("friends:")
+            for friend in self.friend_list:
+                perception = self.perceptions[friend]
                 
-            entry_list = [i.entries for i in self.perceptions.values()]
-            print "\taverage entries for connections: %f" % (sum(entry_list) / float(len(entry_list)))
+                regard_range = perception.owner['regard']['upper'] - perception.owner['regard']['lower']
+                delta_to_min = perception.rating - perception.owner['regard']['lower']
+                relative_rating = (delta_to_min / regard_range) * 99
+                lines.append("\t%s perception of %s: %f (%f relative)" % (perception.owner, perception.perceived, perception.rating, relative_rating))
+                lines.append("\t(%d entries, %d cycles, %d broadcasts)" % (perception.entries, perception.cycles_present, perception.broadcasts))
+                lines.append("\t%s has sent %d invitations to %s)" % (perception.perceived, perception.invitations, perception.owner))
+                lines.append("\t%s has sent %d invitations to %s)" % (perception.owner, perception.contacts['total'], perception.perceived))
+                for key in perception.contacts:
+                    lines.append("\t\t%s: %d" % (key, perception.contacts[key]))
             
-            rating_list = [self.getRating(i, relative=True) for i in self.perceptions.keys()]
-            print "\taverage rating for connections: %f" % (sum(rating_list) / float(len(rating_list)))
+            for key in perception.p_traits:
+                desired = perception.owner.d_traits[key]['base']
+                actual = perception.perceived.i_traits[key]['base']
+                priority = perception.owner.desire_priority[key]
+                lines.append("\t\t%s: %f (%f desired) (%f actual) (%d priority weight)" % (key, perception.p_traits[key], desired, actual, priority))
+            
+            entry_list = [i.entries for i in self.perceptions.values()]
+            lines.append("\taverage entries for connections: %f" % (sum(entry_list) / float(len(entry_list))))
+                
+            rating_list = [self.getRating(i, relative=True) for i in self.perceptions]
+            lines.append("\taverage rating for connections: %f" % (sum(rating_list) / float(len(rating_list))))
         
-        if len(self.perceptions) > 0 and perceptions:
-            print "current perceptions: "
-            for key in self.perceptions.keys():
-                self.perceptions[key].printPerception()
-         
-        if len(self.memory) > 0 and memory:
-            print "memory: "
-            for item in self.memory:
-                print "%s......" % item
-                for log in self.memory[item]:
-                    log.printStats()
-                    print '-' * 4
+        return lines
         
     def printTraits(self):
         print "personal traits..."
@@ -449,7 +469,7 @@ class sentibyte(object):
         
     def printConnections(self):
         print '-' * 10
-        for sb_ID in self.perceptions.keys():
+        for sb_ID in self.perceptions:
             print "connection %d..." % i
             self.perceptions[sb_ID].printInfo()
             

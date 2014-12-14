@@ -19,60 +19,92 @@ def updateLog(community, traits=True, friends=True):
     file = open("sentibytes.txt", 'w')
     file = open("sentibytes.txt", 'a')
     
-    lines_to_file = list()
+    member_info = list()
     for member in community.members:
-        lines_to_file.append("------------------------------------------------")
-        lines_to_file.append("unique ID: %s" % member.sentibyte_ID)
-        lines_to_file.append("name: %s" % member.name)
-        lines_to_file.append("acquired knowledge: %d" % len(member.knowledge))
-        lines_to_file.append("learned from others: %d" % member.learned_from_others)
-        lines_to_file.append("learned on own: %d" % member.learned_on_own)
-        lines_to_file.append("others met: %d" % len(member.contacts))
-        lines_to_file.append("others met through mutual contacts: %d" % member.met_through_others)
-        lines_to_file.append("invitations to strangers: %d" % member.invitaitons_to_strangers)
-        lines_to_file.append("invitations to contacts: %d" % member.invitations_to_contacts)
-        lines_to_file.append("invitations to friends: %d" % member.invitations_to_friends)
-        lines_to_file.append("current session: %s" % member.current_session)
+        member_info.append("----------------------")
+        for line in member.getInfo(traits=True, friends=True):
+            member_info.append(line)
+                
+    writeLines(member_info, file)
+    file.close()
+   
+    total_knowledge = 0
+    total_learned_from_others = 0
+    total_learned_on_own = 0
+    total_ratings = 0
+    rating_count = 0.0
+    total_relative_ratings = 0
+    relative_rating_count = 0.0
+    total_rating_friends = 0
+    rating_friends_count = 0.0
+    total_relative_ratings_friends = 0
+    relative_rating_friends_count = 0.0
+    total_inv_to_strangers = 0
+    total_inv_to_contacts = 0
+    total_inv_to_friends = 0
+    total_met = 0
+    total_met_through_others = 0
+    highest_relative_rating = 0
+    lowest_relative_rating = 99
+    mem_count = float(len(community.members))
+    for member in community.members:
+        total_knowledge += len(member.knowledge)
+        total_learned_from_others += member.learned_from_others
+        total_learned_on_own += member.learned_on_own
+        for other in member.contacts:
+            if member.getRating(other, relative=True) > highest_relative_rating:
+                highest_relative_rating = member.getRating(other, relative=True)
+            elif member.getRating(other, relative=True) < lowest_relative_rating:
+                lowest_relative_rating = member.getRating(other, relative=True)
+            total_ratings += member.getRating(other)
+            rating_count += 1
+            total_relative_ratings += member.getRating(other, relative=True)
+            relative_rating_count += 1
+        for other in member.friend_list:
+            total_rating_friends += member.getRating(other)
+            rating_friends_count += 1
+            total_relative_ratings_friends += member.getRating(other, relative=True)
+            relative_rating_friends_count += 1
+        total_inv_to_strangers += member.invitaitons_to_strangers
+        total_inv_to_contacts += member.invitations_to_contacts
+        total_inv_to_friends += member.invitations_to_friends
+        total_met += len(member.contacts)
+        total_met_through_others += member.met_through_others
     
-        if traits:
-            lines_to_file.append("personal traits...")
-            for trait in member.p_traits:
-                lines_to_file.append("\t%s: %f (%f base)" % (trait, member[trait]['current'], member[trait]['base']))
-            lines_to_file.append("interpersonal traits...")
-            for trait in member.i_traits:
-                lines_to_file.append("\t%s: %f (%f base)" % (trait, member[trait]['current'], member[trait]['base']))
-            lines_to_file.append("desired traits...")
-            for trait in member.d_traits:
-                lines_to_file.append("\t%s: %f (%d priority weight)" % (trait, member.getDesired(trait), member.desire_priority[trait]))
-            
-        if len(member.friend_list) > 0 and friends:
-            lines_to_file.append("friends:")
-            for friend in member.friend_list:
-                perception = member.perceptions[friend]
-                
-                regard_range = perception.owner['regard']['upper'] - perception.owner['regard']['lower']
-                delta_to_min = perception.rating - perception.owner['regard']['lower']
-                relative_rating = (delta_to_min / regard_range) * 99
-                lines_to_file.append("\t%s perception of %s: %f (%f relative)" % (perception.owner, perception.perceived, perception.rating, relative_rating))
-                lines_to_file.append("\t(%d entries, %d cycles, %d broadcasts)" % (perception.entries, perception.cycles_present, perception.broadcasts))
-                lines_to_file.append("\t%s has sent %d invitations to %s)" % (perception.perceived, perception.invitations, perception.owner))
-                lines_to_file.append("\t%s has sent %d invitations to %s)" % (perception.owner, perception.contacts['total'], perception.perceived))
-                for key in perception.contacts.keys():
-                    lines_to_file.append("\t\t%s: %d" % (key, perception.contacts[key]))
-            
-            for key in perception.p_traits.keys():
-                desired = perception.owner.d_traits[key]['base']
-                actual = perception.perceived.i_traits[key]['base']
-                priority = perception.owner.desire_priority[key]
-                lines_to_file.append("\t\t%s: %f (%f desired) (%f actual) (%d priority weight)" % (key, perception.p_traits[key], desired, actual, priority))
-            
-            entry_list = [i.entries for i in member.perceptions.values()]
-            lines_to_file.append("\taverage entries for connections: %f" % (sum(entry_list) / float(len(entry_list))))
-                
-            rating_list = [member.getRating(i, relative=True) for i in member.perceptions.keys()]
-            lines_to_file.append("\taverage rating for connections: %f" % (sum(rating_list) / float(len(rating_list))))
-                
-    writeLines(lines_to_file, file)
+    avg_knowledge = total_knowledge/mem_count
+    avg_learned_from_others = total_learned_from_others/mem_count
+    avg_learned_on_own = total_learned_on_own/mem_count
+    avg_ratings = total_ratings/rating_count
+    avg_relative_ratings = total_relative_ratings/relative_rating_count
+    avg_rating_friends = total_rating_friends/rating_friends_count
+    avg_relative_ratings_friends = total_relative_ratings_friends/relative_rating_friends_count
+    avg_inv_to_strangers = total_inv_to_strangers/mem_count
+    avg_inv_to_contacts = total_inv_to_contacts/mem_count
+    avg_inv_to_friends = total_inv_to_friends/mem_count
+    avg_met = total_met/mem_count
+    avg_met_through_others = total_met_through_others/mem_count
+    
+    stats = list()
+    
+    stats.append("cycles: %d" % community.current_cycle)
+    stats.append("average knowledge: %f" % avg_knowledge)
+    stats.append("average learned from others: %f" % avg_learned_from_others)
+    stats.append("average learned on own: %f" % avg_learned_on_own)
+    stats.append("average relative rating: %f" % avg_relative_ratings)
+    stats.append("average relative rating of friends: %f" % avg_relative_ratings_friends)
+    stats.append("average invitations to strangers: %f" % avg_inv_to_strangers)
+    stats.append("average invitations to contacts: %f" % avg_inv_to_contacts)
+    stats.append("average invitations to friends: %f" % avg_inv_to_friends)
+    stats.append("average others met: %f" % avg_met)
+    stats.append("average met through others: %f" % avg_met_through_others)
+    stats.append("highest relative rating: %f" % highest_relative_rating)
+    stats.append("lowest relative rating: %f" % lowest_relative_rating)
+    
+    file = open("summary.txt", 'w')
+    file = open("summary.txt", 'a')
+    
+    writeLines(stats, file)
+    
     file.close()
 
 def pageBreak(title):
@@ -114,7 +146,7 @@ turns = 1000
 
 try:
     for i in range(turns):
-        if i % 50==0:
+        if i % 50==0 and i != 0:
             updateLog(test_community)
         test_community.cycle()
         
@@ -123,4 +155,3 @@ try:
 except:
     print "finalizing log file"
     updateLog(test_community)
-

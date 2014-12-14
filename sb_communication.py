@@ -21,7 +21,7 @@ class interaction(object):
         self.other = other
         self.others_present = list()
         self.overall_rating = None
-        if str(other) not in owner.perceptions.keys():
+        if str(other) not in owner.perceptions:
             self.overall_rating = owner['regard']['current']
             
         else:
@@ -82,9 +82,8 @@ class interaction(object):
         return self.data[index]
         
     def printStats(self):
-        categories = self.data.keys()
         print "\tcycles_present: ", self.cycles_present
-        for category in categories:
+        for category in self.data:
             print "\t%s: " % category,
             print self.data[category]['count'], "(count)",
             print self.data[category]['avg positivity'], "(avg positivity)", 
@@ -139,7 +138,6 @@ class interaction(object):
             self.updateInteraction()
             
     def updateInteraction(self):
-        # adjusted
         self.cycles_present = 1 + (self.owner.getSession().current_cycle - self.first_cycle)
             
         # COMMUNICATIVE
@@ -165,27 +163,18 @@ class interaction(object):
 
         # ENERGY               
         self.g_traits['energy'] = float(self.data['total']['first energy'])
-        
-        #print '-' * 5
-        #print "%s interpretation of interaction" % self.owner
         ratings = list()
         for key in self.g_traits:
             acceptable_range = self.owner.d_traits[key]['upper'] - self.owner.d_traits[key]['lower']
             delta = abs(self.owner.getDesired(key) - self.g_traits[key])
             rating = acceptable_range - float(delta)
-            '''
-            rating = 99 - float(delta)
-            '''
             rating = boundsCheck(rating)
             priority = self.owner.desire_priority[key]
             for i in range(priority):
                 ratings.append(rating)
-            #print "%s guess: %f, desired: %f, actual: %f, rating: %f" % (key, self.g_traits[key], self.owner.getDesired(key), self.other[key]['current'], rating)
         
         self.overall_rating = float(sum(ratings)) / float(len(ratings))
-        
-        #print "overall rating: %f" % self.overall_rating
-        #print '-' * 5
+    
         return self.overall_rating
 
 class session(object):
@@ -210,7 +199,6 @@ class session(object):
         return self.session_ID != other.session_ID
         
     def addParticipant(self, entering):
-        #print "%s joins session %d" % (entering, self.session_ID)
         entering.current_session = self
         for sb in self.participants:
             sb.addInteraction(entering)
@@ -220,11 +208,9 @@ class session(object):
         
     def getAllOthers(self, participant):
         other_participants = [p for p in self.participants if p != participant]
-        #other_participants.remove(participant)
         return other_participants
     
     def removeParticipant(self, leaving):
-        #print "%s leaves session %d" % (leaving, self.session_ID)
         other_participants = self.getAllOthers(leaving)
         for participant in other_participants:
             leaving.endInteraction(participant)
@@ -265,7 +251,6 @@ class session(object):
         self.session_open = False
                 
     def cycle(self):
-        #
         for i in range(self.communications_per_cycle):
             transmission_list = list()
             self.transmissionPhase(transmission_list)
@@ -278,14 +263,12 @@ class community(object):
     def __init__(self):
         self.community_ID = randint(0, 100000)
         
+        self.current_cycle = 0
+        
         self.members = list()
         self.sessions = list()
         
     def addMember(self, new):
-        for member in self.members:
-            #member.addPerception(new)
-            #new.addPerception(member)
-            pass
         self.members.append(new)
         new.addCommunity(self)
         
@@ -316,3 +299,5 @@ class community(object):
         for member in self.members:
             if member.isAvailable():
                 member.cycle()
+                
+        self.current_cycle += 1

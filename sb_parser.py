@@ -44,21 +44,21 @@ def generateSentibyte(sb_file, the_truth):
             
     new_sb = sentibyte(name, the_truth)
     
-    for trait in personal_traits.keys():
+    for trait in personal_traits:
         new_sb.p_traits[trait].params['lower'] = personal_traits[trait][0]
         new_sb.p_traits[trait].params['base'] = personal_traits[trait][1]
         new_sb.p_traits[trait].params['current'] = personal_traits[trait][1]
         new_sb.p_traits[trait].params['upper'] = personal_traits[trait][2]
         new_sb.p_traits[trait].update()
         
-    for trait in interpersonal_traits.keys():
+    for trait in interpersonal_traits:
         new_sb.i_traits[trait].params['lower'] = interpersonal_traits[trait][0]
         new_sb.i_traits[trait].params['base'] = interpersonal_traits[trait][1]
         new_sb.i_traits[trait].params['current'] = interpersonal_traits[trait][1]
         new_sb.i_traits[trait].params['upper'] = interpersonal_traits[trait][2]
         new_sb.i_traits[trait].update()
         
-    for trait in desired_traits.keys():
+    for trait in desired_traits:
         new_sb.d_traits[trait].params['lower'] = desired_traits[trait][0]
         new_sb.d_traits[trait].params['base'] = desired_traits[trait][1]
         new_sb.d_traits[trait].params['current'] = desired_traits[trait][1]
