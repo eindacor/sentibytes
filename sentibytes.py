@@ -143,7 +143,7 @@ if len(argv) > 1 and argv[1] == 'random':
             test_community.addMember(sentibyte(name, the_truth))
     namefile.close()
 
-turns = 1000
+turns = 100000
 
 try:
     for i in range(turns):
