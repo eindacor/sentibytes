@@ -118,7 +118,7 @@ try:
             updateLog(test_community)
         test_community.cycle()
         
-updateLog(test_community)
+    updateLog(test_community)
 
 except:
     print "finalizing log file"
