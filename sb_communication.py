@@ -196,6 +196,9 @@ class session(object):
         self.session_open = True
         self.communications_per_cycle = 12
         
+    def __str__(self):
+        return str(self.session_ID)
+        
     def __eq__(self, other):
         if other == None:
             return False

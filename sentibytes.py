@@ -8,6 +8,73 @@ import random
 
 random.seed()
 
+def writeLines(lines, file):
+
+    for i in range(len(lines)):
+        file.write(lines[i] + '\n')
+        
+    file.close()
+
+def updateLog(community, traits=True, friends=True):
+    file = open("sentibytes.txt", 'w')
+    file = open("sentibytes.txt", 'a')
+    
+    lines_to_file = list()
+    for member in community.members:
+        lines_to_file.append("------------------------------------------------")
+        lines_to_file.append("unique ID: %s" % member.sentibyte_ID)
+        lines_to_file.append("name: %s" % member.name)
+        lines_to_file.append("acquired knowledge: %d" % len(member.knowledge))
+        lines_to_file.append("learned from others: %d" % member.learned_from_others)
+        lines_to_file.append("learned on own: %d" % member.learned_on_own)
+        lines_to_file.append("others met: %d" % len(member.contacts))
+        lines_to_file.append("others met through mutual contacts: %d" % member.met_through_others)
+        lines_to_file.append("invitations to strangers: %d" % member.invitaitons_to_strangers)
+        lines_to_file.append("invitations to contacts: %d" % member.invitations_to_contacts)
+        lines_to_file.append("invitations to friends: %d" % member.invitations_to_friends)
+        lines_to_file.append("current session: %s" % member.current_session)
+    
+        if traits:
+            lines_to_file.append("personal traits...")
+            for trait in member.p_traits:
+                lines_to_file.append("\t%s: %f (%f base)" % (trait, member[trait]['current'], member[trait]['base']))
+            lines_to_file.append("interpersonal traits...")
+            for trait in member.i_traits:
+                lines_to_file.append("\t%s: %f (%f base)" % (trait, member[trait]['current'], member[trait]['base']))
+            lines_to_file.append("desired traits...")
+            for trait in member.d_traits:
+                lines_to_file.append("\t%s: %f (%d priority weight)" % (trait, member.getDesired(trait), member.desire_priority[trait]))
+            
+        if len(member.friend_list) > 0 and friends:
+            lines_to_file.append("friends:")
+            for friend in member.friend_list:
+                perception = member.perceptions[friend]
+                
+                regard_range = perception.owner['regard']['upper'] - perception.owner['regard']['lower']
+                delta_to_min = perception.rating - perception.owner['regard']['lower']
+                relative_rating = (delta_to_min / regard_range) * 99
+                lines_to_file.append("\t%s perception of %s: %f (%f relative)" % (perception.owner, perception.perceived, perception.rating, relative_rating))
+                lines_to_file.append("\t(%d entries, %d cycles, %d broadcasts)" % (perception.entries, perception.cycles_present, perception.broadcasts))
+                lines_to_file.append("\t%s has sent %d invitations to %s)" % (perception.perceived, perception.invitations, perception.owner))
+                lines_to_file.append("\t%s has sent %d invitations to %s)" % (perception.owner, perception.contacts['total'], perception.perceived))
+                for key in perception.contacts.keys():
+                    lines_to_file.append("\t\t%s: %d" % (key, perception.contacts[key]))
+            
+            for key in perception.p_traits.keys():
+                desired = perception.owner.d_traits[key]['base']
+                actual = perception.perceived.i_traits[key]['base']
+                priority = perception.owner.desire_priority[key]
+                lines_to_file.append("\t\t%s: %f (%f desired) (%f actual) (%d priority weight)" % (key, perception.p_traits[key], desired, actual, priority))
+            
+            entry_list = [i.entries for i in member.perceptions.values()]
+            lines_to_file.append("\taverage entries for connections: %f" % (sum(entry_list) / float(len(entry_list))))
+                
+            rating_list = [member.getRating(i, relative=True) for i in member.perceptions.keys()]
+            lines_to_file.append("\taverage rating for connections: %f" % (sum(rating_list) / float(len(rating_list))))
+                
+    writeLines(lines_to_file, file)
+    file.close()
+
 def pageBreak(title):
     print "-" * 40
     print title
@@ -42,82 +109,18 @@ if len(argv) > 1 and argv[1] == 'random':
             name = line.replace('\n', '')
             test_community.addMember(sentibyte(name, the_truth))
     namefile.close()
-    
-pageBreak('START')
-test_community.printMembers(traits=False, memory=False, perceptions=False, friends=False)
 
-turns = 512
+turns = 1000
 
-for i in range(turns):
-    if i == turns/2:
-        pageBreak('MIDPOINT')
-        test_community.printMembers(traits=False, memory=False, perceptions=False)
-    test_community.cycle()
+try:
+    for i in range(turns):
+        if i % 50==0:
+            updateLog(test_community)
+        test_community.cycle()
         
-pageBreak('END')
+updateLog(test_community)
 
-for member in test_community.members:
-    member.updateFriends()
-test_community.printMembers(traits=True, memory=False, perceptions=False, friends=True)
-
-pageBreak('RELATIONSHIPS')
-best_friend1 = None
-best_friend2 = None
-worst_enemy1 = None
-worst_enemy2 = None
-best_rating = 0
-worst_rating = 200
-ratings_total = 0
-rel_ratings_total = 0
-ratings_given = 0
-rel_ratings_given = 0
-for member in test_community.members:
-    for other in member.memory.keys():
-        sb = member.contacts[other]
-        rating = sb.getRating(member) + member.getRating(sb)
-        ratings_total += sb.getRating(member)
-        ratings_given += 1
-        rel_ratings_total += sb.getRating(member, relative=True)
-        rel_ratings_given += 1
-        
-        if rating > best_rating:
-            best_friend1 = member
-            best_friend2 = sb
-            best_rating = rating
-            
-        if rating < worst_rating:
-            worst_enemy1 = member
-            worst_enemy2 = sb
-            worst_rating = rating
-            
-rating_average = ratings_total / float(ratings_given)
-rel_rating_average = rel_ratings_total / float(rel_ratings_given)
-print "average rating: %f" % (rating_average)
-print "average relative rating: %f" % (rel_rating_average)
-            
-print "best friends: %s & %s" % (best_friend1, best_friend2)
-best_friend1.perceptions[str(best_friend2)].printPerception()
-best_friend2.perceptions[str(best_friend1)].printPerception()
-
-print "worst enemies: %s & %s" % (worst_enemy1, worst_enemy2)
-worst_enemy1.perceptions[str(worst_enemy2)].printPerception()
-worst_enemy2.perceptions[str(worst_enemy1)].printPerception()
-
-pageBreak('KNOWLEDGE')
-smartest = None
-dumbest = None
-knowledge_total = 0
-for member in test_community.members:
-    knowledge_total += len(member.knowledge)
-    if type(smartest) == type(None) or len(member.knowledge) > len(smartest.knowledge):
-        smartest = member
-        
-    if type(dumbest) == type(None) or len(member.knowledge) < len(dumbest.knowledge):
-        dumbest = member
-
-print "smartest:"
-smartest.printInfo(traits=True, memory=False, perceptions=False, friends=True)
-print "dumbest:"
-dumbest.printInfo(traits=True, memory=False, perceptions=False, friends=True)
-print "average knowledge:", knowledge_total / float(len(test_community.members))
+except:
+    print "finalizing log file"
+    updateLog(test_community)
 

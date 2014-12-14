@@ -405,7 +405,7 @@ class sentibyte(object):
         print "invitations to strangers: %d" % self.invitaitons_to_strangers
         print "invitations to contacts: %d" % self.invitations_to_contacts
         print "invitations to friends: %d" % self.invitations_to_friends
-        print "current session: ", self.current_session
+        print "current session: %s" % self.current_session
         
         if traits:       
             self.printTraits()
