@@ -1,0 +1,14 @@
+members: 165
+cycles: 10150
+average knowledge: 178.096970
+average learned from others: 45.690909
+average learned on own: 132.406061
+average relative rating: 76.102170
+average relative rating of friends: 83.434263
+average invitations to strangers: 177.303030
+average invitations to contacts: 162.654545
+average invitations to friends: 326.793939
+average others met: 104.169697
+average met through others: 84.921212
+highest relative rating: 96.089260
+lowest relative rating: 4.683852

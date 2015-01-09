@@ -1,0 +1,7 @@
+finalizing log file
+Traceback (most recent call last):
+  File "sentibytes.py", line 158, in <module>
+    updateLog(test_community)
+  File "sentibytes.py", line 74, in updateLog
+    avg_knowledge = total_knowledge/mem_count
+ZeroDivisionError: float division by zero

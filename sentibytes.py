@@ -134,7 +134,7 @@ if len(argv) == 1:
         test_community.addMember(generateSentibyte(full_path, the_truth))
 
 if len(argv) > 1 and argv[1] == 'random':
-    num_names = 256
+    num_names = 160
     
     namefile = open("names.txt")
     for i, line in enumerate(namefile):
