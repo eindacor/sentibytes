@@ -160,4 +160,3 @@ class valueState(object):
             self.params['current'] = float(self['lower'])
             
         self.update()
-        

@@ -1,68 +1,92 @@
 from sb_sentibyte import sentibyte
+from sb_utilities import valueState
+import subprocess
+from os import path
 
-def generateSentibyte(sb_file, the_truth):
-    file = open(sb_file, 'r')
+def linesFromFile(file_name):
+    file = open(file_name, 'r')
     lines = file.readlines()
     file.close()
-    lines = [line.replace(' ', '') for line in lines if '$' not in line]
-    lines = [line.replace('\n', '') for line in lines]
-    name = "--" + lines[0].replace('Name=', '') + "--"
-    lines.pop(0)
     
-    personal_traits = {}
-    interpersonal_traits = {}
-    desired_traits = {}
+    for i in range(len(lines)):
+        lines[i] = lines[i].replace('\n', '')
+        lines[i] = lines[i].replace(' ', '')
+        lines[i] = lines[i].partition('$')[0]
+    
+    lines = [line for line in lines if line != '']
+    
+    return lines
+    
+def dissectString(target, dissector):
+    separated = list()
+    toAdd = ''
+    
+    for i in range(len(target)):
+        if target[i] != dissector: 
+            toAdd += target[i]
+        
+        if target[i] == dissector or i == len(target) - 1:
+            separated.append(toAdd)
+            toAdd = ''
+            
+    return separated
+
+def traitsFromConfig(config_file):
+    lines = linesFromFile(config_file)
+    
+    p_traits = {}
+    i_traits = {}
+    d_traits = {}
     
     for line in lines:
-        array = line.partition('=')
-    
-        trait = array[0]
-        trait_type = None
+        components = line.partition('=')
+            
+        values = dissectString(components[2], ',')
+        value_min = float(values[0])
+        value_max = float(values[1])
         
-        if trait[0] == 'p':
-            trait_type = 'personal'
-        elif trait[0] == 'i':
-            trait_type = 'interpersonal'
-        elif trait[0] == 'd':
-            trait_type = 'desired'
-        
+        trait = components[0]
         trait = trait[2:]
         
-        values = array[2]
-        lower = int(values[:2])
-        base = int(values[3:5])
-        upper = int(values[6:])
+        if 'p_' in components[0]:
+            p_traits[trait] = valueState(value_min, value_max)
+        elif 'i_' in components[0]:
+            i_traits[trait] = valueState(value_min, value_max)
+        elif 'd_' in components[0]:
+            d_traits[trait] = valueState(value_min, value_max)
+        
+    return [p_traits, i_traits, d_traits]
+        
+def traitsFromFile(sb_file): 
+    lines = linesFromFile(sb_file)
     
-        if trait_type == 'personal':
-            personal_traits[trait] = [lower, base, upper]
-            
-        elif trait_type == 'interpersonal':
-            interpersonal_traits[trait] = [lower, base, upper]
-            
-        elif trait_type == 'desired':
-            desired_traits[trait] = [lower, base, upper]
-            
-    new_sb = sentibyte(name, the_truth)
+    p_traits = {}
+    i_traits = {}
+    d_traits = {}
     
-    for trait in personal_traits:
-        new_sb.p_traits[trait].params['lower'] = personal_traits[trait][0]
-        new_sb.p_traits[trait].params['base'] = personal_traits[trait][1]
-        new_sb.p_traits[trait].params['current'] = personal_traits[trait][1]
-        new_sb.p_traits[trait].params['upper'] = personal_traits[trait][2]
-        new_sb.p_traits[trait].update()
+    for line in lines:
+        components = line.partition('=')
         
-    for trait in interpersonal_traits:
-        new_sb.i_traits[trait].params['lower'] = interpersonal_traits[trait][0]
-        new_sb.i_traits[trait].params['base'] = interpersonal_traits[trait][1]
-        new_sb.i_traits[trait].params['current'] = interpersonal_traits[trait][1]
-        new_sb.i_traits[trait].params['upper'] = interpersonal_traits[trait][2]
-        new_sb.i_traits[trait].update()
+        values = dissectString(components[2], ',')
+        value_min = float(values[0])
+        value_base = float(values[1])
+        value_max = float(values[2])
         
-    for trait in desired_traits:
-        new_sb.d_traits[trait].params['lower'] = desired_traits[trait][0]
-        new_sb.d_traits[trait].params['base'] = desired_traits[trait][1]
-        new_sb.d_traits[trait].params['current'] = desired_traits[trait][1]
-        new_sb.d_traits[trait].params['upper'] = desired_traits[trait][2]
-        new_sb.d_traits[trait].update()
+        trait = components[0]
+        trait = trait[2:]
         
-    return new_sb
+        temp_vs = valueState()
+        temp_vs.params['lower'] = value_min
+        temp_vs.params['base'] = value_base
+        temp_vs.params['current'] = value_base
+        temp_vs.params['upper'] = value_max
+        temp_vs.update()
+        
+        if 'p_' in components[0]:
+            p_traits[trait] = temp_vs
+        elif 'i_' in components[0]:
+            i_traits[trait] = temp_vs
+        elif 'd_' in components[0]:
+            d_traits[trait] = temp_vs
+        
+    return [p_traits, i_traits, d_traits]

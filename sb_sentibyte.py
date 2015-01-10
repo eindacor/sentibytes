@@ -7,8 +7,8 @@ from sb_perception import perception
 from heapq import heappush, heappop
             
 class sentibyte(object):
-    def __init__(self, user, the_truth):
-        self.user_ID = user
+    def __init__(self, name, the_truth, traits):
+        self.user_ID = name
         self.name = randint(0, 1000000)
         self.location = randint(0, 10)
         
@@ -31,7 +31,11 @@ class sentibyte(object):
         self.invitaitons_to_strangers = 0
         
         # personal characteristics
-        self.p_traits = {}
+        self.p_traits = traits[0]
+        self.i_traits = traits[1]
+        self.d_traits = traits[2]
+        
+        '''
         self.p_traits['regard'] = valueState(10, 90)
         self.p_traits['volatility'] = valueState(5, 25)
         self.p_traits['sensitivity'] = valueState(5, 20)
@@ -67,6 +71,7 @@ class sentibyte(object):
         self.d_traits['communicative'] = valueState(10, 90) 
         self.d_traits['sociable'] = valueState(10, 99)
         self.d_traits['intellectual'] = valueState()
+        '''
         
         desired_list = self.d_traits.keys()
         shuffle(desired_list)
@@ -472,4 +477,5 @@ class sentibyte(object):
         for sb_ID in self.perceptions:
             print "connection %d..." % i
             self.perceptions[sb_ID].printInfo()
+        
             

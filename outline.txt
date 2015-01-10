@@ -1,0 +1,216 @@
+possible names
+    digital souls
+    bitizens
+    sentibytes
+    digisoul
+
+global occurances
+    random interactions
+        sentibyte occasionally interacts with a random other
+    forced interactions
+        sentibyte is forced to deal with random others for a period of time
+
+interactions
+    source
+    targets
+    sincerity
+    positivity
+    negativity
+    excitement
+
+main class
+    outputs
+        body language
+            levels
+                excitement
+                positivity
+                negativity
+                sincerity
+        statements
+            levels
+                excitement
+                positivity
+                negativity
+                sincerity
+        
+    inputs
+        body language of others
+        statements from others
+            mood changers
+            occasional update of familiarity of others(refresh memory states)
+        environment
+        
+    internal processes
+        during interactions
+            guessing states of others
+            evaluating inputs
+        while idle
+            evaluating self
+            evaluating memories
+            desire to connect with other
+            random fluctuation of mood
+        
+    memory
+        previous interactions
+        
+    internal states
+        levels
+            excitement(low excitement = boredom)
+            happiness
+            
+            frustration with self
+            frustration with other
+            
+            recceptiveness to others
+            confidence
+            
+        relationships/connections
+            regard of other
+            familiarity with other
+                emotional(degrades with limited interaction)
+                factual(degrades with limited interaction)
+                    number(name)
+                    location
+        
+    factual characteristics
+        number(name)
+        race
+        origin
+        
+    emotional characteristics
+        base level of happiness
+        low bound of happiness
+        upper bound of happiness
+        base level of regard for others
+        low bound of regard for others
+        upper bound of regard for others
+        intuition(understanding of other's states)
+        empathy(modifies internal states depending on intuition of others)
+        anger management(maintains degree of negative aggression)
+        excitability(determines change in excitement)
+        patience(reduces levels of frustration from annoyances)
+        judgemental(amplifies the first reaction to encounter with other)
+        trusting(prioritizes statements over body language and analysis of other)
+        sense of humor(determines frequency of positive/insincere statements/body language)
+        conversational(determines frequency of statements)
+        animated(determines clarity of body language)
+        memory quality(determines degredation of memories over time)
+        bitterness(negative memories have enhanced priority)
+        racist(negative towards others of a different location)
+        self-regulation(gradual reduction of anger during and after an argument)
+        conflict avoidance(threshold for anger towards someone before terminating interaction)
+        volatility(dictates random fluctuations of happiness)
+        moodswing degree(degree the happiness fluctuates)
+        
+    annoyances
+        others speaking with aggression
+        others with aggressive body language
+        overcrowding
+        others being excited
+        
+            
+
+
+communication
+    for each participant
+        for each other
+            if never met
+                add connection, including perception
+            record current perception
+    
+    for each round
+        for each participant(active phase)
+            if talkative
+                if sociable and multiple present
+                    make statement to multiple
+                else make statement to other
+                
+                for each target of statement
+                    if perceptive
+                        assess other related to perception, determine impressionability
+                    
+            if expressive
+                if sociable and multiple present
+                    emit body language to multiple
+                else emit body language to other
+                
+                for each target of statement
+                    if perceptive
+                        assess other related to perception, determine impressionability
+                
+        for each participant(passive phase)
+            if new
+                add to connections
+        
+            if first phase, initial scan
+                log other, compare to memory
+                update impression
+             
+            else    
+                if not self-centered
+                    scan other (incorporate perceptiveness and expressiveness of other)
+                    update impression
+                    
+                receive body language
+                    log interaction
+                    
+                receive statement
+                    log interaction
+                    
+                review interactions
+                    determine communication range
+                    determine talkative
+                    determine expressive
+                    determine impressionability
+                    determine sociable
+                    determine base happiness
+                    determine base energy
+                    update impression
+                    
+                    if body language is different than statement
+                    
+        for each participant(leave phase)
+            if leave
+                remove from participants
+                add to left list
+                for each participant and left
+                    review interaction log
+                        determine others' talkative (rounds present vs. statements)
+                        determine others' expressive (rounds present vs. body language)
+                        
+                    add interaction log to memory
+                    
+                    
+        for each participant (review others that left)
+            for each in left list
+                review interaction log
+                    determine others' talkative (rounds present vs. statements)
+                    determine others' expressive (rounds present vs. body language)
+                    
+                add interaction log to memory
+                    
+        clear left list
+       
+each participant has a dict of interactions with sentibyte_ID's as keys
+interaction log:
+    # rounds present
+    # statements to you
+    # statements to you and others
+    # statements to others not you
+    # statements to one other not you
+    # statements total
+    statements to you average
+    statements not to you 
+    statement average
+    body language to you
+    body language not to you
+    body language total
+    body language average
+            
+connections (dict):
+    key: [other's sentibyte_ID]
+        perception of other
+        
+memory (dict):
+    key: [other's sentibyte_ID]
+        list of interaction log
