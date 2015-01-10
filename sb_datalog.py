@@ -20,8 +20,11 @@ def updateSBData(community, sb_data_file, traits=True, friends=True):
     writeLines(member_info, file)
     file.close()
 
-def updateSummary(community, config_file, sb_summary_file):
+def updateSummary(community, config_file, sb_summary_file, the_truth):
     total_knowledge = 0
+    total_false_knowledge = 0
+    most_accurate_knowledge = 0
+    least_accurate_knowledge = len(the_truth)
     total_learned_from_others = 0
     total_learned_on_own = 0
     total_ratings = 0
@@ -42,6 +45,20 @@ def updateSummary(community, config_file, sb_summary_file):
     mem_count = float(len(community.members))
     for member in community.members:
         total_knowledge += len(member.knowledge)
+        accurate_knowledge = 0
+        for index in member.knowledge.keys():
+            if member.knowledge[index] != the_truth[index]:
+                total_false_knowledge += 1
+                
+            else:
+                accurate_knowledge += 1
+                
+        if accurate_knowledge > most_accurate_knowledge:
+            most_accurate_knowledge = accurate_knowledge
+            
+        if accurate_knowledge < least_accurate_knowledge:
+            least_accurate_knowledge = accurate_knowledge
+        
         total_learned_from_others += member.learned_from_others
         total_learned_on_own += member.learned_on_own
         for other in member.contacts:
@@ -65,6 +82,7 @@ def updateSummary(community, config_file, sb_summary_file):
         total_met_through_others += member.met_through_others
     
     avg_knowledge = total_knowledge/mem_count
+    avg_false_knowledge = total_false_knowledge/mem_count
     avg_learned_from_others = total_learned_from_others/mem_count
     avg_learned_on_own = total_learned_on_own/mem_count
     avg_ratings = total_ratings/rating_count
@@ -81,7 +99,11 @@ def updateSummary(community, config_file, sb_summary_file):
     
     stats.append("members: %d" % mem_count)
     stats.append("cycles: %d" % community.current_cycle)
+    stats.append("available knowledge: %d" % len(the_truth))
     stats.append("average knowledge: %f" % avg_knowledge)
+    stats.append("average false knowledge: %f" % avg_false_knowledge)
+    stats.append("most accurate knowledge: %d" % most_accurate_knowledge)
+    stats.append("least accurate knowledge: %d" % least_accurate_knowledge)
     stats.append("average learned from others: %f" % avg_learned_from_others)
     stats.append("average learned on own: %f" % avg_learned_on_own)
     stats.append("average relative rating: %f" % avg_relative_ratings)

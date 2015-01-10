@@ -15,6 +15,8 @@ p_private = 0, 99
 p_reflective = 0, 99
 p_trusting = 0, 99
 p_stamina = 0, 99
+p_intelligence = 75, 99
+p_inquisitive = 0, 99
 
 $ INTERPERSONAL
 i_positivity = 0, 99

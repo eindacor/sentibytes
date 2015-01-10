@@ -43,6 +43,28 @@ def weightedAverage(first, first_count, second, second_count):
     total = (first * first_count) + (second * second_count)
     return float(total/total_count)
     
+def distortLine(line):
+    if line.count('$') == len(line) and len(line) < 10:
+        return line + '$'
+    
+    index_insert = 0
+    new_line = ''
+    
+    if len(line) == 0:
+        new_line += '$'
+        
+    else:
+        index_insert = randint(0, len(line))
+    
+        for i in range(len(line)):
+            if i == index_insert:
+                new_line += '$'
+                
+            else:
+                new_line += line[i]
+            
+    return new_line
+    
 class valueState(object):
     def __init__(self, lower_min=0.0, upper_max=99.0):
         self.params = {}

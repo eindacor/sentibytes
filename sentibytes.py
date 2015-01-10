@@ -73,16 +73,15 @@ sb_summary = 'sb_datalog/' + time_string + "_summary.txt"
 try:
     for i in range(turns):
         if i % 50==0 and i != 0:
-            updateSummary(test_community, "traits_config.txt", sb_summary)
+            updateSummary(test_community, "traits_config.txt", sb_summary, the_truth)
             
         if i % 1000 == 0 and i != 0:
             updateSBData(test_community, sb_data)
         test_community.cycle()
         
-    updateSummary(test_community, "traits_config.txt", sb_summary)
+    updateSummary(test_community, "traits_config.txt", sb_summary, the_truth)
     updateSBData(test_community, sb_data)
 
 except:
     print "finalizing log file"
-    updateSummary(test_community, "traits_config.txt", sb_summary)
-    updateSBData(test_community, sb_data)
+    updateSummary(test_community, "traits_config.txt", sb_summary, the_truth)

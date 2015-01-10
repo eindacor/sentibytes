@@ -1,14 +1,15 @@
-from sb_parser import traitsFromConfig, traitsFromFile
-from datetime import datetime
+class randomThing_thing(object):
+    number = 5
 
-current = datetime.now()
+class randomThing_other(object):
+    
+    def __init__(self, thing):
+        self.stored_thing = thing
+    
+source_thing = randomThing_thing()
 
-time_string = ''
+first = randomThing_other(source_thing)
+second = randomThing_other(source_thing)
 
-time_string += str(current.year)
-time_string += str(current.month)
-time_string += str(current.day)
-time_string += str(current.hour)
-time_string += str(current.minute)
-
-print time_string
+print first.stored_thing
+print second.stored_thing

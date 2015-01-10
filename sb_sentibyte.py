@@ -2,7 +2,8 @@ from random import randrange, randint, choice, uniform, shuffle
 import random
 from jep_loot.jeploot import catRoll
 from sb_communication import session, transmission, interaction
-from sb_utilities import getCoefficient, calcInfluence, calcAccuracy, boundsCheck, weightedAverage, valueState
+from sb_utilities import getCoefficient, calcInfluence, calcAccuracy, \
+    boundsCheck, weightedAverage, valueState, distortLine
 from sb_perception import perception
 from heapq import heappush, heappop
             
@@ -34,44 +35,6 @@ class sentibyte(object):
         self.p_traits = traits[0]
         self.i_traits = traits[1]
         self.d_traits = traits[2]
-        
-        '''
-        self.p_traits['regard'] = valueState(10, 90)
-        self.p_traits['volatility'] = valueState(5, 25)
-        self.p_traits['sensitivity'] = valueState(5, 20)
-        self.p_traits['observant'] = valueState(70, 99)
-        # pickiness determines likelihood of picking favored contacts
-        self.p_traits['pickiness'] = valueState(40, 99)
-        self.p_traits['impressionability'] = valueState(1, 15)
-        self.p_traits['tolerance'] = valueState()
-        self.p_traits['positivity_range'] = valueState(10, 90)
-        self.p_traits['energy_range'] = valueState(10, 90)
-        self.p_traits['adventurous'] = valueState(0, 50)
-        self.p_traits['private'] = valueState()
-        self.p_traits['reflective'] = valueState()
-        self.p_traits['trusting'] = valueState()
-        self.p_traits['stamina'] = valueState()
-        
-        # interpersonal characteristics
-        self.i_traits = {}
-        self.i_traits['positivity'] = valueState()
-        self.i_traits['energy'] = valueState()
-        self.i_traits['talkative'] = valueState(10, 90)
-        self.i_traits['communicative'] = valueState(10, 90)
-        self.i_traits['sociable'] = valueState(10, 99)
-        self.i_traits['intellectual'] = valueState(0, 50)
-        
-        # desired interpersonal characteristics of others
-        self.d_traits = {}
-        self.d_traits['positivity'] = valueState()
-        self.d_traits['energy'] = valueState()
-        # talkative chance for broadcast to be statement
-        self.d_traits['talkative'] = valueState(10, 90) 
-        # communicative determines likelihood of broadcasting while interacting
-        self.d_traits['communicative'] = valueState(10, 90) 
-        self.d_traits['sociable'] = valueState(10, 99)
-        self.d_traits['intellectual'] = valueState()
-        '''
         
         desired_list = self.d_traits.keys()
         shuffle(desired_list)
@@ -221,7 +184,11 @@ class sentibyte(object):
         if received.information != None and self.proc('trusting') and self.proc('intellectual'):
             index = received.information[0]
             data = received.information[1]
-            if index not in self.knowledge:
+            
+            if self.the_truth[index] != data and self.proc('intelligence'):
+                return
+            
+            elif index not in self.knowledge:
                 self.knowledge[index] = data
                 self.learned_from_others += 1
         
@@ -266,10 +233,21 @@ class sentibyte(object):
     
     def learn(self):
         if len(self.knowledge) != len(self.the_truth):
-            unknown = [i for i in self.the_truth if i not in self.knowledge]
-            new_index = choice(unknown)
             
-            self.knowledge[new_index] = self.the_truth[new_index]
+            index = 0
+            
+            if self.proc('inquisitive') and len(self.the_truth) != len(self.knowledge):
+                unknown = [i for i in self.the_truth if i not in self.knowledge]
+                index = choice(unknown)
+                
+            else:
+                index = choice(self.the_truth.keys())
+            
+            acquired = self.the_truth[index]
+            if not self.proc('intelligence'):
+                acquired = distortLine(acquired)
+            
+            self.knowledge[index] = acquired
             self.learned_on_own += 1
         
     def cycle(self):
