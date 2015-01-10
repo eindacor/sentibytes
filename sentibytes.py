@@ -1,7 +1,7 @@
 from sb_sentibyte import sentibyte
 from sb_communication import community
 import subprocess
-from sys import argv
+from sys import argv, executable
 from sb_parser import traitsFromConfig, traitsFromFile
 from os import path, system
 import random
@@ -18,13 +18,13 @@ the_truth = {}
 for i in range(len(truth_lines)):
     the_truth[i] = truth_lines[i]
 
+script_location = path.dirname(path.abspath(__file__))
+
 # create sentibytes from files in sb_files directory
-output = subprocess.Popen(['ls', './sb_files'], stdout=subprocess.PIPE)
+output = subprocess.Popen(['ls', script_location + '/sb_files'], stdout=subprocess.PIPE)
 files_present = output.stdout.readlines()
 for i in range(len(files_present)):
     files_present[i] = files_present[i].replace('\n', '')
-
-script_location = path.dirname(path.abspath(__file__))
 
 for file_name in files_present:
     full_path = script_location + '/sb_files/' + file_name
