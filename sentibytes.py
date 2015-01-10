@@ -32,7 +32,7 @@ for file_name in files_present:
     test_community.addMember(sentibyte(file_name, the_truth, traits))
 
 # add X random sb's to community
-num_names = 150
+num_names = 250
 member_counter = 0
 namefile = open("names.txt")
 for i, line in enumerate(namefile):

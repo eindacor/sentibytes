@@ -61,9 +61,17 @@ class perception(object):
         rating_list = list()
         rating_coefficient = 0.0
         
+        tolerance = self.owner['tolerance']['current']
+        
         for key in self.p_traits:
             trait_delta = abs(self.owner.getDesired(key) - self.p_traits[key])
-            trait_rating = 99 - trait_delta
+            tolerance_difference = tolerance - trait_delta
+            trait_rating = 0.0
+            
+            if tolerance_difference > 0:
+                trait_rating = float(tolerance_difference) / float(tolerance)
+                trait_rating *= 99.0
+                
             rating_list.append(trait_rating)
             
         if len(rating_list) > 0:
