@@ -28,16 +28,22 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     total_learned_from_others = 0
     total_learned_on_own = 0
     total_ratings = 0
-    rating_count = 0.0
+    total_avg_offset = 0
+    total_avg_offset_friends = 0
     total_relative_ratings = 0
-    relative_rating_count = 0.0
+    contact_count = 0.0
     total_rating_friends = 0
-    rating_friends_count = 0.0
     total_relative_ratings_friends = 0
-    relative_rating_friends_count = 0.0
+    friend_count = 0.0
     total_inv_to_strangers = 0
     total_inv_to_contacts = 0
     total_inv_to_friends = 0
+    total_entries_of_contacts = 0
+    total_entries_of_friends = 0
+    total_interactions_with_contacts = 0
+    total_interactions_with_friends = 0
+    total_failed_connection_attempts = 0
+    total_successful_connection_attempts = 0
     total_met = 0
     total_met_through_others = 0
     highest_relative_rating = 0
@@ -67,31 +73,46 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
             elif member.getRating(other, relative=True) < lowest_relative_rating:
                 lowest_relative_rating = member.getRating(other, relative=True)
             total_ratings += member.getRating(other)
-            rating_count += 1
+            contact_count += 1
             total_relative_ratings += member.getRating(other, relative=True)
-            relative_rating_count += 1
+            total_entries_of_contacts += member.perceptions[other].entries
+            total_interactions_with_contacts += member.perceptions[other].interaction_count
+            if member.getPerceptionOffset(other) != 'n/a':
+                total_avg_offset += member.getPerceptionOffset(other)
         for other in member.friend_list:
             total_rating_friends += member.getRating(other)
-            rating_friends_count += 1
+            friend_count += 1
             total_relative_ratings_friends += member.getRating(other, relative=True)
-            relative_rating_friends_count += 1
+            total_avg_offset_friends += member.getPerceptionOffset(other)
+            total_entries_of_friends += member.perceptions[other].entries
+            total_interactions_with_friends += member.perceptions[other].interaction_count
         total_inv_to_strangers += member.invitaitons_to_strangers
         total_inv_to_contacts += member.invitations_to_contacts
         total_inv_to_friends += member.invitations_to_friends
         total_met += len(member.contacts)
         total_met_through_others += member.met_through_others
+        total_failed_connection_attempts += member.failed_connection_attempts
+        total_successful_connection_attempts += member.successful_connection_attempts
     
     avg_knowledge = total_knowledge/mem_count
     avg_false_knowledge = total_false_knowledge/mem_count
     avg_learned_from_others = total_learned_from_others/mem_count
     avg_learned_on_own = total_learned_on_own/mem_count
-    avg_ratings = total_ratings/rating_count
-    avg_relative_ratings = total_relative_ratings/relative_rating_count
-    avg_rating_friends = total_rating_friends/rating_friends_count
-    avg_relative_ratings_friends = total_relative_ratings_friends/relative_rating_friends_count
+    avg_ratings = total_ratings/contact_count
+    avg_relative_ratings = total_relative_ratings/contact_count
+    avg_rating_friends = total_rating_friends/friend_count
+    avg_relative_ratings_friends = total_relative_ratings_friends/friend_count
+    avg_avg_offset = total_avg_offset/contact_count
+    avg_avg_offset_friends = total_avg_offset_friends/friend_count
     avg_inv_to_strangers = total_inv_to_strangers/mem_count
     avg_inv_to_contacts = total_inv_to_contacts/mem_count
     avg_inv_to_friends = total_inv_to_friends/mem_count
+    avg_failed_connection_attempts = total_failed_connection_attempts/mem_count
+    avg_successful_connection_attempts = total_successful_connection_attempts/mem_count
+    avg_entries_of_contacts = total_entries_of_contacts/contact_count
+    avg_entries_of_friends = total_entries_of_friends/friend_count
+    avg_interactions_with_contacts = total_interactions_with_contacts/contact_count
+    avg_interactions_with_friends = total_interactions_with_friends/friend_count
     avg_met = total_met/mem_count
     avg_met_through_others = total_met_through_others/mem_count
     
@@ -108,9 +129,17 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     stats.append("average learned on own: %f" % avg_learned_on_own)
     stats.append("average relative rating: %f" % avg_relative_ratings)
     stats.append("average relative rating of friends: %f" % avg_relative_ratings_friends)
+    stats.append("average perception offset: %f" % avg_avg_offset)
+    stats.append("average perception offset of friends: %f" % avg_avg_offset_friends)
     stats.append("average invitations to strangers: %f" % avg_inv_to_strangers)
     stats.append("average invitations to contacts: %f" % avg_inv_to_contacts)
     stats.append("average invitations to friends: %f" % avg_inv_to_friends)
+    stats.append("average failed connection attempts: %f" % avg_failed_connection_attempts)
+    stats.append("average successful connection attempts: %f" % avg_successful_connection_attempts)
+    stats.append("average entries for contacts: %f" % avg_entries_of_contacts)
+    stats.append("average entries for friends: %f" % avg_entries_of_friends)
+    stats.append("average # of interactions with contacts: %f" % avg_interactions_with_contacts)
+    stats.append("average # of interactions with friends: %f" % avg_interactions_with_friends)
     stats.append("average others met: %f" % avg_met)
     stats.append("average met through others: %f" % avg_met_through_others)
     stats.append("highest relative rating: %f" % highest_relative_rating)

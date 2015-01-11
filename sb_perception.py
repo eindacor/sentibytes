@@ -5,7 +5,7 @@ class perception(object):
     def __init__(self, perceived, owner):
         self.perceived = perceived
         self.owner = owner
-        self.p_traits = {}
+        self.per_traits = {}
         self.entries = 0
         self.broadcasts = 0
         self.cycles_present = 0
@@ -14,9 +14,11 @@ class perception(object):
         # invitations from perceived to owner
         self.invitations = 0
         self.memories = 0
+        self.interaction_count = 0
+        self.accuracy = 0
             
     def __getitem__(self, index):
-        return self.p_traits[index]
+        return self.per_traits[index]
     
     def __eq__(self, other):
         return self.rating == other.rating
@@ -36,8 +38,7 @@ class perception(object):
     def __ge__(self, other):
         return self.rating >= other.rating
             
-    def addInteraction(self, interaction, isMemory=False):
-        
+    def addInteraction(self, interaction, isMemory=False):      
         if not isMemory:
             self.broadcasts += interaction['total']['count']
             self.cycles_present += interaction.cycles_present
@@ -46,12 +47,13 @@ class perception(object):
             self.memories += 1
         
         for key in interaction.g_traits:
-            if key not in self.p_traits:
-                self.p_traits[key] = interaction.g_traits[key]
+            if key not in self.per_traits:
+                self.per_traits[key] = interaction.g_traits[key]
                 
             else:
-                self.p_traits[key] = weightedAverage(self.p_traits[key], self.entries, interaction.g_traits[key], 1)
-                
+                self.per_traits[key] = weightedAverage(self.per_traits[key], self.entries, interaction.g_traits[key], 1)
+				
+        self.interaction_count += 1        
         self.updateRating()
         
     # get % desirability from traits and contacts, calc rating relative to 
@@ -63,8 +65,8 @@ class perception(object):
         
         tolerance = self.owner['tolerance']['current']
         
-        for key in self.p_traits:
-            trait_delta = abs(self.owner.getDesired(key) - self.p_traits[key])
+        for key in self.per_traits:
+            trait_delta = abs(self.owner.getDesired(key) - self.per_traits[key])
             tolerance_difference = tolerance - trait_delta
             trait_rating = 0.0
             
@@ -83,6 +85,19 @@ class perception(object):
             
         regard_range = self.owner['regard']['upper'] - self.owner['regard']['lower']
         self.rating = (regard_range * rating_coefficient) + self.owner['regard']['lower']
+		
+    def getAverageOffset(self):
+        # change function to assume perceived traits if not have been observerd
+        if len(self.per_traits) > 0:
+            total_delta = 0
+            for trait in self.per_traits:
+                delta = abs(self.perceived[trait]['base'] - self.per_traits[trait])
+                total_delta += delta
+				
+            return  total_delta / float(len(self.per_traits))
+			
+        else:
+            return 'n/a'
         
     def addRejection(self):
         self.contacts['rejected'] += 1
@@ -97,15 +112,15 @@ class perception(object):
         self.contacts['total'] += 1
         non_rejections = self.contacts['total'] - self.contacts['rejected']
         if non_rejections > 10:
-            self.p_traits['sociable'] = self.contacts['accepted'] / float(non_rejections)
-            self.p_traits['sociable'] *= 99
+            self.per_traits['sociable'] = self.contacts['accepted'] / float(non_rejections)
+            self.per_traits['sociable'] *= 99
         self.updateRating()
         
     def addUnavailable(self):
         self.contacts['declined'] += 1
         self.contacts['total'] += 1
         if self.contacts['total'] > 10 and self.contacts['rejected'] != self.contacts['total']:
-            self.p_traits['sociable'] = self.contacts['accepted'] / (self.contacts['accepted'] + self.contacts['declined'])
+            self.per_traits['sociable'] = self.contacts['accepted'] / (self.contacts['accepted'] + self.contacts['declined'])
         self.updateRating()
             
     def printPerception(self):
@@ -119,8 +134,8 @@ class perception(object):
         for contact in self.contacts:
             print "\t\t%s: %d" % (contact, self.contacts[contact])
             
-        for trait in self.p_traits:
-            print "\t\t%s: %f" % (key, self.p_traits[trait]), 
+        for trait in self.per_traits:
+            print "\t\t%s: %f" % (key, self.per_traits[trait]), 
             print " (%f desired)" % self.owner.d_traits[trait]['base'], 
             print " (%f actual)" % self.perceived.i_traits[trait]['base'],
             print " (%d priority weight)" % self.owner.desire_priority[trait]

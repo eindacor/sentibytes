@@ -30,6 +30,8 @@ class sentibyte(object):
         self.invitations_to_friends = 0
         self.invitations_to_contacts = 0
         self.invitaitons_to_strangers = 0
+        self.failed_connection_attempts = 0
+        self.successful_connection_attempts = 0
         
         # personal characteristics
         self.p_traits = traits[0]
@@ -127,9 +129,9 @@ class sentibyte(object):
             self.contacts[str(other)] = other
         
     def updateFriends(self):
-        num_friends = 12
+        num_friends = 8
         
-        perception_list = [self.perceptions[p] for p in self.contacts]
+        perception_list = [self.perceptions[p] for p in self.contacts if self.perceptions[p].entries > 0]
     
         perception_list.sort()
         
@@ -260,22 +262,22 @@ class sentibyte(object):
                 
             for trait in self.i_traits:
                 self.i_traits[trait].fluctuate()
-                
-        if self.proc('reflective'):
-            self.reflect()
             
+        elif self.proc('intellectual'):
+            self.learn()
+
+        if self.proc('reflective'):
+            self.reflect()			
+			
         if self.proc('sociable'):
             if not self.joinSession():
                 self['positivity'].influence(self['positivity']['lower'])
-                
-        if self.proc('intellectual'):
-            self.learn()
             
     def joinSession(self):
         self.updateFriends()
         # generate list of targets (strangers, contacts, or friends)
         target_list = list()
-        if self.proc('adventurous') or len(self.friend_list) == 0:
+        if (self.proc('adventurous') or len(self.friend_list) == 0) and len(self.getStrangers()) != 0:
             target_list = self.getStrangers()
             self.invitaitons_to_strangers += 1
             
@@ -301,15 +303,17 @@ class sentibyte(object):
             
         selected = catRoll(weighed_options)
         
-        # keep contacting until there are no targets left or succcessful connecction
+        # keep contacting until there are no targets left or a connection is made
         while self.contact(selected) == False:
+            self.failed_connection_attempts += 1
             del weighed_options[selected]
             
             if len(weighed_options) == 0:
                 return False
          
             selected = catRoll(weighed_options)
-         
+
+        self.successful_connection_attempts += 1
         return True
         
     # returns rating of particular sentibyte by ID or object
@@ -332,16 +336,19 @@ class sentibyte(object):
             rating *= 99
             
         return rating
-            
+     
+    def getPerceptionOffset(self, other):
+        self.addPerception(other)
+		
+        return self.perceptions[other].getAverageOffset()
+	 
     def getDesired(self, trait):
         return self.d_traits[trait]['current']
     
     # must be separate from "contact" function to filter out potential contact attempts
     # not just for denying invitations, also for determining who to invite
     def wantsToContact(self, other):
-        regard_threshold = self['tolerance']['coefficient'] * 10
-        threshold_min = self['regard']['current'] - regard_threshold
-        return self.getRating(str(other)) >= threshold_min
+        return self.getRating(str(other)) >= self['regard']['lower']
        
     # returns true if a session is successfully joined or created
     def contact(self, other):
@@ -352,7 +359,7 @@ class sentibyte(object):
         if not other.wantsToContact(self):
             self.perceptions[str(other)].addRejection()
             
-        elif type(other.current_session) != type(None) and len(other.current_session.participants) > 10:
+        elif type(other.current_session) != type(None) and len(other.current_session.participants) > 24:
             self.perceptions[str(other)].addUnavailable()
             return False
         

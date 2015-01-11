@@ -52,7 +52,6 @@ def traitsFromConfig(config_file):
             p_traits[trait] = valueState(value_min, value_max)
         elif 'i_' in components[0]:
             i_traits[trait] = valueState(value_min, value_max)
-        elif 'd_' in components[0]:
             d_traits[trait] = valueState(value_min, value_max)
         
     return [p_traits, i_traits, d_traits]

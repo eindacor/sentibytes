@@ -2,34 +2,26 @@ $ the following are the min/max values for each sb trait
  
 $ PERSONAL
 p_regard = 10, 90
-p_volatility = 5, 25
+p_volatility = 50, 99
 p_sensitivity = 5, 20
 p_observant = 70, 99
-p_pickiness = 40, 99
+p_pickiness = 50, 90
 p_impressionability = 1, 15
-p_tolerance = 0, 99
+p_tolerance = 20, 99
 p_positivity_range = 10, 90
 p_energy_range = 10, 90
-p_adventurous = 0, 50
-p_private = 0, 99
+p_adventurous = 5, 30
+p_private = 0, 75
 p_reflective = 0, 99
 p_trusting = 0, 99
-p_stamina = 0, 99
-p_intelligence = 75, 99
+p_stamina = 10, 60
+p_intelligence = 0, 99
 p_inquisitive = 0, 99
 
 $ INTERPERSONAL
 i_positivity = 0, 99
 i_energy = 0, 99
-i_talkative = 10, 90
-i_communicative = 10, 90
-i_sociable = 10, 99
+i_talkative = 0, 99
+i_communicative = 0, 99
+i_sociable = 20, 60
 i_intellectual = 0, 50
-
-$ DESIRED
-d_positivity = 0, 99
-d_energy = 0, 99
-d_talkative = 10, 90
-d_communicative = 10, 90
-d_sociable = 10, 99
-d_intellectual = 0, 50
