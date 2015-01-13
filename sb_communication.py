@@ -1,5 +1,5 @@
 from random import random, randint
-from sb_utilities import newAverage, boundsCheck, weightedAverage
+from sb_utilities import boundsCheck, weightedAverage
 
 class transmission(object):
     def __init__(self, source, targets, positivity, energy, t_type, information):
@@ -106,14 +106,10 @@ class interaction(object):
             self.data[item]['avg positivity'] = \
                 weightedAverage(self.data[item]['avg positivity'],
                 self.data[item]['count'], transmission.positivity, 1)
-                #newAverage(self.data[item]['count'], 
-                #self.data[item]['avg positivity'], transmission.positivity)
                 
             self.data[item]['avg energy'] = \
                 weightedAverage(self.data[item]['avg energy'],
                 self.data[item]['count'], transmission.energy, 1)
-                #newAverage(self.data[item]['count'], 
-                #self.data[item]['avg energy'], transmission.energy)
               
             # Interactions were once judged by the first transmission received,
             # with the intention of comparing first to last to identify mood change

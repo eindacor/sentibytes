@@ -1,15 +1,5 @@
-class randomThing_thing(object):
-    number = 5
+from sb_parser import dissectString
 
-class randomThing_other(object):
-    
-    def __init__(self, thing):
-        self.stored_thing = thing
-    
-source_thing = randomThing_thing()
+first = "this, is, a test, line"
 
-first = randomThing_other(source_thing)
-second = randomThing_other(source_thing)
-
-print first.stored_thing
-print second.stored_thing
+print dissectString(first, ',')

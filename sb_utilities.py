@@ -2,11 +2,6 @@ from random import randint, choice,  uniform
 import random
 from jep_loot.jeploot import catRoll, booRoll
 
-def newAverage(prev_count, prev_average, value):
-    total = (prev_count * prev_average) + value
-    count = prev_count + 1
-    return total/count
-    
 def getCoefficient(base_level=0.0, max_level=1.0):
     difference = max_level - base_level
     return base_level + (random.random() * difference)

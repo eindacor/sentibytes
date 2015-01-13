@@ -3,6 +3,8 @@ from sb_utilities import valueState
 import subprocess
 from os import path
 
+# Converts text documents into a list of lines, removing endline chars,
+# empty lines, and anything after '$' symbol
 def linesFromFile(file_name):
     file = open(file_name, 'r')
     lines = file.readlines()
@@ -17,6 +19,8 @@ def linesFromFile(file_name):
     
     return lines
     
+# Separates a line into sections, using the character passed as the dissector.
+# The dissecting characters are removed in the process.
 def dissectString(target, dissector):
     separated = list()
     toAdd = ''
@@ -31,6 +35,9 @@ def dissectString(target, dissector):
             
     return separated
 
+# Returns a list of trait dictionaries. Each dictionary contains traits as keys,
+# and valueStates as their values. The returning list is used to initialize
+# sentibytes.
 def traitsFromConfig(config_file):
     lines = linesFromFile(config_file)
     
@@ -55,7 +62,10 @@ def traitsFromConfig(config_file):
             d_traits[trait] = valueState(value_min, value_max)
         
     return [p_traits, i_traits, d_traits]
-        
+  
+# Returns a list of trait dictionaries. Each dictionary contains traits as keys,
+# and valueStates as their values. All values are based on information from a 
+# text file. The returning list is used to initialize sentibytes.      
 def traitsFromFile(sb_file): 
     lines = linesFromFile(sb_file)
     

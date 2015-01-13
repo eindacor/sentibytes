@@ -83,16 +83,30 @@ class sentibyte(object):
             return False
         
     # returns current value of passed trait    
-    def getCurrent(self, index):
-        if index in self.p_traits:
-            return self.p_traits[index].params['current']
+    def getCurrent(self, trait):
+        if trait in self.p_traits:
+            return self.p_traits[trait].params['current']
             
-        elif index in self.i_traits:
-            return self.i_traits[index].params['current']
+        elif trait in self.i_traits:
+            return self.i_traits[trait].params['current']
 
         else:
-            print "trait (%s) not found" % index
+            print "trait (%s) not found" % trait
             return None
+            
+    def getCoefficient(self, trait):
+        if trait in self.p_traits:
+            return self.p_traits[trait].params['coefficient']
+            
+        elif trait in self.i_traits:
+            return self.i_traits[trait].params['coefficient']
+
+        else:
+            print "trait (%s) not found" % trait
+            return None
+            
+    def getDesired(self, trait):
+        return self.d_traits[trait]['current']
             
     def getSession(self):
         return self.current_session
@@ -134,11 +148,32 @@ class sentibyte(object):
             
         if str(other) not in self.contacts:
             self.contacts[str(other)] = other
+     
+    def endInteraction(self, other):
+        sb_ID = str(other)
+        target = self.current_interactions[sb_ID]
+        target.updateInteraction()
+        
+        # add to perception
+        self.perceptions[sb_ID].addInteraction(target)
+        
+        # add to memory
+        if sb_ID not in self.memory:
+            self.memory[sb_ID] = list()
+            
+        heappush(self.memory[sb_ID], self.current_interactions[sb_ID])
+        
+        if len(self.memory[sb_ID]) > 10:
+            heappop(self.memory[sb_ID])
+        
+        # remove from interactions
+        self.current_interactions.pop(sb_ID, None)
         
     def updateFriends(self):
         num_friends = 8
         
-        perception_list = [self.perceptions[p] for p in self.contacts if self.perceptions[p].entries > 0]
+        perception_list = [self.perceptions[p] for p in self.contacts 
+                            if self.perceptions[p].entries > 0]
     
         perception_list.sort()
         
@@ -166,26 +201,6 @@ class sentibyte(object):
     def getContact(self, sb_ID):
         return self.contacts[sb_ID]
         
-    def endInteraction(self, other):
-        sb_ID = str(other)
-        target = self.current_interactions[sb_ID]
-        target.updateInteraction()
-        
-        # add to perception
-        self.perceptions[sb_ID].addInteraction(target)
-        
-        # add to memory
-        if sb_ID not in self.memory:
-            self.memory[sb_ID] = list()
-            
-        heappush(self.memory[sb_ID], self.current_interactions[sb_ID])
-        
-        if len(self.memory[sb_ID]) > 10:
-            heappop(self.memory[sb_ID])
-        
-        # remove from interactions
-        self.current_interactions.pop(sb_ID, None)
-        
     def receiveTransmission(self, received):
         # transmissions no longer have effect on others' positivity and energy
         # self['positivity'].influence(received.positivity)
@@ -203,11 +218,11 @@ class sentibyte(object):
                 self.learned_from_others += 1
         
     def broadcast(self, targets):
-        positivity_current = self['positivity']['current']
-        positivity_co = self.p_traits['positivity_range']['coefficient']
+        positivity_current = self.getCurrent('positivity')
+        positivity_co = self.getCoefficient('positivity')
         positivity = calcAccuracy(positivity_current, positivity_co)
-        energy_current = self['energy']['current']
-        energy_co = self.p_traits['energy_range']['coefficient']
+        energy_current = self.getCurrent('energy')
+        energy_co = self.getCoefficient('energy_range')
         energy = calcAccuracy(energy_current, energy_co)
         t_type = None
         information = None
@@ -259,10 +274,11 @@ class sentibyte(object):
             
             self.knowledge[index] = acquired
             self.learned_on_own += 1
-      
+     
+    # cycles through all traits, fluctuating each 
     def fluctuateTraits(self):
         for trait in self.p_traits:
-                self.p_traits[trait].fluctuate()
+            self.p_traits[trait].fluctuate()
                 
         for trait in self.d_traits:
             self.d_traits[trait].fluctuate()
@@ -289,7 +305,9 @@ class sentibyte(object):
                 
             else:
                 self.successful_connection_attempts += 1
-            
+      
+    # Seeks other sentibytes for communication, returns true if a connection is 
+    # made, false if not
     def joinSession(self):
         self.updateFriends()
         # generate list of targets (strangers, contacts, or friends)
@@ -352,13 +370,11 @@ class sentibyte(object):
             
         return rating
      
+    # Returns average distance from percieved trait to actual base value of other
     def getPerceptionOffset(self, other):
         self.addPerception(other)
 		
         return self.perceptions[other].getAverageOffset()
-	 
-    def getDesired(self, trait):
-        return self.d_traits[trait]['current']
     
     # must be separate from "contact" function to filter out potential contact attempts
     # not just for denying invitations, also for determining who to invite

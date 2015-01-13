@@ -52,9 +52,7 @@ namefile.close()
 turns = 100000
 
 current = datetime.now()
-
 time_string = ''
-
 time_string += str(current.year)
 if int(current.month) < 10:
     time_string += '0'
