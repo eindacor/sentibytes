@@ -11,12 +11,12 @@ def getCoefficient(base_level=0.0, max_level=1.0):
     difference = max_level - base_level
     return base_level + (random.random() * difference)
 
-# returns the desired increment of change based on data
+# returns the desired increment of change based on value passed and coefficient
 def calcInfluence(starting, influence, coefficient):
     delta = influence - starting
     return delta * coefficient
     
-# returns new value based on range coefficient
+# returns new value within a range based on range coefficient
 def calcAccuracy(value, range_coefficient):
     margain = 10 * range_coefficient * random.random()
     new_value = value + (margain * choice((1, -1)))
@@ -37,12 +37,16 @@ def boundsCheck(value):
         
     else:
         return value
-        
-def weightedAverage(first, first_count, second, second_count):
-    total_count = first_count + second_count
-    total = (first * first_count) + (second * second_count)
-    return float(total/total_count)
     
+# calculates an average based on current average, previous entry count,
+# new average, and new entry count
+def weightedAverage(initial_avg, prevoius_count, added_avg, added_count):
+    new_count = prevoius_count + added_count
+    new_avg = (initial_avg * prevoius_count) + (added_avg * added_count)
+    return float(new_avg/new_count)
+   
+# swaps a random character with '$' in a line
+# if no characters are present, it will return '$' as a string
 def distortLine(line):
     if line.count('$') == len(line) and len(line) < 10:
         return line + '$'
@@ -64,7 +68,9 @@ def distortLine(line):
                 new_line += line[i]
             
     return new_line
-    
+   
+# valueState objects contain a range of values known as 'min' and 'max'
+# within the min and max exists a 'base'
 class valueState(object):
     def __init__(self, lower_min=0.0, upper_max=99.0):
         self.params = {}
@@ -103,6 +109,7 @@ class valueState(object):
         self.params['relative'] = delta / value_range
         self.params['coefficient'] = float(self['current']) / 100.0
         
+    # increases/decreases 'current' parameter based on input and sensitivity
     def influence(self, value, coefficient=-1):
         if coefficient == -1:
             coefficient=self.sensitivity
@@ -112,10 +119,13 @@ class valueState(object):
         
         self.update()
         
+    # returns true based on the coefficient of the current value
+    # a current value of 75 has a 75% chance to return true
     def proc(self):
         self.update()
         return random.random() < self['coefficient']
-        
+    
+    # initializes valueState bounds    
     def setBounds(self, lower_min, span):
         probability_weight = [18, 20, 24, 20, 18]
         
@@ -136,7 +146,8 @@ class valueState(object):
         upper_quadrants[(lower_min + (.9 * span), lower_min + span)] = probability_weight[4]
         upper_bound_quadrant = catRoll(upper_quadrants)
         self.params['upper'] = uniform(upper_bound_quadrant[0], upper_bound_quadrant[1])
-        
+     
+    # initializes valueState 'base' parameter   
     def setBase(self):
         probability_weight = [18, 20, 24, 20, 18]
         
@@ -153,6 +164,9 @@ class valueState(object):
         base_quadrant = catRoll(base_quadrants)
         self.params['base'] = uniform(base_quadrant[0], base_quadrant[1])
         
+    # Randomly increases or decreases the 'current' parameter. The likelihood
+    # of 'current' increasing or decreasing depends on its relative position to 
+    # the 'base' parameter.
     def fluctuate(self):
         positive_chance = float(0)
         

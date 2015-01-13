@@ -34,7 +34,7 @@ for file_name in files_present:
 config_file = script_location + '/traits_config.txt'
 
 # add X random sb's to community
-num_names = 250
+num_names = 10
 member_counter = 0
 namefile = open(script_location + '/names.txt')
 for i, line in enumerate(namefile):
@@ -77,8 +77,8 @@ try:
         if i % 50==0 and i != 0:
             updateSummary(test_community, config_file, sb_summary, the_truth)
             
-        if i % 1000 == 0 and i != 0:
-            updateSBData(test_community, sb_data)
+        #if i % 1000 == 0 and i != 0:
+            #updateSBData(test_community, sb_data)
         test_community.cycle()
         
     updateSummary(test_community, config_file, sb_summary, the_truth)

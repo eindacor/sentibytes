@@ -32,6 +32,9 @@ class sentibyte(object):
         self.invitaitons_to_strangers = 0
         self.failed_connection_attempts = 0
         self.successful_connection_attempts = 0
+        self.sociable_count = 0
+        self.cycles_alone = 0
+        self.cycles_in_session = 0
         
         # personal characteristics
         self.p_traits = traits[0]
@@ -67,6 +70,7 @@ class sentibyte(object):
     def __str__(self):
         return self.sentibyte_ID
         
+    # returns true based on trait passed
     def proc(self, trait):
         if trait in self.p_traits:
             return self.p_traits[trait].proc()
@@ -77,7 +81,8 @@ class sentibyte(object):
         else:
             print "trait (%s) not found" % trait
             return False
-            
+        
+    # returns current value of passed trait    
     def getCurrent(self, index):
         if index in self.p_traits:
             return self.p_traits[index].params['current']
@@ -99,9 +104,11 @@ class sentibyte(object):
         if self.community == None:
             self.community = new
             
+    # called from session cycle if stamina trait is not proc'ed
     def removeSession(self):
         self.current_session = None
-        self.i_traits['positivity'].params['current'] = self['positivity']['base'] 
+        # removed after influence no longer changes within session
+        #self.i_traits['positivity'].params['current'] = self['positivity']['base'] 
             
     def interpretTransmission(self, sent):
         source = str(sent.source)
@@ -180,8 +187,9 @@ class sentibyte(object):
         self.current_interactions.pop(sb_ID, None)
         
     def receiveTransmission(self, received):
-        self['positivity'].influence(received.positivity)
-        self['energy'].influence(received.energy)
+        # transmissions no longer have effect on others' positivity and energy
+        # self['positivity'].influence(received.positivity)
+        # self['energy'].influence(received.energy)
         
         if received.information != None and self.proc('trusting') and self.proc('intellectual'):
             index = received.information[0]
@@ -251,17 +259,21 @@ class sentibyte(object):
             
             self.knowledge[index] = acquired
             self.learned_on_own += 1
-        
-    def cycle(self):
-        if self.proc('volatility'):
-            for trait in self.p_traits:
+      
+    def fluctuateTraits(self):
+        for trait in self.p_traits:
                 self.p_traits[trait].fluctuate()
                 
-            for trait in self.d_traits:
-                self.d_traits[trait].fluctuate()
-                
-            for trait in self.i_traits:
-                self.i_traits[trait].fluctuate()
+        for trait in self.d_traits:
+            self.d_traits[trait].fluctuate()
+            
+        for trait in self.i_traits:
+            self.i_traits[trait].fluctuate()
+      
+    def cycle(self):
+        self.cycles_alone += 1
+        if self.proc('volatility'):
+            self.fluctuateTraits()
             
         elif self.proc('intellectual'):
             self.learn()
@@ -270,8 +282,13 @@ class sentibyte(object):
             self.reflect()			
 			
         if self.proc('sociable'):
+            self.sociable_count += 1
             if not self.joinSession():
                 self['positivity'].influence(self['positivity']['lower'])
+                self.failed_connection_attempts += 1
+                
+            else:
+                self.successful_connection_attempts += 1
             
     def joinSession(self):
         self.updateFriends()
@@ -305,7 +322,6 @@ class sentibyte(object):
         
         # keep contacting until there are no targets left or a connection is made
         while self.contact(selected) == False:
-            self.failed_connection_attempts += 1
             del weighed_options[selected]
             
             if len(weighed_options) == 0:
@@ -313,7 +329,6 @@ class sentibyte(object):
          
             selected = catRoll(weighed_options)
 
-        self.successful_connection_attempts += 1
         return True
         
     # returns rating of particular sentibyte by ID or object
@@ -348,7 +363,8 @@ class sentibyte(object):
     # must be separate from "contact" function to filter out potential contact attempts
     # not just for denying invitations, also for determining who to invite
     def wantsToContact(self, other):
-        return self.getRating(str(other)) >= self['regard']['lower']
+        inverse_tolerance = 99 - self['tolerance']['current']
+        return self.getRating(str(other), relative=True) >= inverse_tolerance
        
     # returns true if a session is successfully joined or created
     def contact(self, other):
@@ -460,7 +476,7 @@ class sentibyte(object):
     def printConnections(self):
         print '-' * 10
         for sb_ID in self.perceptions:
-            print "connection %d..." % i
+            print "connection %s..." % sb_ID
             self.perceptions[sb_ID].printInfo()
         
             

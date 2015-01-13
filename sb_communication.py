@@ -1,5 +1,5 @@
 from random import random, randint
-from sb_utilities import newAverage, boundsCheck
+from sb_utilities import newAverage, boundsCheck, weightedAverage
 
 class transmission(object):
     def __init__(self, source, targets, positivity, energy, t_type, information):
@@ -104,18 +104,24 @@ class interaction(object):
             
         for item in audience:
             self.data[item]['avg positivity'] = \
-                newAverage(self.data[item]['count'], 
-                self.data[item]['avg positivity'], transmission.positivity)
+                weightedAverage(self.data[item]['avg positivity'],
+                self.data[item]['count'], transmission.positivity, 1)
+                #newAverage(self.data[item]['count'], 
+                #self.data[item]['avg positivity'], transmission.positivity)
                 
             self.data[item]['avg energy'] = \
-                newAverage(self.data[item]['count'], 
-                self.data[item]['avg energy'], transmission.energy)
-                
-            if self.data[item]['count'] == 0:
-                self.data[item]['first positivity'] = transmission.positivity
-                self.data[item]['first energy'] = transmission.energy
-            self.data[item]['last positivity'] = transmission.positivity
-            self.data[item]['last energy'] = transmission.positivity
+                weightedAverage(self.data[item]['avg energy'],
+                self.data[item]['count'], transmission.energy, 1)
+                #newAverage(self.data[item]['count'], 
+                #self.data[item]['avg energy'], transmission.energy)
+              
+            # Interactions were once judged by the first transmission received,
+            # with the intention of comparing first to last to identify mood change
+            #if self.data[item]['count'] == 0:
+                #self.data[item]['first positivity'] = transmission.positivity
+                #self.data[item]['first energy'] = transmission.energy
+            #self.data[item]['last positivity'] = transmission.positivity
+            #self.data[item]['last energy'] = transmission.positivity
             
             if transmission.positivity > self.data[item]['max positivity']:
                 self.data[item]['max positivity'] = transmission.positivity
@@ -140,8 +146,9 @@ class interaction(object):
     def updateInteraction(self):
         self.cycles_present = 1 + (self.owner.getSession().current_cycle - self.first_cycle)
             
+        # The following algorithms attempt to guess the other's traits based on
+        # received transmissions
         # COMMUNICATIVE
-        # initial guess from data
         communicative_guess = float(self.data['total']['count']) / \
                             (float(self.cycles_present) * self.session.communications_per_cycle)
         self.g_traits['communicative'] = communicative_guess * 99
@@ -158,11 +165,11 @@ class interaction(object):
                                 float(self.data['total']['statements']) * 99
             self.g_traits['intellectual'] = intellectual_guess
         
-        # POSITIVITY (possibly change average to first)
-        self.g_traits['positivity'] = float(self.data['total']['first positivity'])
+        # POSITIVITY
+        self.g_traits['positivity'] = float(self.data['total']['avg positivity'])
 
-        # ENERGY               
-        self.g_traits['energy'] = float(self.data['total']['first energy'])
+        # ENERGY     
+        self.g_traits['energy'] = float(self.data['total']['avg energy'])
         ratings = list()
         for key in self.g_traits:
             acceptable_range = self.owner.d_traits[key]['upper'] - self.owner.d_traits[key]['lower']
@@ -177,6 +184,8 @@ class interaction(object):
     
         return self.overall_rating
 
+# This is the managing class for social interactions between sentibytes.
+# Sentibytes involved in a session are called 'participants'
 class session(object):
     def __init__(self):
         self.session_ID = randint(0, 10000)
@@ -219,13 +228,16 @@ class session(object):
         leaving.removeSession()
         self.participants.remove(leaving)
         
+    # Cycles through each participant, collecting broadcasts they might make
     def transmissionPhase(self, transmission_list):
         for participant in self.participants:
             if participant.proc('communicative'):
                 available_targets = self.getAllOthers(participant)
                 if len(available_targets) > 0:
                     transmission_list.append(participant.broadcast(available_targets))
-                
+        
+    # Cycles through each participant, allowing each to interpret transmissions
+    # that were sent by others
     def interpretPhase(self, transmission_list):
         for participant in self.participants:
             for item in transmission_list:
@@ -247,14 +259,23 @@ class session(object):
         if len(self.participants) == 0:
             self.endPhase()
                 
+    # Placeholder function for any overhead work that might be involved in 
+    # ending a session
     def endPhase(self):
         self.session_open = False
                 
     def cycle(self):
+        for member in self.participants:
+            member.cycles_in_session += 1
+            
         for i in range(self.communications_per_cycle):
             transmission_list = list()
             self.transmissionPhase(transmission_list)
             self.interpretPhase(transmission_list)
+            
+        for member in self.participants:
+            if member.proc('volatility'):
+                member.fluctuateTraits()
         
         self.current_cycle += 1
         self.leavePhase()
@@ -288,6 +309,10 @@ class community(object):
             member.printInfo(traits=traits, memory=memory, perceptions=perceptions, friends=friends)
         
     def cycle(self):
+        for member in self.members:
+            if member.isAvailable():
+                member.cycle()
+        
         for session in self.sessions:
             session.cycle()
             
@@ -295,9 +320,5 @@ class community(object):
         
         for session in void_sessions:
             self.sessions.remove(session)
-            
-        for member in self.members:
-            if member.isAvailable():
-                member.cycle()
                 
         self.current_cycle += 1
