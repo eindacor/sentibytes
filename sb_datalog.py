@@ -1,4 +1,4 @@
-from sb_parser import linesFromFile
+from sb_fileman import linesFromFile
 
 def writeLines(lines, file):
 
