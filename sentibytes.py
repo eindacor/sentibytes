@@ -19,7 +19,7 @@ for sb in premade_sentibytes:
     
 # generate specified number of random sentibytes 
 if platform.system() == 'Windows':
-    population_count = 500
+    population_count = 100
     
 else:
     population_count = 20
@@ -39,16 +39,28 @@ config_file = script_location + '/traits_config.txt'
 status_log_lines = list()
 
 turns = 1000
+
+if turns > 100 or population_count > 100:
+    status_tracking = False
+
+else:
+    status_tracking = True
+    
 try:
     for i in range(turns):
         if i % 50==0 and i != 0:
+            print "update, %d cycles" % i
             updateSummary(test_community, config_file, sb_summary, the_truth)
-            
-        status_log_lines += test_community.cycle()
+
+        status = test_community.cycle()
+
+        if status_tracking:
+            status_log_lines += status
         
     updateSummary(test_community, config_file, sb_summary, the_truth)
     updateSBData(test_community, sb_data)
-    updateStatusLog(sb_status, status_log_lines)
+    if status_tracking:
+        updateStatusLog(sb_status, status_log_lines)
 
 except KeyboardInterrupt:
     print "finalizing log file"
