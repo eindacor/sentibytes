@@ -1,7 +1,9 @@
 from sb_sentibyte import sentibyte
-from sb_utilities import valueState
+from sb_utilities import valueState, dissectString
 import subprocess
-from os import path
+from os import path, system
+from sys import executable
+import platform
 
 # Converts text documents into a list of lines, removing endline chars,
 # empty lines, and anything after '$' symbol
@@ -18,22 +20,6 @@ def linesFromFile(file_name):
     lines = [line for line in lines if line != '']
     
     return lines
-    
-# Separates a line into sections, using the character passed as the dissector.
-# The dissecting characters are removed in the process.
-def dissectString(target, dissector):
-    separated = list()
-    toAdd = ''
-    
-    for i in range(len(target)):
-        if target[i] != dissector: 
-            toAdd += target[i]
-        
-        if target[i] == dissector or i == len(target) - 1:
-            separated.append(toAdd)
-            toAdd = ''
-            
-    return separated
 
 # Returns a list of trait dictionaries. Each dictionary contains traits as keys,
 # and valueStates as their values. The returning list is used to initialize
@@ -99,3 +85,62 @@ def traitsFromFile(sb_file):
             d_traits[trait] = temp_vs
         
     return [p_traits, i_traits, d_traits]
+    
+def loadPremadeSBs(the_truth):
+    premade_sentibytes = list()
+    
+    script_location = path.dirname(path.abspath('__file__'))
+
+    output = None
+
+    # create sentibytes from files in sb_files directory
+    if platform.system() == 'Windows':
+        output = subprocess.Popen([executable, 'ls', script_location + '/sb_files'], stdout=subprocess.PIPE)
+    else:
+        output = subprocess.Popen(['ls', script_location + '/sb_files'], stdout=subprocess.PIPE)
+        
+    files_present = output.stdout.readlines()
+    for i in range(len(files_present)):
+        files_present[i] = files_present[i].replace('\n', '')
+    
+    for file_name in files_present:
+        full_path = script_location + '/sb_files/' + file_name
+        traits = traitsFromFile(full_path)
+        premade_sentibytes.append(sentibyte(file_name, the_truth, traits))
+        
+    return premade_sentibytes
+        
+def getTruth():
+    truthfile = open("sb_sentibyte.py", 'r')
+    truth_lines = truthfile.readlines()
+    the_truth = {}
+    for i in range(len(truth_lines)):
+        the_truth[i] = truth_lines[i]
+        
+    truthfile.close()
+    return the_truth
+  
+# generates a random number of sentibytes using names from the names.txt file  
+def createRandomSBs(quantity, the_truth):
+    script_location = path.dirname(path.abspath(__file__))
+    config_file = script_location + '/traits_config.txt'
+    
+    random_sentibytes = list()
+    
+    member_counter = 0
+    namefile = open(script_location + '/names.txt')
+    for i, line in enumerate(namefile):
+        if i % (4946 / quantity) == 0:
+            name = line.replace('\n', '')
+            traits = traitsFromConfig(config_file)
+            random_sentibytes.append(sentibyte(name, the_truth, traits))
+            member_counter += 1
+            
+        if member_counter == quantity:
+            break
+        
+    namefile.close()
+    
+    return random_sentibytes
+    
+    

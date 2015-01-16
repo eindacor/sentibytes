@@ -1,6 +1,7 @@
 from random import randint, choice,  uniform
 import random
 from jep_loot.jeploot import catRoll, booRoll
+from datetime import datetime
 
 def getCoefficient(base_level=0.0, max_level=1.0):
     difference = max_level - base_level
@@ -191,3 +192,39 @@ class valueState(object):
             self.params['current'] = float(self['lower'])
             
         self.update()
+        
+def currentTime():
+    current = datetime.now()
+    time_string = ''
+    time_string += str(current.year)
+    if int(current.month) < 10:
+        time_string += '0'
+    time_string += str(current.month)
+    if int(current.day) < 10:
+        time_string += '0'
+    time_string += str(current.day)
+    if int(current.hour) < 10:
+        time_string += '0'
+    time_string += str(current.hour)
+    if int(current.minute) < 10:
+        time_string += '0'
+    time_string += str(current.minute)
+    
+    return time_string
+    
+# Separates a line into sections, using the character passed as the dissector.
+# The dissecting characters are removed in the process.
+def dissectString(target, dissector):
+    separated = list()
+    toAdd = ''
+    
+    for i in range(len(target)):
+        if target[i] != dissector: 
+            toAdd += target[i]
+        
+        if target[i] == dissector or i == len(target) - 1:
+            separated.append(toAdd)
+            toAdd = ''
+            
+    return separated
+    

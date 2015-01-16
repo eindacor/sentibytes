@@ -135,7 +135,7 @@ class perception(object):
             print "\t\t%s: %d" % (contact, self.contacts[contact])
             
         for trait in self.per_traits:
-            print "\t\t%s: %f" % (key, self.per_traits[trait]), 
+            print "\t\t%s: %f" % (trait, self.per_traits[trait]), 
             print " (%f desired)" % self.owner.d_traits[trait]['base'], 
             print " (%f actual)" % self.perceived.i_traits[trait]['base'],
             print " (%d priority weight)" % self.owner.desire_priority[trait]

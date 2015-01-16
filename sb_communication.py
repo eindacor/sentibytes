@@ -9,9 +9,6 @@ class transmission(object):
         self.targets = targets[:]
         self.t_type = t_type
         self.information = information
-        
-    def printStats(self):
-        print "TESTING"
 
 class interaction(object):
     def __init__(self, owner, other, session):
@@ -80,15 +77,6 @@ class interaction(object):
         
     def __getitem__(self, index):
         return self.data[index]
-        
-    def printStats(self):
-        print "\tcycles_present: ", self.cycles_present
-        for category in self.data:
-            print "\t%s: " % category,
-            print self.data[category]['count'], "(count)",
-            print self.data[category]['avg positivity'], "(avg positivity)", 
-            print self.data[category]['avg energy'], "(avg energy)"
-        print "\toverall rating: ", self.overall_rating
         
     def addTransmission(self, transmission):
         # adjust stamina levels based on mood, stay longer for good results
@@ -183,12 +171,14 @@ class interaction(object):
 # This is the managing class for social interactions between sentibytes.
 # Sentibytes involved in a session are called 'participants'
 class session(object):
-    def __init__(self):
+    def __init__(self, community):
         self.session_ID = randint(0, 10000)
         self.participants = list()
         self.current_cycle = 0
         self.session_open = True
         self.communications_per_cycle = 12
+        self.new_members = list()
+        self.community = community
         
     def __str__(self):
         return str(self.session_ID)
@@ -209,7 +199,9 @@ class session(object):
             sb.addInteraction(entering)
             entering.addInteraction(sb)
             
+        self.community.logEntry("%s entering session %d" % (entering, self.session_ID))
         self.participants.append(entering)
+        self.new_members.append(entering)
         
     def getAllOthers(self, participant):
         other_participants = [p for p in self.participants if p != participant]
@@ -221,6 +213,7 @@ class session(object):
             leaving.endInteraction(participant)
             participant.endInteraction(leaving)
     
+        self.community.logEntry("%s leaving session %d" % (leaving, self.session_ID))
         leaving.removeSession()
         self.participants.remove(leaving)
         
@@ -262,8 +255,9 @@ class session(object):
                 
     def cycle(self):
         for member in self.participants:
+            self.community.logEntry("%s in session %d" % (member, self.session_ID))
             member.cycles_in_session += 1
-            
+        
         for i in range(self.communications_per_cycle):
             transmission_list = list()
             self.transmissionPhase(transmission_list)
@@ -274,7 +268,9 @@ class session(object):
                 member.fluctuateTraits()
         
         self.current_cycle += 1
-        self.leavePhase()
+        if len(self.new_members) == 0:
+            self.leavePhase()
+        self.new_members = list()
         
 class community(object):
     def __init__(self):
@@ -284,10 +280,14 @@ class community(object):
         
         self.members = list()
         self.sessions = list()
+        self.status_log = list()
         
     def addMember(self, new):
         self.members.append(new)
         new.addCommunity(self)
+        
+    def logEntry(self, line):
+        self.status_log.append(line)
         
     def getAllOthers(self, member):
         other_members = self.members[:]
@@ -295,20 +295,15 @@ class community(object):
         return other_members
         
     def createSession(self, first, second):
-        new_session = session()
+        new_session = session(self)
         new_session.addParticipant(first)
         new_session.addParticipant(second)
         self.sessions.append(new_session)
         
-    def printMembers(self, traits=False, memory=False, perceptions=False, friends=False):
-        for member in self.members:
-            member.printInfo(traits=traits, memory=memory, perceptions=perceptions, friends=friends)
-        
     def cycle(self):
-        for member in self.members:
-            if member.isAvailable():
-                member.cycle()
-        
+        self.status_log = list()
+        self.logEntry("---- cycle %d ----" % self.current_cycle)
+        self.logEntry("sessions: %s" % [ID.session_ID for ID in self.sessions])
         for session in self.sessions:
             session.cycle()
             
@@ -316,5 +311,17 @@ class community(object):
         
         for session in void_sessions:
             self.sessions.remove(session)
+         
+        members_alone = [member for member in self.members if member.isAvailable()]
+        self.logEntry("members alone: %d" % len(members_alone))
+        for member in members_alone:
+            self.logEntry("%s is alone" % member)
+            member.aloneCycle()
+                
+        for member in self.members:
+            if member.isAvailable():
+                member.invitationCycle()
                 
         self.current_cycle += 1
+        
+        return self.status_log

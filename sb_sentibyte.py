@@ -36,6 +36,11 @@ class sentibyte(object):
         self.cycles_alone = 0
         self.cycles_in_session = 0
         
+        # cooldowns prevent cycles spent in session and along at the same time,
+        # and restricts when sb's are allowed to be social
+        self.social_cooldown = 0
+        self.cycle_cooldown = 0
+        
         # personal characteristics
         self.p_traits = traits[0]
         self.i_traits = traits[1]
@@ -58,8 +63,7 @@ class sentibyte(object):
             return self.i_traits[index]
             
         else:
-            print "trait (%s) not found" % index
-            return None
+            raise Exception("trait (%s) not found" % trait)
         
     def __eq__(self, other):
         return self.sentibyte_ID == other.sentibyte_ID
@@ -79,8 +83,7 @@ class sentibyte(object):
             return self.i_traits[trait].proc()
             
         else:
-            print "trait (%s) not found" % trait
-            return False
+            raise Exception("trait (%s) not found" % trait)
         
     # returns current value of passed trait    
     def getCurrent(self, trait):
@@ -91,8 +94,7 @@ class sentibyte(object):
             return self.i_traits[trait].params['current']
 
         else:
-            print "trait (%s) not found" % trait
-            return None
+            raise Exception("trait (%s) not found" % trait)
             
     def getCoefficient(self, trait):
         if trait in self.p_traits:
@@ -102,8 +104,7 @@ class sentibyte(object):
             return self.i_traits[trait].params['coefficient']
 
         else:
-            print "trait (%s) not found" % trait
-            return None
+            raise Exception("trait (%s) not found" % trait)
             
     def getDesired(self, trait):
         return self.d_traits[trait]['current']
@@ -115,12 +116,12 @@ class sentibyte(object):
         return self.current_session == None
             
     def addCommunity(self, new):
-        if self.community == None:
-            self.community = new
+        self.community = new
             
     # called from session cycle if stamina trait is not proc'ed
     def removeSession(self):
         self.current_session = None
+        self.cycle_cooldown = 1
         # removed after influence no longer changes within session
         #self.i_traits['positivity'].params['current'] = self['positivity']['base'] 
             
@@ -286,25 +287,34 @@ class sentibyte(object):
         for trait in self.i_traits:
             self.i_traits[trait].fluctuate()
       
-    def cycle(self):
-        self.cycles_alone += 1
-        if self.proc('volatility'):
-            self.fluctuateTraits()
-            
-        elif self.proc('intellectual'):
-            self.learn()
-
-        if self.proc('reflective'):
-            self.reflect()			
-			
-        if self.proc('sociable'):
-            self.sociable_count += 1
-            if not self.joinSession():
-                self['positivity'].influence(self['positivity']['lower'])
-                self.failed_connection_attempts += 1
+    def aloneCycle(self):
+        if self.cycle_cooldown == 0:
+            self.cycles_alone += 1
+            if self.proc('volatility'):
+                self.fluctuateTraits()
                 
-            else:
-                self.successful_connection_attempts += 1
+            elif self.proc('intellectual'):
+                self.learn()
+    
+            if self.proc('reflective'):
+                self.reflect()			
+        
+        else:
+            self.cycle_cooldown -= 1
+        
+    def invitationCycle(self):
+        if self.social_cooldown == 0:
+            if self.proc('sociable'):
+                self.sociable_count += 1
+                if not self.joinSession():
+                    self['positivity'].influence(self['positivity']['lower'])
+                    self.failed_connection_attempts += 1
+                    
+                else:
+                    self.successful_connection_attempts += 1
+                        
+        else:
+            self.social_cooldown -= 1
       
     # Seeks other sentibytes for communication, returns true if a connection is 
     # made, false if not
@@ -430,6 +440,8 @@ class sentibyte(object):
         lines.append("invitations to strangers: %d" % self.invitaitons_to_strangers)
         lines.append("invitations to contacts: %d" % self.invitations_to_contacts)
         lines.append("invitations to friends: %d" % self.invitations_to_friends)
+        lines.append("cycles alone: %s" % self.cycles_alone)
+        lines.append("cycles in session: %s" % self.cycles_in_session)
         lines.append("current session: %s" % self.current_session)
         
         if traits:   
@@ -446,7 +458,7 @@ class sentibyte(object):
             for trait in self.d_traits:
                 lines.append("\t%s: %f (%d priority weight)" % (
                             trait, self.getDesired(trait), self.desire_priority[trait]))
-            
+  
         if len(self.friend_list) > 0 and friends:
             lines.append("friends:")
             for friend in self.friend_list:
@@ -462,37 +474,14 @@ class sentibyte(object):
                 for key in perception.contacts:
                     lines.append("\t\t%s: %d" % (key, perception.contacts[key]))
             
-            for key in perception.p_traits:
-                desired = perception.owner.d_traits[key]['base']
-                actual = perception.perceived.i_traits[key]['base']
-                priority = perception.owner.desire_priority[key]
-                lines.append("\t\t%s: %f (%f desired) (%f actual) (%d priority weight)" % (key, perception.p_traits[key], desired, actual, priority))
-            
-            entry_list = [i.entries for i in self.perceptions.values()]
+        entry_list = [i.entries for i in self.perceptions.values()]
+        if entry_list:
             lines.append("\taverage entries for connections: %f" % (sum(entry_list) / float(len(entry_list))))
-                
-            rating_list = [self.getRating(i, relative=True) for i in self.perceptions]
+            
+        rating_list = [self.getRating(i, relative=True) for i in self.perceptions]
+        if rating_list:
             lines.append("\taverage rating for connections: %f" % (sum(rating_list) / float(len(rating_list))))
         
         return lines
-        
-    def printTraits(self):
-        print "personal traits..."
-        for trait in self.p_traits:
-            print "\t%s: %f (%f base)" % (trait, self[trait]['current'], self[trait]['base'])
-        print "interpersonal traits..."
-        for trait in self.i_traits:
-            print "\t%s: %f (%f base)" % (trait, self[trait]['current'], self[trait]['base'])
-        print "desired traits..."
-        for trait in self.d_traits:
-            print "\t%s: %f" % (trait, self.getDesired(trait)), 
-            priority = self.desire_priority[trait]
-            print " (%d priority weight)" % priority
-        
-    def printConnections(self):
-        print '-' * 10
-        for sb_ID in self.perceptions:
-            print "connection %s..." % sb_ID
-            self.perceptions[sb_ID].printInfo()
         
             
