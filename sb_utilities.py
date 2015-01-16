@@ -193,7 +193,7 @@ class valueState(object):
             
         self.update()
         
-def currentTime():
+def currentTimeString():
     current = datetime.now()
     time_string = ''
     time_string += str(current.year)

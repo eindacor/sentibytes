@@ -1,10 +1,9 @@
-from sb_sentibyte import sentibyte
-from sb_utilities import currentTime
+from sb_utilities import currentTimeString
 from sb_communication import community
-import subprocess
 from sys import argv, executable
-from sb_fileman import traitsFromConfig, traitsFromFile, loadPremadeSBs, getTruth, createRandomSBs
+from sb_fileman import loadPremadeSBs, getTruth, createRandomSBs
 from os import path
+import platform
 import random
 from sb_datalog import updateSBData, updateSummary, updateStatusLog
 
@@ -19,12 +18,17 @@ for sb in premade_sentibytes:
     test_community.addMember(sb)
     
 # generate specified number of random sentibytes 
-population_count = 20
+if platform.system() == 'Windows':
+    population_count = 500
+    
+else:
+    population_count = 20
+    
 random_sentibytes = createRandomSBs(population_count, the_truth)
 for sb in random_sentibytes:
     test_community.addMember(sb)
 
-time_string = currentTime()
+time_string = currentTimeString()
 
 script_location = path.dirname(path.abspath('__file__'))
 sb_data = script_location + '/sb_datalog/' + time_string + "_sb_data.txt"

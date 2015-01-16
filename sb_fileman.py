@@ -5,6 +5,13 @@ from os import path, system
 from sys import executable
 import platform
 
+def writeLines(lines, file):
+
+    for i in range(len(lines)):
+        file.write(lines[i] + '\n')
+        
+    file.close()
+
 # Converts text documents into a list of lines, removing endline chars,
 # empty lines, and anything after '$' symbol
 def linesFromFile(file_name):

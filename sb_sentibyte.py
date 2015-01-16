@@ -225,7 +225,7 @@ class sentibyte(object):
         energy_current = self.getCurrent('energy')
         energy_co = self.getCoefficient('energy_range')
         energy = calcAccuracy(energy_current, energy_co)
-        t_type = None
+        # t_type = None
         information = None
         if self.proc('talkative'):
             t_type = 'statement'
