@@ -3,7 +3,7 @@ import random
 from jep_loot.jeploot import catRoll
 from sb_communication import session, transmission, interaction
 from sb_utilities import getCoefficient, calcInfluence, calcAccuracy, \
-    boundsCheck, weightedAverage, valueState, distortLine
+    boundsCheck, weightedAverage, valueState, randomIndex
 from sb_perception import perception
 from heapq import heappush, heappop
             
@@ -22,14 +22,18 @@ class sentibyte(object):
         self.current_interactions = {}
         self.friend_list = list()
         self.contacts = {}
-        self.knowledge = {}
+        self.accurate_knowledge = list()
+        self.false_knowledge = {}
         self.the_truth = the_truth
+        
         self.learned_on_own = 0
         self.learned_from_others = 0
+        self.misled_by_others = 0
+        self.corrected_by_others = 0
         self.met_through_others = 0
         self.invitations_to_friends = 0
         self.invitations_to_contacts = 0
-        self.invitaitons_to_strangers = 0
+        self.invitations_to_strangers = 0
         self.failed_connection_attempts = 0
         self.successful_connection_attempts = 0
         self.sociable_count = 0
@@ -63,7 +67,7 @@ class sentibyte(object):
             return self.i_traits[index]
             
         else:
-            raise Exception("trait (%s) not found" % trait)
+            raise Exception("trait (%s) not found" % index)
         
     def __eq__(self, other):
         return self.sentibyte_ID == other.sentibyte_ID
@@ -207,16 +211,30 @@ class sentibyte(object):
         # self['positivity'].influence(received.positivity)
         # self['energy'].influence(received.energy)
         
-        if received.information != None and self.proc('trusting') and self.proc('intellectual'):
-            index = received.information[0]
-            data = received.information[1]
+        # add perception effects for agreements/disagreements
+        
+        if len(received.information) and self.proc('trusting') and self.proc('intellectual'):
+            info_index = received.information[0]
             
-            if self.the_truth[index] != data and self.proc('intelligence'):
-                return
+            # if the information given is false
+            if len(received.information) > 1:
+                if self.proc('intelligence'):
+                    return
+                
+                elif info_index in self.accurate_knowledge:
+                    self.accurate_knowledge.remove(info_index)
+                
+                self.false_knowledge[info_index] = received.information[1]
+                self.misled_by_others += 1
             
-            elif index not in self.knowledge:
-                self.knowledge[index] = data
-                self.learned_from_others += 1
+            elif info_index in self.false_knowledge:
+                del self.false_knowledge[info_index]
+                self.corrected_by_others += 1
+            
+            if info_index not in self.accurate_knowledge:
+                self.accurate_knowledge.append(info_index)
+                
+            self.learned_from_others += 1
         
     def broadcast(self, targets):
         positivity_current = self.getCurrent('positivity')
@@ -225,16 +243,18 @@ class sentibyte(object):
         energy_current = self.getCurrent('energy')
         energy_co = self.getCoefficient('energy_range')
         energy = calcAccuracy(energy_current, energy_co)
-        # t_type = None
-        information = None
+        information = list()
         if self.proc('talkative'):
             t_type = 'statement'
             
             if self.proc('intellectual'):
-                index = choice(self.knowledge.keys())
-                data = self.knowledge[index]
+                all_knowledge = self.accurate_knowledge + self.false_knowledge.keys()
+                index = choice(all_knowledge)
+                information.append(index)
                 
-                information = [index, data]
+                if index in self.false_knowledge:
+                    information.append(self.false_knowledge[index])
+        
         else:
             t_type = 'signal'
             
@@ -258,23 +278,30 @@ class sentibyte(object):
         pass
     
     def learn(self):
-        if len(self.knowledge) != len(self.the_truth):
+        all_knowledge = (self.accurate_knowledge + self.false_knowledge.keys())
+        
+        if self.proc('inquisitive') and len(all_knowledge) != len(self.the_truth):
+            unknown = [i for i in self.the_truth if i not in all_knowledge]
+            index = choice(unknown)
             
-            index = 0
+        else:
+            index = choice(self.the_truth.keys())
+        
+
+        if self.proc('intelligence'):
+            if index in self.false_knowledge:
+                del self.false_knowledge[index]
             
-            if self.proc('inquisitive') and len(self.the_truth) != len(self.knowledge):
-                unknown = [i for i in self.the_truth if i not in self.knowledge]
-                index = choice(unknown)
+            if index not in self.accurate_knowledge:    
+                self.accurate_knowledge.append(index)
+            
+        else:
+            if index in self.accurate_knowledge:
+                self.accurate_knowledge.remove(index)
                 
-            else:
-                index = choice(self.the_truth.keys())
-            
-            acquired = self.the_truth[index]
-            if not self.proc('intelligence'):
-                acquired = distortLine(acquired)
-            
-            self.knowledge[index] = acquired
-            self.learned_on_own += 1
+            self.false_knowledge[index] = randomIndex(self.the_truth[index])
+        
+        self.learned_on_own += 1
      
     # cycles through all traits, fluctuating each 
     def fluctuateTraits(self):
@@ -324,7 +351,7 @@ class sentibyte(object):
         target_list = list()
         if (self.proc('adventurous') or len(self.friend_list) == 0) and len(self.getStrangers()) != 0:
             target_list = self.getStrangers()
-            self.invitaitons_to_strangers += 1
+            self.invitations_to_strangers += 1
             
         elif self.proc('pickiness'):
             target_list = self.getFriends()
@@ -432,12 +459,13 @@ class sentibyte(object):
         lines = list()
         lines.append("unique ID: %s" % self.sentibyte_ID)
         lines.append("name: %s" % self.name)
-        lines.append("acquired knowledge: %d" % len(self.knowledge))
+        lines.append("accurate knowledge: %d" % len(self.accurate_knowledge))
+        lines.append("false knowledge: %d" % len(self.false_knowledge))
         lines.append("learned from others: %d" % self.learned_from_others)
         lines.append("learned on own: %d" % self.learned_on_own)
         lines.append("others met: %d" % len(self.contacts))
         lines.append("others met through mutual contacts: %d" % self.met_through_others)
-        lines.append("invitations to strangers: %d" % self.invitaitons_to_strangers)
+        lines.append("invitations to strangers: %d" % self.invitations_to_strangers)
         lines.append("invitations to contacts: %d" % self.invitations_to_contacts)
         lines.append("invitations to friends: %d" % self.invitations_to_friends)
         lines.append("cycles alone: %s" % self.cycles_alone)

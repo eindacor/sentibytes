@@ -35,6 +35,8 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     least_accurate_knowledge = len(the_truth)
     total_learned_from_others = 0
     total_learned_on_own = 0
+    total_misled = 0
+    total_corrected = 0
     total_ratings = 0
     total_avg_offset = 0
     total_avg_offset_friends = 0
@@ -61,20 +63,17 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     lowest_relative_rating = 99
     mem_count = float(len(community.members))
     for member in community.members:
-        total_knowledge += len(member.knowledge)
-        accurate_knowledge = 0
-        for index in member.knowledge.keys():
-            if member.knowledge[index] != the_truth[index]:
-                total_false_knowledge += 1
-                
-            else:
-                accurate_knowledge += 1
-                
-        if accurate_knowledge > most_accurate_knowledge:
-            most_accurate_knowledge = accurate_knowledge
+        total_false_knowledge += len(member.false_knowledge)
+        total_knowledge += len(member.false_knowledge)
+        total_knowledge += len(member.accurate_knowledge)
+        total_misled += member.misled_by_others
+        total_corrected += member.corrected_by_others
+
+        if len(member.accurate_knowledge) > most_accurate_knowledge:
+            most_accurate_knowledge = len(member.accurate_knowledge)
             
-        if accurate_knowledge < least_accurate_knowledge:
-            least_accurate_knowledge = accurate_knowledge
+        if len(member.accurate_knowledge) < least_accurate_knowledge:
+            least_accurate_knowledge = len(member.accurate_knowledge)
         
         total_learned_from_others += member.learned_from_others
         total_learned_on_own += member.learned_on_own
@@ -98,7 +97,7 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
             total_entries_of_friends += member.perceptions[other].entries
             total_interactions_with_friends += member.perceptions[other].interaction_count
         total_sociable_procs += member.sociable_count
-        total_inv_to_strangers += member.invitaitons_to_strangers
+        total_inv_to_strangers += member.invitations_to_strangers
         total_inv_to_contacts += member.invitations_to_contacts
         total_inv_to_friends += member.invitations_to_friends
         total_met += len(member.contacts)
@@ -115,6 +114,8 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
         avg_false_knowledge = total_false_knowledge/mem_count
         avg_learned_from_others = total_learned_from_others/mem_count
         avg_learned_on_own = total_learned_on_own/mem_count
+        avg_misled = total_misled/mem_count
+        avg_corrected = total_corrected/mem_count
         avg_sociable_procs = total_sociable_procs/mem_count
         avg_cycles_in_session = total_cycles_in_session/mem_count
         avg_cycles_alone = total_cycles_alone/mem_count
@@ -126,6 +127,10 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
         avg_met = total_met/mem_count
         avg_met_through_others = total_met_through_others/mem_count
         
+        avg_cycles_counted = int(avg_cycles_alone) + int(avg_cycles_in_session)
+        if community.current_cycle - avg_cycles_counted > 2:
+            print "sumtotal of counted cycles does not equal total cycles"
+        
         stats.append("members: %d" % mem_count)
         stats.append("cycles: %d" % community.current_cycle)
         stats.append("available knowledge: %d" % len(the_truth))
@@ -135,6 +140,8 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
         stats.append("least accurate knowledge: %d" % least_accurate_knowledge)
         stats.append("average learned from others: %f" % avg_learned_from_others)
         stats.append("average learned on own: %f" % avg_learned_on_own)
+        stats.append("average times misled by others: %f" % avg_misled)
+        stats.append("average times corrected by others: %f" % avg_corrected)
         stats.append("average cycles alone: %f" % avg_cycles_alone)
         stats.append("average cycles in session: %f" % avg_cycles_in_session)
         stats.append("average sociable proc count: %f" % avg_sociable_procs)

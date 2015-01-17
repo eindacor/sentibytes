@@ -64,6 +64,14 @@ def distortLine(line):
                 new_line += line[i]
             
     return new_line
+    
+# returns the index of a character in the passed line
+def randomIndex(line):
+    if len(line) == 0 or len(line) == 1:
+        return 0
+        
+    else:
+        return randint(0, len(line)-1)
    
 # valueState objects contain a range of values known as 'min' and 'max'
 # within the min and max exists a 'base'

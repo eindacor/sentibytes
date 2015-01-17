@@ -19,10 +19,10 @@ for sb in premade_sentibytes:
     
 # generate specified number of random sentibytes 
 if platform.system() == 'Windows':
-    population_count = 20
+    population_count = 100
     
 else:
-    population_count = 20
+    population_count = 200
     
 random_sentibytes = createRandomSBs(population_count, the_truth)
 for sb in random_sentibytes:
@@ -38,7 +38,7 @@ config_file = script_location + '/traits_config.txt'
 
 status_log_lines = list()
 
-turns = 10000
+turns = 5000
 
 if turns > 100 or population_count > 100:
     status_tracking = False
@@ -64,4 +64,3 @@ try:
 
 except KeyboardInterrupt:
     print "finalizing log file"
-    updateSummary(test_community, config_file, sb_summary, the_truth)
