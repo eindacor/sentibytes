@@ -19,7 +19,7 @@ for sb in premade_sentibytes:
     
 # generate specified number of random sentibytes 
 if platform.system() == 'Windows':
-    population_count = 100
+    population_count = 20
     
 else:
     population_count = 20
@@ -38,7 +38,7 @@ config_file = script_location + '/traits_config.txt'
 
 status_log_lines = list()
 
-turns = 1000
+turns = 10000
 
 if turns > 100 or population_count > 100:
     status_tracking = False
