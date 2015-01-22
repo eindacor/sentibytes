@@ -22,7 +22,7 @@ if platform.system() == 'Windows':
     population_count = 100
     
 else:
-    population_count = 200
+    population_count = 20
     
 random_sentibytes = createRandomSBs(population_count, the_truth)
 for sb in random_sentibytes:

@@ -1,9 +1,22 @@
 from sb_sentibyte import sentibyte
 from sb_utilities import valueState, dissectString
-import subprocess
+import subprocess, platform, pickle
 from os import path, system
 from sys import executable
-import platform
+
+script_location = path.dirname(path.abspath('__file__'))
+
+def getListOfFiles(target_path):
+    if platform.system() == 'Windows':
+        output = subprocess.Popen([executable, 'ls', target_path], stdout=subprocess.PIPE)
+    else:
+        output = subprocess.Popen(['ls', target_path], stdout=subprocess.PIPE)
+        
+    files_present = output.stdout.readlines()
+    for i in range(len(files_present)):
+        files_present[i] = files_present[i].replace('\n', '')
+        
+    return files_present
 
 def writeLines(lines, file):
 
@@ -95,20 +108,10 @@ def traitsFromFile(sb_file):
     
 def loadPremadeSBs(the_truth):
     premade_sentibytes = list()
-    
-    script_location = path.dirname(path.abspath('__file__'))
-
-    output = None
-
     # create sentibytes from files in sb_files directory
-    if platform.system() == 'Windows':
-        output = subprocess.Popen([executable, 'ls', script_location + '/sb_files'], stdout=subprocess.PIPE)
-    else:
-        output = subprocess.Popen(['ls', script_location + '/sb_files'], stdout=subprocess.PIPE)
-        
-    files_present = output.stdout.readlines()
-    for i in range(len(files_present)):
-        files_present[i] = files_present[i].replace('\n', '')
+    sb_file_path = script_location + '/sb_files'
+    
+    files_present = getListOfFiles(sb_file_path)
     
     for file_name in files_present:
         full_path = script_location + '/sb_files/' + file_name
@@ -129,7 +132,6 @@ def getTruth():
   
 # generates a random number of sentibytes using names from the names.txt file  
 def createRandomSBs(quantity, the_truth):
-    script_location = path.dirname(path.abspath(__file__))
     config_file = script_location + '/traits_config.txt'
     
     random_sentibytes = list()
@@ -150,4 +152,22 @@ def createRandomSBs(quantity, the_truth):
     
     return random_sentibytes
     
+def readSB(sb_ID):
+    sb_file = script_location + '/sb_data/' + sb_ID + '.sb'
+    file = open(sb_file, 'r')
+    sb = pickle.load(file)
+    file.close()
+    return sb
     
+def writeSB(sb):
+    sb_file = script_location + '/sb_data/' + sb.sentibyte_ID + '.sb'
+    file = open(sb_file, 'w')
+    pickle.dump(sb, file)
+    file.close()
+    
+def cleanup():
+    sb_file_path = script_location + '/sb_data'
+    file_list = getListOfFiles(sb_file_path)
+    
+    for file in file_list:
+        subprocess.Popen(['rm', sb_file_path + '/' + file])

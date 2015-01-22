@@ -1,14 +1,14 @@
-class first(object):
-    def __init__(self, thing):
-        self.first_thing = thing
-        
-random_list = [1, 2, 3, 4]
+from sb_fileman import getTruth, createRandomSBs, writeSB, readSB, cleanup
 
-first_object = first(random_list)
-print first_object.first_thing
+sb_list = createRandomSBs(2, getTruth())
 
-random_list.append(5)
-print first_object.first_thing
+sb = sb_list[0]
+sb_ID = sb.sentibyte_ID
 
-second = {1: 'a', 2: 'b'}
-print len(second)
+print sb_ID
+
+writeSB(sb)
+copy = readSB(sb_ID)
+
+print copy.sentibyte_ID
+cleanup()
