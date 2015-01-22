@@ -1,11 +1,11 @@
 from random import randrange, randint, choice, uniform, shuffle
-import random
 from jep_loot.jeploot import catRoll
-from sb_communication import session, transmission, interaction
 from sb_utilities import getCoefficient, calcInfluence, calcAccuracy, \
     boundsCheck, weightedAverage, valueState, randomIndex
 from sb_perception import perception
 from heapq import heappush, heappop
+from sb_fileman import readSB, writeSB, getTruth
+from sb_communication import transmission, interaction, session
             
 class sentibyte(object):
     def __init__(self, name, the_truth, traits):
@@ -21,10 +21,10 @@ class sentibyte(object):
         self.community = None
         self.current_interactions = {}
         self.friend_list = list()
-        self.contacts = {}
+        self.contacts = list()
         self.accurate_knowledge = list()
         self.false_knowledge = {}
-        self.the_truth = the_truth
+        #self.the_truth = the_truth
         
         self.learned_on_own = 0
         self.learned_from_others = 0
@@ -139,40 +139,38 @@ class sentibyte(object):
             if self in sent.targets:
                 self.receiveTransmission(sent)
         
-    def addPerception(self, other):
-        if str(other) not in self.perceptions:
-            self.perceptions[str(other)] = perception(other, self)
+    def addPerception(self, other_ID):
+        if other_ID not in self.perceptions:
+            self.perceptions[other_ID] = perception(other_ID, str(self))
            
-    def addInteraction(self, other):
-        self.addPerception(other)
+    def addInteraction(self, other_ID):
+        self.addPerception(other_ID)
         
-        toAdd = interaction(self, other, self.current_session)
+        toAdd = interaction(self.sentibyte_ID, other_ID, self.current_session)
         
-        sb_ID = str(other)
-        self.current_interactions[sb_ID] = toAdd
+        self.current_interactions[other_ID] = toAdd
             
-        if str(other) not in self.contacts:
-            self.contacts[str(other)] = other
+        if other_ID not in self.contacts:
+            self.contacts.append(other_ID)
      
-    def endInteraction(self, other):
-        sb_ID = str(other)
-        target = self.current_interactions[sb_ID]
+    def endInteraction(self, other_ID):
+        target = self.current_interactions[other_ID]
         target.updateInteraction()
         
         # add to perception
-        self.perceptions[sb_ID].addInteraction(target)
+        self.perceptions[other_ID].addInteraction(target)
         
         # add to memory
-        if sb_ID not in self.memory:
-            self.memory[sb_ID] = list()
+        if other_ID not in self.memory:
+            self.memory[other_ID] = list()
             
-        heappush(self.memory[sb_ID], self.current_interactions[sb_ID])
+        heappush(self.memory[other_ID], self.current_interactions[other_ID])
         
-        if len(self.memory[sb_ID]) > 10:
-            heappop(self.memory[sb_ID])
+        if len(self.memory[other_ID]) > 10:
+            heappop(self.memory[other_ID])
         
         # remove from interactions
-        self.current_interactions.pop(sb_ID, None)
+        self.current_interactions.pop(other_ID, None)
         
     def updateFriends(self):
         num_friends = 8
@@ -185,26 +183,30 @@ class sentibyte(object):
         length = len(perception_list)
         
         if length > num_friends:
-            perception_list = perception_list[length - num_friends:]
+            perception_list = perception_list[(length - num_friends):]
             
-        self.friend_list = [str(p.perceived) for p in perception_list]
-                
+        self.friend_list = [p.perceived_ID for p in perception_list]
+    
+    '''            
     def getFriends(self):
         self.updateFriends()
         friends = [self.contacts[sb_ID] for sb_ID in self.friend_list]
         return friends
+    '''
     
     def getStrangers(self):
-        stranger_list = [m for m in self.community.members 
-                        if m != self and str(m) not in self.memory]
+        stranger_list = [m_ID for m_ID in self.community.members 
+                        if m_ID != self.sentibyte_ID and m_ID not in self.memory]
               
         return stranger_list
-        
+      
+    '''  
     def getContacts(self):
         return self.contacts.values()
         
     def getContact(self, sb_ID):
         return self.contacts[sb_ID]
+    '''
         
     def receiveTransmission(self, received):
         # transmissions no longer have effect on others' positivity and energy
@@ -236,7 +238,7 @@ class sentibyte(object):
                 
             self.learned_from_others += 1
         
-    def broadcast(self, targets):
+    def broadcast(self, target_list):
         positivity_current = self.getCurrent('positivity')
         positivity_co = self.getCoefficient('positivity')
         positivity = calcAccuracy(positivity_current, positivity_co)
@@ -262,14 +264,14 @@ class sentibyte(object):
         selected_targets = list()
         
         while self.proc('sociable'):
-            for other in targets:
-                if self.wantsToContact(other) and other not in selected_targets:
-                    selected_targets.append(other)
+            for other_ID in target_list:
+                if self.wantsToContact(other_ID) and other_ID not in selected_targets:
+                    selected_targets.append(other_ID)
             
         if len(selected_targets) == 0:
-            selected_targets.append(choice(targets))
+            selected_targets.append(choice(target_list))
             
-        toSend = transmission(self, selected_targets, positivity, 
+        toSend = transmission(self.sentibyte_ID, selected_targets, positivity, 
                                 energy, t_type, information)
         return toSend
         
@@ -280,12 +282,13 @@ class sentibyte(object):
     def learn(self):
         all_knowledge = (self.accurate_knowledge + self.false_knowledge.keys())
         
-        if self.proc('inquisitive') and len(all_knowledge) != len(self.the_truth):
-            unknown = [i for i in self.the_truth if i not in all_knowledge]
+        the_truth = getTruth()
+        if self.proc('inquisitive') and len(all_knowledge) != len(the_truth):
+            unknown = [i for i in the_truth if i not in all_knowledge]
             index = choice(unknown)
             
         else:
-            index = choice(self.the_truth.keys())
+            index = choice(the_truth.keys())
         
 
         if self.proc('intelligence'):
@@ -299,7 +302,7 @@ class sentibyte(object):
             if index in self.accurate_knowledge:
                 self.accurate_knowledge.remove(index)
                 
-            self.false_knowledge[index] = randomIndex(self.the_truth[index])
+            self.false_knowledge[index] = randomIndex(the_truth[index])
         
         self.learned_on_own += 1
      
@@ -348,56 +351,53 @@ class sentibyte(object):
     def joinSession(self):
         self.updateFriends()
         # generate list of targets (strangers, contacts, or friends)
-        target_list = list()
+        # target_list = list()
         if (self.proc('adventurous') or len(self.friend_list) == 0) and len(self.getStrangers()) != 0:
             target_list = self.getStrangers()
             self.invitations_to_strangers += 1
             
         elif self.proc('pickiness'):
-            target_list = self.getFriends()
+            target_list = self.friend_list[:]
             self.invitations_to_friends += 1
         
         else:
-            target_list = self.getContacts()
+            target_list = self.contacts[:]
             self.invitations_to_contacts += 1
         
-        target_list = [sb for sb in target_list if self.wantsToContact(sb)]
+        target_list = [sb_ID for sb_ID in target_list if self.wantsToContact(sb_ID)]
         
         weighed_options = {}
-        for other in target_list:
-            if str(other) in self.perceptions:
-                weighed_options[other] = self.getRating(str(other), relative=True)
+        for other_ID in target_list:
+            if other_ID in self.perceptions:
+                weighed_options[other_ID] = self.getRating(other_ID, relative=True)
             else:
-                weighed_options[other] = self['regard']['current']
+                weighed_options[other_ID] = self['regard']['current']
             
         if len(weighed_options) == 0:
             return False
             
-        selected = catRoll(weighed_options)
+        selected_ID = catRoll(weighed_options)
         
         # keep contacting until there are no targets left or a connection is made
-        while self.contact(selected) == False:
-            del weighed_options[selected]
+        while self.contact(selected_ID) == False:
+            del weighed_options[selected_ID]
             
             if len(weighed_options) == 0:
                 return False
          
-            selected = catRoll(weighed_options)
+            selected_ID = catRoll(weighed_options)
 
         return True
         
     # returns rating of particular sentibyte by ID or object
     # if the target is yet to make contact with self, returns self's current
     # regard level
-    def getRating(self, other, relative=False):
-        if type(other) == sentibyte:
-            other = other.sentibyte_ID
-            
-        if other not in self.perceptions:
+    def getRating(self, other_ID, relative=False):
+        if other_ID not in self.perceptions:
             rating = self['regard']['current']
         
         else:
-            rating = self.perceptions[other].rating
+            rating = self.perceptions[other_ID].rating
         
         if relative:
             regard_range = self['regard']['upper'] - self['regard']['lower']
@@ -408,21 +408,22 @@ class sentibyte(object):
         return rating
      
     # Returns average distance from percieved trait to actual base value of other
-    def getPerceptionOffset(self, other):
-        self.addPerception(other)
+    def getPerceptionOffset(self, other_ID):
+        self.addPerception(other_ID)
 		
-        return self.perceptions[other].getAverageOffset()
+        return self.perceptions[other_ID].getAverageOffset()
     
     # must be separate from "contact" function to filter out potential contact attempts
     # not just for denying invitations, also for determining who to invite
-    def wantsToContact(self, other):
+    def wantsToContact(self, other_ID):
         inverse_tolerance = 99 - self['tolerance']['current']
-        return self.getRating(str(other), relative=True) >= inverse_tolerance
+        return self.getRating(other_ID, relative=True) >= inverse_tolerance
        
     # returns true if a session is successfully joined or created
-    def contact(self, other):
-        other.addPerception(self)
-        self.addPerception(other)
+    def contact(self, other_ID):
+        other = readSB(other_ID)
+        other.addPerception(str(self))
+        self.addPerception(other_ID)
         other.perceptions[str(self)].addInvitation()
         
         if not other.wantsToContact(self):
@@ -436,7 +437,7 @@ class sentibyte(object):
             self.perceptions[str(other)].addAcceptance()
             
             if other.current_session == None:
-                self.community.createSession(self, other)
+                self.community.createSession(self.sentibyte_ID, other_ID)
                 return True
                 
             else:
@@ -454,6 +455,8 @@ class sentibyte(object):
         else:
             self.perceptions[str(other)].addUnavailable()
             return False
+            
+        writeSB(other)
         
     def getInfo(self, traits=False, memory=False, perceptions=False, friends=False):
         lines = list()

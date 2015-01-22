@@ -1,15 +1,18 @@
-#from sb_communication import session, transmission, interaction
 from sb_utilities import getCoefficient, calcInfluence, calcAccuracy, boundsCheck, weightedAverage, valueState
+from sb_fileman import readSB, writeSB
 
 class perception(object):
-    def __init__(self, perceived, owner):
-        self.perceived = perceived
-        self.owner = owner
+    def __init__(self, perceived_ID, owner_ID):
+        self.perceived_ID = perceived_ID
+        self.owner_ID = owner_ID
         self.per_traits = {}
         self.entries = 0
         self.broadcasts = 0
         self.cycles_present = 0
+        
+        owner = readSB(owner_ID)
         self.rating = owner.getCurrent('regard')
+        
         self.contacts = {'accepted' : 0, 'declined': 0, 'rejected': 0, 'total': 0}
         # invitations from perceived to owner
         self.invitations = 0
@@ -63,10 +66,11 @@ class perception(object):
         rating_list = list()
         rating_coefficient = 0.0
         
-        tolerance = self.owner['tolerance']['current']
+        owner = readSB(self.owner_ID)
+        tolerance = owner['tolerance']['current']
         
         for key in self.per_traits:
-            trait_delta = abs(self.owner.getDesired(key) - self.per_traits[key])
+            trait_delta = abs(owner.getDesired(key) - self.per_traits[key])
             tolerance_difference = tolerance - trait_delta
             trait_rating = 0.0
             
@@ -81,17 +85,18 @@ class perception(object):
             rating_coefficient /= 99
             
         else:
-            rating_coefficient = self.owner['regard']['relative']
+            rating_coefficient = owner['regard']['relative']
             
-        regard_range = self.owner['regard']['upper'] - self.owner['regard']['lower']
-        self.rating = (regard_range * rating_coefficient) + self.owner['regard']['lower']
+        regard_range = owner['regard']['upper'] - owner['regard']['lower']
+        self.rating = (regard_range * rating_coefficient) + owner['regard']['lower']
 		
     def getAverageOffset(self):
         # change function to assume perceived traits if not have been observerd
         if len(self.per_traits) > 0:
             total_delta = 0
+            perceived = readSB(self.perceived_ID)
             for trait in self.per_traits:
-                delta = abs(self.perceived[trait]['base'] - self.per_traits[trait])
+                delta = abs(perceived[trait]['base'] - self.per_traits[trait])
                 total_delta += delta
 				
             return  total_delta / float(len(self.per_traits))
@@ -124,18 +129,20 @@ class perception(object):
         self.updateRating()
             
     def printPerception(self):
-        regard_range = self.owner['regard']['upper'] - self.owner['regard']['lower']
-        delta_to_min = self.rating - self.owner['regard']['lower']
+        owner = readSB(self.owner_ID)
+        perceived = readSB(self.perceived_ID)
+        regard_range = owner['regard']['upper'] - owner['regard']['lower']
+        delta_to_min = self.rating - owner['regard']['lower']
         relative_rating = (delta_to_min / regard_range) * 99
-        print "\t%s perception of %s: %f (%f relative)" % (self.owner, self.perceived, self.rating, relative_rating)
+        print "\t%s perception of %s: %f (%f relative)" % (self.owner_ID, self.perceived_ID, self.rating, relative_rating)
         print "\t(%d entries, %d cycles, %d broadcasts)" % (self.entries, self.cycles_present, self.broadcasts)
-        print "\t%s has sent %d invitations to %s)" % (self.perceived, self.invitations, self.owner)
-        print "\t%s has sent %d invitations to %s)" % (self.owner, self.contacts['total'], self.perceived)
+        print "\t%s has sent %d invitations to %s)" % (self.perceived_ID, self.invitations, self.owner_ID)
+        print "\t%s has sent %d invitations to %s)" % (self.owner_ID, self.contacts['total'], self.perceived_ID)
         for contact in self.contacts:
             print "\t\t%s: %d" % (contact, self.contacts[contact])
             
         for trait in self.per_traits:
             print "\t\t%s: %f" % (trait, self.per_traits[trait]), 
-            print " (%f desired)" % self.owner.d_traits[trait]['base'], 
-            print " (%f actual)" % self.perceived.i_traits[trait]['base'],
-            print " (%d priority weight)" % self.owner.desire_priority[trait]
+            print " (%f desired)" % owner.d_traits[trait]['base'], 
+            print " (%f actual)" % perceived.i_traits[trait]['base'],
+            print " (%d priority weight)" % owner.desire_priority[trait]

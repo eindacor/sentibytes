@@ -1,14 +1,5 @@
-from sb_fileman import getTruth, createRandomSBs, writeSB, readSB, cleanup
-
-sb_list = createRandomSBs(2, getTruth())
-
-sb = sb_list[0]
-sb_ID = sb.sentibyte_ID
-
-print sb_ID
-
-writeSB(sb)
-copy = readSB(sb_ID)
-
-print copy.sentibyte_ID
-cleanup()
+import sb_fileman
+test = [1, 2, 3]
+new_test = (test[:]).remove(2)
+print new_test
+#print test[:].remove(2)

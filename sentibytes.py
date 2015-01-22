@@ -1,10 +1,9 @@
 from sb_utilities import currentTimeString
 from sb_communication import community
 from sys import argv, executable
-from sb_fileman import loadPremadeSBs, getTruth, createRandomSBs
+from sb_fileman import loadPremadeSBs, getTruth, createRandomSBs, cleanup
 from os import path
-import platform
-import random
+import platform, random
 from sb_datalog import updateSBData, updateSummary, updateStatusLog
 
 random.seed()
@@ -23,10 +22,13 @@ if platform.system() == 'Windows':
     
 else:
     population_count = 20
-    
+   
+   
+'''
 random_sentibytes = createRandomSBs(population_count, the_truth)
 for sb in random_sentibytes:
     test_community.addMember(sb)
+'''
 
 time_string = currentTimeString()
 
@@ -61,6 +63,8 @@ try:
     updateSBData(test_community, sb_data)
     if status_tracking:
         updateStatusLog(sb_status, status_log_lines)
+        
+    cleanup()
 
 except KeyboardInterrupt:
-    print "finalizing log file"
+    cleanup()

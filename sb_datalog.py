@@ -1,4 +1,4 @@
-from sb_fileman import linesFromFile
+from sb_fileman import linesFromFile, readSB, writeSB
 
 def writeLines(lines, file):
 
@@ -12,7 +12,8 @@ def updateSBData(community, sb_data_file, traits=True, friends=True):
     file = open(sb_data_file, 'a')
     
     member_info = list()
-    for member in community.members:
+    for member_ID in community.members:
+        member = readSB(member_ID)
         member_info.append("----------------------")
         member_info += member.getInfo(traits=True, friends=True)
         #for line in member.getInfo(traits=True, friends=True):
@@ -62,7 +63,8 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     highest_relative_rating = 0
     lowest_relative_rating = 99
     mem_count = float(len(community.members))
-    for member in community.members:
+    for member_ID in community.members:
+        member = readSB(member_ID)
         total_false_knowledge += len(member.false_knowledge)
         total_knowledge += len(member.false_knowledge)
         total_knowledge += len(member.accurate_knowledge)
