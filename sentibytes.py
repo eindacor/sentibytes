@@ -1,10 +1,11 @@
 from sb_utilities import currentTimeString
 from sb_communication import community
 from sys import argv, executable
-from sb_fileman import loadPremadeSBs, getTruth, createRandomSBs, cleanup
+from sb_fileman import getTruth, cleanup
 from os import path
 import platform, random
 from sb_datalog import updateSBData, updateSummary, updateStatusLog
+from sb_sentibyte import loadPremadeSBs, createRandomSBs
 
 random.seed()
 
@@ -13,22 +14,19 @@ the_truth = getTruth()
 test_community = community()
 # load premade sentibytes from ./sb_files 
 premade_sentibytes = loadPremadeSBs(the_truth)
-for sb in premade_sentibytes:
-    test_community.addMember(sb)
+for sb_ID in premade_sentibytes:
+    test_community.addMember(sb_ID)
     
 # generate specified number of random sentibytes 
 if platform.system() == 'Windows':
     population_count = 100
     
 else:
-    population_count = 20
+    population_count = 10
    
-   
-'''
 random_sentibytes = createRandomSBs(population_count, the_truth)
-for sb in random_sentibytes:
-    test_community.addMember(sb)
-'''
+for sb_ID in random_sentibytes:
+    test_community.addMember(sb_ID)
 
 time_string = currentTimeString()
 

@@ -2,10 +2,11 @@ from random import randrange, randint, choice, uniform, shuffle
 from jep_loot.jeploot import catRoll
 from sb_utilities import getCoefficient, calcInfluence, calcAccuracy, \
     boundsCheck, weightedAverage, valueState, randomIndex
+from sb_fileman import getTruth, getPath, getListOfFiles, \
+    traitsFromFile, traitsFromConfig, writeSB
 from sb_perception import perception
 from heapq import heappush, heappop
-from sb_fileman import readSB, writeSB, getTruth
-from sb_communication import transmission, interaction, session
+from sb_communication import transmission, interaction
             
 class sentibyte(object):
     def __init__(self, name, the_truth, traits):
@@ -17,14 +18,17 @@ class sentibyte(object):
         
         self.memory = {} #dict of lists of interaction logs, key = sentibyte_ID
         self.perceptions = {}
+        # when sb is active, ID is None and current_session is either None or a session
+        # when sb is inactive, ID is a str and current_session is None
+        self.current_session_ID = None
         self.current_session = None
+        
         self.community = None
         self.current_interactions = {}
         self.friend_list = list()
         self.contacts = list()
         self.accurate_knowledge = list()
         self.false_knowledge = {}
-        #self.the_truth = the_truth
         
         self.learned_on_own = 0
         self.learned_from_others = 0
@@ -39,6 +43,7 @@ class sentibyte(object):
         self.sociable_count = 0
         self.cycles_alone = 0
         self.cycles_in_session = 0
+        self.cycles_in_current_session = 0
         
         # cooldowns prevent cycles spent in session and along at the same time,
         # and restricts when sb's are allowed to be social
@@ -112,102 +117,30 @@ class sentibyte(object):
             
     def getDesired(self, trait):
         return self.d_traits[trait]['current']
-            
-    def getSession(self):
-        return self.current_session
         
     def isAvailable(self):
         return self.current_session == None
             
-    def addCommunity(self, new):
-        self.community = new
-            
     # called from session cycle if stamina trait is not proc'ed
     def removeSession(self):
         self.current_session = None
+        self.cycles_in_current_session = 0
         self.cycle_cooldown = 1
         # removed after influence no longer changes within session
         #self.i_traits['positivity'].params['current'] = self['positivity']['base'] 
-            
+      
+    # this function analyzes transmissions even if self was not one of the targets
+    # for better accuracty of guessing traits
     def interpretTransmission(self, sent):
-        source = str(sent.source)
+        source = sent.source_ID
         
         # add modifiers for interpretation
         if sent.t_type == 'statement' or self.proc('observant'):
-            self.current_interactions[source].addTransmission(sent)
+            self.current_interactions[source].addTransmission(sent, self)
             
-            if self in sent.targets:
+            if str(self) in sent.targets:
                 self.receiveTransmission(sent)
-        
-    def addPerception(self, other_ID):
-        if other_ID not in self.perceptions:
-            self.perceptions[other_ID] = perception(other_ID, str(self))
-           
-    def addInteraction(self, other_ID):
-        self.addPerception(other_ID)
-        
-        toAdd = interaction(self.sentibyte_ID, other_ID, self.current_session)
-        
-        self.current_interactions[other_ID] = toAdd
-            
-        if other_ID not in self.contacts:
-            self.contacts.append(other_ID)
-     
-    def endInteraction(self, other_ID):
-        target = self.current_interactions[other_ID]
-        target.updateInteraction()
-        
-        # add to perception
-        self.perceptions[other_ID].addInteraction(target)
-        
-        # add to memory
-        if other_ID not in self.memory:
-            self.memory[other_ID] = list()
-            
-        heappush(self.memory[other_ID], self.current_interactions[other_ID])
-        
-        if len(self.memory[other_ID]) > 10:
-            heappop(self.memory[other_ID])
-        
-        # remove from interactions
-        self.current_interactions.pop(other_ID, None)
-        
-    def updateFriends(self):
-        num_friends = 8
-        
-        perception_list = [self.perceptions[p] for p in self.contacts 
-                            if self.perceptions[p].entries > 0]
-    
-        perception_list.sort()
-        
-        length = len(perception_list)
-        
-        if length > num_friends:
-            perception_list = perception_list[(length - num_friends):]
-            
-        self.friend_list = [p.perceived_ID for p in perception_list]
-    
-    '''            
-    def getFriends(self):
-        self.updateFriends()
-        friends = [self.contacts[sb_ID] for sb_ID in self.friend_list]
-        return friends
-    '''
-    
-    def getStrangers(self):
-        stranger_list = [m_ID for m_ID in self.community.members 
-                        if m_ID != self.sentibyte_ID and m_ID not in self.memory]
-              
-        return stranger_list
-      
-    '''  
-    def getContacts(self):
-        return self.contacts.values()
-        
-    def getContact(self, sb_ID):
-        return self.contacts[sb_ID]
-    '''
-        
+                
     def receiveTransmission(self, received):
         # transmissions no longer have effect on others' positivity and energy
         # self['positivity'].influence(received.positivity)
@@ -237,6 +170,60 @@ class sentibyte(object):
                 self.accurate_knowledge.append(info_index)
                 
             self.learned_from_others += 1
+        
+    def addPerception(self, other_ID):
+        if other_ID not in self.perceptions:
+            self.perceptions[other_ID] = perception(other_ID, str(self))
+            
+    def newInteraction(self, other_ID):
+        self.addPerception(other_ID)
+        
+        toAdd = interaction(str(self), other_ID)
+        
+        self.current_interactions[other_ID] = toAdd
+            
+        if other_ID not in self.contacts:
+            self.contacts.append(other_ID)
+     
+    def endInteraction(self, other_ID):
+        target = self.current_interactions[other_ID]
+        target.updateInteraction(self)
+        
+        # add to perception
+        self.perceptions[other_ID].addInteraction(target, self)
+        
+        # add to memory
+        if other_ID not in self.memory:
+            self.memory[other_ID] = list()
+            
+        heappush(self.memory[other_ID], self.current_interactions[other_ID])
+        
+        if len(self.memory[other_ID]) > 10:
+            heappop(self.memory[other_ID])
+        
+        # remove from interactions
+        self.current_interactions.pop(other_ID, None)
+        
+    def updateFriends(self):
+        num_friends = 8
+        
+        perception_list = [self.perceptions[p] for p in self.contacts 
+                            if self.perceptions[p].entries > 0]
+    
+        perception_list.sort()
+        
+        length = len(perception_list)
+        
+        if length > num_friends:
+            perception_list = perception_list[(length - num_friends):]
+            
+        self.friend_list = [p.perceived_ID for p in perception_list]
+    
+    def getStrangers(self):
+        stranger_list = [m_ID for m_ID in self.community.members 
+                        if m_ID != self.sentibyte_ID and m_ID not in self.memory]
+              
+        return stranger_list
         
     def broadcast(self, target_list):
         positivity_current = self.getCurrent('positivity')
@@ -337,6 +324,7 @@ class sentibyte(object):
             if self.proc('sociable'):
                 self.sociable_count += 1
                 if not self.joinSession():
+                    # if connection is unsuccessful, lower positivity
                     self['positivity'].influence(self['positivity']['lower'])
                     self.failed_connection_attempts += 1
                     
@@ -421,42 +409,42 @@ class sentibyte(object):
        
     # returns true if a session is successfully joined or created
     def contact(self, other_ID):
-        other = readSB(other_ID)
+        other = self.community.getMember(other_ID)
         other.addPerception(str(self))
         self.addPerception(other_ID)
-        other.perceptions[str(self)].addInvitation()
+        other.perceptions[str(self)].addInvitation(other)
         
-        if not other.wantsToContact(self):
-            self.perceptions[str(other)].addRejection()
+        if not other.wantsToContact(str(self)):
+            self.perceptions[str(other)].addRejection(self)
             
-        elif type(other.current_session) != type(None) and len(other.current_session.participants) > 24:
-            self.perceptions[str(other)].addUnavailable()
+        elif other.current_session and len(other.current_session.participants) > 24:
+            self.perceptions[str(other)].addUnavailable(self)
             return False
         
         elif other.proc('sociable'):
-            self.perceptions[str(other)].addAcceptance()
+            self.perceptions[str(other)].addAcceptance(self)
             
-            if other.current_session == None:
+            if not other.current_session:
                 self.community.createSession(self.sentibyte_ID, other_ID)
                 return True
                 
             else:
-                for participant in other.current_session.participants:
+                for participant_ID in other.current_session.participants:
+                    participant = self.community.getMember(participant_ID)
+                        
                     if str(self) not in participant.contacts:
                         self.met_through_others += 1
                         participant.met_through_others += 1
-                other.current_session.addParticipant(self)
+                other.current_session.addParticipant(self.sentibyte_ID)
                 return True
                 
         elif self.proc('sensitivity'):
-            self.perceptions[str(other)].addRejection()
+            self.perceptions[str(other)].addRejection(self)
             return False
             
         else:
-            self.perceptions[str(other)].addUnavailable()
+            self.perceptions[str(other)].addUnavailable(self)
             return False
-            
-        writeSB(other)
         
     def getInfo(self, traits=False, memory=False, perceptions=False, friends=False):
         lines = list()
@@ -514,5 +502,47 @@ class sentibyte(object):
             lines.append("\taverage rating for connections: %f" % (sum(rating_list) / float(len(rating_list))))
         
         return lines
+        
+def loadPremadeSBs(the_truth):
+    premade_sentibytes = list()
+    # create sentibytes from files in sb_files directory
+    sb_file_path = getPath() + '/sb_files'
+    
+    files_present = getListOfFiles(sb_file_path)
+    
+    for file_name in files_present:
+        full_path = getPath() + '/sb_files/' + file_name
+        traits = traitsFromFile(full_path)
+        premade_sentibytes.append(sentibyte(file_name, the_truth, traits))
+        
+    for sb in premade_sentibytes:
+        writeSB(sb)
+        
+    return [str(sb) for sb in premade_sentibytes]
+  
+# generates a random number of sentibytes using names from the names.txt file  
+def createRandomSBs(quantity, the_truth):
+    config_file = getPath() + '/traits_config.txt'
+    
+    random_sentibytes = list()
+    
+    member_counter = 0
+    namefile = open(getPath() + '/names.txt')
+    for i, line in enumerate(namefile):
+        if i % (4946 / quantity) == 0:
+            name = line.replace('\n', '')
+            traits = traitsFromConfig(config_file)
+            random_sentibytes.append(sentibyte(name, the_truth, traits))
+            member_counter += 1
+            
+        if member_counter == quantity:
+            break
+        
+    namefile.close()
+    
+    for sb in random_sentibytes:
+        writeSB(sb)
+    
+    return [str(sb) for sb in random_sentibytes]
         
             

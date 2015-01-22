@@ -2,6 +2,11 @@ from random import random, randint
 from sb_utilities import boundsCheck, weightedAverage
 from sb_fileman import readSB, writeSB
 
+class context(object):
+    def __init__(self, session, community):
+        self.session = session
+        self.community = community
+
 class transmission(object):
     def __init__(self, source_ID, targets, positivity, energy, t_type, information):
         self.positivity = positivity
@@ -12,9 +17,7 @@ class transmission(object):
         self.information = information
 
 class interaction(object):
-    def __init__(self, owner_ID, other_ID, session):
-        self.session = session
-        self.first_cycle = self.session.current_cycle
+    def __init__(self, owner_ID, other_ID):
         self.owner_ID = owner_ID
         self.other_ID = other_ID
         self.others_present = list()
@@ -26,8 +29,6 @@ class interaction(object):
             
         else:
             self.overall_rating = owner.getRating(other_ID)
-
-        writeSB(owner)
         
         self.g_traits = {}
         self.cycles_present = 0
@@ -44,52 +45,48 @@ class interaction(object):
                 'first positivity': 0, 'first energy': 0,
                 'last positivity': 0, 'last energy': 0}
 
-    def __eq__(self, other_ID):
-        other = readSB(other_ID)
+    # all comparitors prioritize cycles present first, then rating
+    # this way the interactions that had the most correspondance take priority
+    def __eq__(self, other_interaction):
         if self.cycles_present < 4:
-            return self.cycles_present == other.cycles_present
+            return self.cycles_present == other_interaction.cycles_present
         else:
-            return self.overall_rating == other.overall_rating
+            return self.overall_rating == other_interaction.overall_rating
         
-    def __ne__(self, other_ID):
-        other = readSB(other_ID)
+    def __ne__(self, other_interaction):
         if self.cycles_present < 4:
-            return self.cycles_present != other.cycles_present
+            return self.cycles_present != other_interaction.cycles_present
         else:
-            return self.overall_rating != other.overall_rating
+            return self.overall_rating != other_interaction.overall_rating
         
-    def __gt__(self, other_ID):
-        other = readSB(other_ID)
+    def __gt__(self, other_interaction):
         if self.cycles_present < 4:
-            return self.cycles_present > other.cycles_present
+            return self.cycles_present > other_interaction.cycles_present
         else:
-            return self.overall_rating > other.overall_rating
+            return self.overall_rating > other_interaction.overall_rating
         
-    def __ge__(self, other_ID):
-        other = readSB(other_ID)
+    def __ge__(self, other_interaction):
         if self.cycles_present < 4:
-            return self.cycles_present >= other.cycles_present
+            return self.cycles_present >= other_interaction.cycles_present
         else:
-            return self.overall_rating >= other.overall_rating
+            return self.overall_rating >= other_interaction.overall_rating
         
-    def __lt__(self, other_ID):
-        other = readSB(other_ID)
+    def __lt__(self, other_interaction):
         if self.cycles_present < 4:
-            return self.cycles_present < other.cycles_present
+            return self.cycles_present < other_interaction.cycles_present
         else:
-            return self.overall_rating < other.overall_rating
+            return self.overall_rating < other_interaction.overall_rating
         
-    def __le__(self, other_ID):
-        other = readSB(other_ID)
+    def __le__(self, other_interaction):
         if self.cycles_present < 4:
-            return self.cycles_present <= other.cycles_present
+            return self.cycles_present <= other_interaction.cycles_present
         else:
-            return self.overall_rating <= other.overall_rating
+            return self.overall_rating <= other_interaction.overall_rating
         
     def __getitem__(self, index):
         return self.data[index]
         
-    def addTransmission(self, transmission):
+    def addTransmission(self, transmission, owner):
         # adjust stamina levels based on mood, stay longer for good results
         self.others_present = [target for target in transmission.targets if target != self.owner_ID]
             
@@ -136,17 +133,19 @@ class interaction(object):
         
             self.data[item]['count'] += 1
             
-            self.updateInteraction()
+            self.updateInteraction(owner)
             
-    def updateInteraction(self):
-        owner = readSB(self.owner_ID)
-        self.cycles_present = 1 + (owner.getSession().current_cycle - self.first_cycle)
+    def updateInteraction(self, owner=None):
+        self.cycles_present = owner.cycles_in_current_session
             
         # The following algorithms attempt to guess the other's traits based on
         # received transmissions
+        
         # COMMUNICATIVE
+        # The number 12 refers to the number of communications per cycle set in
+        # the session parameters
         communicative_guess = float(self.data['total']['count']) / \
-                            (float(self.cycles_present) * self.session.communications_per_cycle)
+                            (float(self.cycles_present) * 12)
         self.g_traits['communicative'] = communicative_guess * 99
                         
         # TALKATIVE
@@ -178,8 +177,6 @@ class interaction(object):
                 ratings.append(rating)
         
         self.overall_rating = float(sum(ratings)) / float(len(ratings))
-        
-        writeSB(owner)
     
         return self.overall_rating
 
@@ -191,6 +188,7 @@ class session(object):
         self.participants = list()
         self.current_cycle = 0
         self.session_open = True
+        # if communications per cycle changes, interaction class must be updated
         self.communications_per_cycle = 12
         self.new_members = list()
         self.community = community
@@ -207,67 +205,61 @@ class session(object):
         
     def __ne__(self, other):
         return self.session_ID != other.session_ID
-        
+      
     def addParticipant(self, entering_ID):
-        entering = readSB(entering_ID)
-        entering.current_session = self
-        for sb_ID in self.participants:
-            sb = readSB(sb_ID)
-            sb.addInteraction(entering_ID)
-            entering.addInteraction(sb_ID)
-            writeSB(sb)
+        entering = self.community.getMember(entering_ID)
+        entering.current_session_ID = self.session_ID
+        for participant_ID in self.participants:
+            participant = self.community.getMember(participant_ID)
+            participant.newInteraction(entering_ID)
+            entering.newInteraction(participant_ID)
             
         self.community.logEntry("%s entering session %d" % (entering, self.session_ID))
         self.participants.append(entering_ID)
         self.new_members.append(entering_ID)
-        writeSB(entering)
-        
+
     def getAllOthers(self, participant_ID):
         other_participants = [p_ID for p_ID in self.participants if p_ID != participant_ID]
         return other_participants
     
     def removeParticipant(self, leaving_ID):
-        leaving = readSB(leaving_ID)
+        leaving = self.community.getMember(leaving_ID)
         other_participants = self.getAllOthers(leaving.sentibyte_ID)
         for participant_ID in other_participants:
-            participant = readSB(participant_ID)
-            leaving.endInteraction(participant)
-            participant.endInteraction(leaving)
-            writeSB(participant)
+            participant = self.community.getMember(participant_ID)
+            leaving.endInteraction(participant_ID)
+            participant.endInteraction(leaving_ID)
     
         self.community.logEntry("%s leaving session %d" % (leaving, self.session_ID))
         leaving.removeSession()
-        self.participants.remove(leaving)
-        writeSB(leaving)
+        self.participants.remove(leaving_ID)
         
     # Cycles through each participant, collecting broadcasts they might make
     # recieves transmission_list from cycle()
     def transmissionPhase(self, transmission_list):
         for participant_ID in self.participants:
-            participant = readSB(participant_ID)
+            participant = self.community.getMember(participant_ID)
             
             if participant.proc('communicative'):
-                available_targets = self.getAllOthers(participant)
+                available_targets = self.getAllOthers(participant_ID)
                 if len(available_targets) > 0:
-                    transmission_list.append(participant.broadcast(available_targets))
+                    transmission_generated = participant.broadcast(available_targets)
+                    transmission_list.append(transmission_generated)
                     
-            writeSB(participant)
         
     # Cycles through each participant, allowing each to interpret transmissions
     # that were sent by others
     def interpretPhase(self, transmission_list):
         for participant_ID in self.participants:
-            participant = readSB(participant_ID)
+            participant = self.community.getMember(participant_ID)
             for item in transmission_list:
-                if participant != item.source_ID:
+                if participant_ID != item.source_ID:
                     participant.interpretTransmission(item)
-                    
-            writeSB(participant)
                     
     def leavePhase(self):   
         leaving = list()
         for participant_ID in self.participants:
-            participant = readSB(participant_ID)
+            participant = self.community.getMember(participant_ID)
             if not participant.proc('stamina'):
                 leaving.append(participant_ID)
             
@@ -287,10 +279,10 @@ class session(object):
                 
     def cycle(self):
         for member_ID in self.participants:
-            member = readSB(member_ID)
+            member = self.community.getMember(member_ID)
             self.community.logEntry("%s in session %d" % (member, self.session_ID))
             member.cycles_in_session += 1
-            writeSB(member)
+            member.cycles_in_current_session += 1
         
         for i in range(self.communications_per_cycle):
             transmission_list = list()
@@ -298,15 +290,16 @@ class session(object):
             self.interpretPhase(transmission_list)
             
         for member_ID in self.participants:
-            member = readSB(member_ID)
+            member = self.community.getMember(member_ID)
             if member.proc('volatility'):
                 member.fluctuateTraits()
-            writeSB(member)
         
         self.current_cycle += 1
         if len(self.new_members) == 0:
             self.leavePhase()
         self.new_members = list()
+        
+        self.community.saveAndClearActiveMembers()
         
 class community(object):
     def __init__(self):
@@ -318,14 +311,31 @@ class community(object):
         self.sessions = list()
         self.status_log = list()
         
+        # maintains a list of sb's currently in memory
+        self.active_members = list()
+        
     def addMember(self, new_ID):
         self.members.append(new_ID)
-        new = readSB(new_ID)
-        new.addCommunity(self)
-        writeSB(new)
         
     def logEntry(self, line):
         self.status_log.append(line)
+        
+    def getSession(self, session_ID):
+        # porobably an easier way to do this
+        for session in self.sessions:
+            if session_ID == session.session_ID:
+                return session
+    
+    # returns member in active_member list, activates member if they are not
+    # in the list
+    def getMember(self, member_ID):
+        active_IDs = [member.sentibyte_ID for member in self.active_members]
+        if member_ID not in active_IDs:
+            self.active_members.append(readSB(member_ID, self))
+            
+        for member in self.active_members:
+            if member_ID == str(member):
+                return member
         
     def getAllOthers(self, member_ID):
         other_members = self.members[:]
@@ -338,6 +348,12 @@ class community(object):
         new_session.addParticipant(second_ID)
         self.sessions.append(new_session)
         
+    def saveAndClearActiveMembers(self):
+        for member in self.active_members:
+            writeSB(member)
+            
+        self.active_members = list()
+    
     def cycle(self):
         self.status_log = list()
         self.logEntry("---- cycle %d ----" % self.current_cycle)
@@ -352,24 +368,25 @@ class community(object):
          
         members_alone = list()
         for member_ID in self.members:
-            member = readSB(member_ID) 
+            member = readSB(member_ID, self) 
             if member.isAvailable():
                 members_alone.append(member_ID)
-                
         
         self.logEntry("members alone: %d" % len(members_alone))
         for member_ID in members_alone:
-            member = readSB(member_ID) 
+            member = self.getMember(member_ID) 
             self.logEntry("%s is alone" % member_ID)
             member.aloneCycle()
-            writeSB(member)
+            self.saveAndClearActiveMembers()
                 
         for member_ID in self.members:
-            member = readSB(member_ID) 
+            member = self.getMember(member_ID) 
             if member.isAvailable():
                 member.invitationCycle()
-            writeSB(member)
+            self.saveAndClearActiveMembers()
                 
         self.current_cycle += 1
+        
+        self.saveAndClearActiveMembers()
         
         return self.status_log

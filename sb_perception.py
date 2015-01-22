@@ -1,5 +1,5 @@
 from sb_utilities import getCoefficient, calcInfluence, calcAccuracy, boundsCheck, weightedAverage, valueState
-from sb_fileman import readSB, writeSB
+from sb_fileman import readSB
 
 class perception(object):
     def __init__(self, perceived_ID, owner_ID):
@@ -41,7 +41,7 @@ class perception(object):
     def __ge__(self, other):
         return self.rating >= other.rating
             
-    def addInteraction(self, interaction, isMemory=False):      
+    def addInteraction(self, interaction, owner, isMemory=False):      
         if not isMemory:
             self.broadcasts += interaction['total']['count']
             self.cycles_present += interaction.cycles_present
@@ -57,16 +57,15 @@ class perception(object):
                 self.per_traits[key] = weightedAverage(self.per_traits[key], self.entries, interaction.g_traits[key], 1)
 				
         self.interaction_count += 1        
-        self.updateRating()
+        self.updateRating(owner)
         
     # get % desirability from traits and contacts, calc rating relative to 
     # regard lower/upper bounds
-    def updateRating(self):
+    def updateRating(self, owner):
         self.entries += 1
         rating_list = list()
         rating_coefficient = 0.0
         
-        owner = readSB(self.owner_ID)
         tolerance = owner['tolerance']['current']
         
         for key in self.per_traits:
@@ -104,29 +103,29 @@ class perception(object):
         else:
             return 'n/a'
         
-    def addRejection(self):
+    def addRejection(self, owner):
         self.contacts['rejected'] += 1
         self.contacts['total'] += 1
-        self.updateRating()
+        self.updateRating(owner)
         
-    def addInvitation(self):
+    def addInvitation(self, owner):
         self.invitations += 1
             
-    def addAcceptance(self):
+    def addAcceptance(self, owner):
         self.contacts['accepted'] += 1
         self.contacts['total'] += 1
         non_rejections = self.contacts['total'] - self.contacts['rejected']
         if non_rejections > 10:
             self.per_traits['sociable'] = self.contacts['accepted'] / float(non_rejections)
             self.per_traits['sociable'] *= 99
-        self.updateRating()
+        self.updateRating(owner)
         
-    def addUnavailable(self):
+    def addUnavailable(self, owner):
         self.contacts['declined'] += 1
         self.contacts['total'] += 1
         if self.contacts['total'] > 10 and self.contacts['rejected'] != self.contacts['total']:
             self.per_traits['sociable'] = self.contacts['accepted'] / (self.contacts['accepted'] + self.contacts['declined'])
-        self.updateRating()
+        self.updateRating(owner)
             
     def printPerception(self):
         owner = readSB(self.owner_ID)
