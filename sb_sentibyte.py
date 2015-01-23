@@ -40,6 +40,12 @@ class sentibyte(object):
         self.invitations_to_strangers = 0
         self.failed_connection_attempts = 0
         self.successful_connection_attempts = 0
+        self.successful_connections_friends = 0
+        self.successful_connections_contacts = 0
+        self.successful_connections_strangers = 0
+        self.unsuccessful_connections_friends = 0
+        self.unsuccessful_connections_contacts = 0
+        self.unsuccessful_connections_strangers = 0
         self.sociable_count = 0
         self.cycles_alone = 0
         self.cycles_in_session = 0
@@ -135,11 +141,19 @@ class sentibyte(object):
         source = sent.source_ID
         
         # add modifiers for interpretation
-        if sent.t_type == 'statement' or self.proc('observant'):
-            self.current_interactions[source].addTransmission(sent, self)
-            
-            if str(self) in sent.targets:
-                self.receiveTransmission(sent)
+        try:
+            if sent.t_type == 'statement' or self.proc('observant'):
+                self.current_interactions[source].addTransmission(sent, self)
+                
+                if str(self) in sent.targets:
+                    self.receiveTransmission(sent)
+
+        except KeyError:
+            print "interpreter: %s" % self
+            print "source: %s" % source
+            print "current_interactions: ", self.current_interactions.keys()
+            print "participants: ", self.current_session.participants
+            raise Exception
                 
     def receiveTransmission(self, received):
         # transmissions no longer have effect on others' positivity and energy
@@ -333,6 +347,34 @@ class sentibyte(object):
                         
         else:
             self.social_cooldown -= 1
+
+    def logConnection(self, successful, target):
+        if target == 'strangers':
+            if successful:
+                self.successful_connections_strangers += 1
+                return True
+
+            else:
+                self.unsuccessful_connections_strangers += 1
+                return False
+
+        if target == 'contacts':
+            if successful:
+                self.successful_connections_contacts += 1
+                return True
+
+            else:
+                self.unsuccessful_connections_contacts += 1
+                return False
+
+        if target == 'friends':
+            if successful:
+                self.successful_connections_friends += 1
+                return True
+
+            else:
+                self.unsuccessful_connections_friends += 1
+                return False
       
     # Seeks other sentibytes for communication, returns true if a connection is 
     # made, false if not
@@ -341,14 +383,17 @@ class sentibyte(object):
         # generate list of targets (strangers, contacts, or friends)
         # target_list = list()
         if (self.proc('adventurous') or len(self.friend_list) == 0) and len(self.getStrangers()) != 0:
+            selected_type = 'strangers'
             target_list = self.getStrangers()
             self.invitations_to_strangers += 1
             
         elif self.proc('pickiness'):
+            selected_type = 'friends'
             target_list = self.friend_list[:]
             self.invitations_to_friends += 1
         
         else:
+            selected_type = 'contacts'
             target_list = self.contacts[:]
             self.invitations_to_contacts += 1
         
@@ -362,7 +407,7 @@ class sentibyte(object):
                 weighed_options[other_ID] = self['regard']['current']
             
         if len(weighed_options) == 0:
-            return False
+            return self.logConnection(False, selected_type)
             
         selected_ID = catRoll(weighed_options)
         
@@ -371,11 +416,11 @@ class sentibyte(object):
             del weighed_options[selected_ID]
             
             if len(weighed_options) == 0:
-                return False
+                return self.logConnection(False, selected_type)
          
             selected_ID = catRoll(weighed_options)
-
-        return True
+            
+        return self.logConnection(True, selected_type)
         
     # returns rating of particular sentibyte by ID or object
     # if the target is yet to make contact with self, returns self's current
@@ -462,6 +507,9 @@ class sentibyte(object):
         lines.append("invitations to strangers: %d" % self.invitations_to_strangers)
         lines.append("invitations to contacts: %d" % self.invitations_to_contacts)
         lines.append("invitations to friends: %d" % self.invitations_to_friends)
+        lines.append("successful connections to strangers: %d" % self.successful_connections_strangers)
+        lines.append("successful connections to contacts: %d" % self.successful_connections_contacts)
+        lines.append("successful connections to friends: %d" % self.successful_connections_friends)
         lines.append("cycles alone: %s" % self.cycles_alone)
         lines.append("cycles in session: %s" % self.cycles_in_session)
         lines.append("current session: %s" % self.current_session)

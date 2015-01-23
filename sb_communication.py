@@ -183,8 +183,8 @@ class interaction(object):
 # This is the managing class for social interactions between sentibytes.
 # Sentibytes involved in a session are called 'participants'
 class session(object):
-    def __init__(self, community):
-        self.session_ID = randint(0, 10000)
+    def __init__(self, community, ID):
+        self.session_ID = ID
         self.participants = list()
         self.current_cycle = 0
         self.session_open = True
@@ -208,7 +208,7 @@ class session(object):
       
     def addParticipant(self, entering_ID):
         entering = self.community.getMember(entering_ID)
-        entering.current_session_ID = self.session_ID
+        entering.current_session = self
         for participant_ID in self.participants:
             participant = self.community.getMember(participant_ID)
             participant.newInteraction(entering_ID)
@@ -256,21 +256,22 @@ class session(object):
                 if participant_ID != item.source_ID:
                     participant.interpretTransmission(item)
                     
-    def leavePhase(self):   
-        leaving = list()
-        for participant_ID in self.participants:
-            participant = self.community.getMember(participant_ID)
-            if not participant.proc('stamina'):
-                leaving.append(participant_ID)
-            
-        for participant_ID in leaving:
-            self.removeParticipant(participant_ID)
+    def leavePhase(self):
+        if self.current_cycle > 1:
+            leaving = list()
+            for participant_ID in self.participants:
+                participant = self.community.getMember(participant_ID)
+                if not participant.proc('stamina'):
+                    leaving.append(participant_ID)
                 
-        if len(self.participants) == 1:
-            self.removeParticipant(self.participants[0])
-            
-        if len(self.participants) == 0:
-            self.endPhase()
+            for participant_ID in leaving:
+                self.removeParticipant(participant_ID)
+                    
+            if len(self.participants) == 1:
+                self.removeParticipant(self.participants[0])
+                
+            if len(self.participants) == 0:
+                self.endPhase()
                 
     # Placeholder function for any overhead work that might be involved in 
     # ending a session
@@ -278,6 +279,7 @@ class session(object):
         self.session_open = False
                 
     def cycle(self):
+        self.current_cycle += 1
         for member_ID in self.participants:
             member = self.community.getMember(member_ID)
             self.community.logEntry("%s in session %d" % (member, self.session_ID))
@@ -294,7 +296,6 @@ class session(object):
             if member.proc('volatility'):
                 member.fluctuateTraits()
         
-        self.current_cycle += 1
         if len(self.new_members) == 0:
             self.leavePhase()
         self.new_members = list()
@@ -316,6 +317,11 @@ class community(object):
         self.most_members_active = 0
         self.most_concurrent_sessions = 0
         self.most_popular_session = 0
+        self.oldest_session = 0
+        self.total_session_count = 0
+        self.total_unique_sessions = 0
+        self.total_unique_session_cycles = 0
+        self.total_members_in_session = 0.0
         
     def addMember(self, new_ID):
         self.members.append(new_ID)
@@ -367,7 +373,12 @@ class community(object):
         return other_members
         
     def createSession(self, first_ID, second_ID):
-        new_session = session(self)
+        unavailable_IDs = [s.session_ID for s in self.sessions]
+        new_ID = 0
+        while new_ID in unavailable_IDs:
+            new_ID += 1
+            
+        new_session = session(self, new_ID)
         new_session.addParticipant(first_ID)
         new_session.addParticipant(second_ID)
         self.sessions.append(new_session)
@@ -377,14 +388,20 @@ class community(object):
         self.logEntry("---- cycle %d ----" % self.current_cycle)
         self.logEntry("sessions: %s" % [ID.session_ID for ID in self.sessions])
         for session in self.sessions:
+            self.total_session_count += 1
             if len(session.participants) > self.most_popular_session:
                 self.most_popular_session = len(session.participants)
+                self.printRecords()
+            if session.current_cycle > self.oldest_session:
+                self.oldest_session = session.current_cycle
                 self.printRecords()
             session.cycle()
             
         void_sessions = [session for session in self.sessions if session.session_open == False]
         
         for session in void_sessions:
+            self.total_unique_sessions += 1
+            self.total_unique_session_cycles += session.current_cycle
             self.sessions.remove(session)
          
         members_alone = list()
@@ -418,7 +435,8 @@ class community(object):
 
     def printRecords(self):
         print "cycles: ", self.current_cycle
-        print "Most concurrent sessions: ", self.most_concurrent_sessions
-        print "Most popular session: ", self.most_popular_session
-        print "Most active members: ", self.most_members_active
+        print "Most concurrent sessions: %d" % self.most_concurrent_sessions
+        print "Most popular session: %d" % self.most_popular_session
+        print "Most active members: %d" % self.most_members_active
+        print "Longest running session: %d cycles" % self.oldest_session
         print "---"

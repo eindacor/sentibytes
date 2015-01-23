@@ -91,7 +91,7 @@ class perception(object):
         self.rating = (regard_range * rating_coefficient) + owner['regard']['lower']
 		
     def getAverageOffset(self):
-        # change function to assume perceived traits if not have been observerd
+        # change function to assume perceived traits if not have been observed
         if len(self.per_traits) > 0:
             total_delta = 0
             perceived = readSB(self.perceived_ID)
@@ -102,7 +102,7 @@ class perception(object):
             return  total_delta / float(len(self.per_traits))
 			
         else:
-            return 'n/a'
+            return None
         
     def addRejection(self, owner):
         self.contacts['rejected'] += 1

@@ -22,8 +22,10 @@ def updateSBData(community, sb_data_file, traits=True, friends=True):
     writeLines(member_info, file)
     file.close()
     
-def updateStatusLog(sb_status_file, status_log_lines):
-    file = open(sb_status_file, 'w')
+def updateStatusLog(sb_status_file, status_log_lines, overwrite=True):
+    if overwrite:
+        file = open(sb_status_file, 'w')
+        
     file = open(sb_status_file, 'a')
                 
     writeLines(status_log_lines, file)
@@ -46,6 +48,8 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     total_rating_friends = 0
     total_relative_ratings_friends = 0
     friend_count = 0.0
+    contact_offset_count = 0.0
+    friend_offset_count = 0.0
     total_sociable_procs = 0
     total_cycles_alone = 0
     total_cycles_in_session = 0
@@ -58,6 +62,12 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     total_interactions_with_friends = 0
     total_failed_connection_attempts = 0
     total_successful_connection_attempts = 0
+    total_succ_conn_contacts = 0
+    total_succ_conn_friends = 0
+    total_succ_conn_strangers = 0
+    total_unsucc_conn_contacts = 0
+    total_unsucc_conn_friends = 0
+    total_unsucc_conn_strangers = 0
     total_met = 0
     total_met_through_others = 0
     highest_relative_rating = 0
@@ -89,19 +99,30 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
             total_relative_ratings += member.getRating(other, relative=True)
             total_entries_of_contacts += member.perceptions[other].entries
             total_interactions_with_contacts += member.perceptions[other].interaction_count
-            if member.getPerceptionOffset(other) != 'n/a':
-                total_avg_offset += member.getPerceptionOffset(other)
+            perceptionOffset = member.getPerceptionOffset(other)
+            if perceptionOffset:
+                total_avg_offset += perceptionOffset
+                contact_offset_count += 1
         for other in member.friend_list:
             total_rating_friends += member.getRating(other)
             friend_count += 1
             total_relative_ratings_friends += member.getRating(other, relative=True)
-            total_avg_offset_friends += member.getPerceptionOffset(other)
+            perceptionOffset = member.getPerceptionOffset(other)
+            if perceptionOffset != None:
+                total_avg_offset_friends += perceptionOffset
+                friend_offset_count += 1
             total_entries_of_friends += member.perceptions[other].entries
             total_interactions_with_friends += member.perceptions[other].interaction_count
         total_sociable_procs += member.sociable_count
         total_inv_to_strangers += member.invitations_to_strangers
         total_inv_to_contacts += member.invitations_to_contacts
         total_inv_to_friends += member.invitations_to_friends
+        total_succ_conn_contacts += member.successful_connections_contacts
+        total_succ_conn_friends += member.successful_connections_friends
+        total_succ_conn_strangers += member.successful_connections_strangers
+        total_unsucc_conn_contacts += member.unsuccessful_connections_contacts
+        total_unsucc_conn_friends += member.unsuccessful_connections_friends
+        total_unsucc_conn_strangers += member.unsuccessful_connections_strangers
         total_met += len(member.contacts)
         total_met_through_others += member.met_through_others
         total_failed_connection_attempts += member.failed_connection_attempts
@@ -110,6 +131,17 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
         total_cycles_alone += member.cycles_alone
     
     stats = list()
+
+    avg_sessions_per_cycle = community.total_session_count/community.current_cycle
+    avg_cycles_per_session = community.total_unique_session_cycles/float(community.total_unique_sessions)
+    stats.append("cycles: %d" % community.current_cycle)
+    stats.append("average sessions per community cycle: %f" % avg_sessions_per_cycle)
+    stats.append("average session duration: %f cycles" % avg_cycles_per_session)
+    stats.append("total unique sessions: %d" % community.total_unique_sessions)
+    print "total unique session cycles: %d" % community.total_unique_session_cycles
+    stats.append("most popular session: %d sentibytes" % community.most_popular_session)
+    stats.append("most concurrent sessions active: %d" % community.most_concurrent_sessions)
+    stats.append("longest running session: %d cycles" % community.oldest_session)
     
     if mem_count > 0:
         avg_knowledge = total_knowledge/mem_count
@@ -124,6 +156,12 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
         avg_inv_to_strangers = total_inv_to_strangers/mem_count
         avg_inv_to_contacts = total_inv_to_contacts/mem_count
         avg_inv_to_friends = total_inv_to_friends/mem_count
+        avg_succ_conn_contacts = total_succ_conn_contacts
+        avg_succ_conn_friends = total_succ_conn_friends
+        avg_succ_conn_strangers = total_succ_conn_strangers
+        avg_unsucc_conn_contacts = total_unsucc_conn_contacts
+        avg_unsucc_conn_friends = total_unsucc_conn_friends
+        avg_unsucc_conn_strangers = total_unsucc_conn_strangers
         avg_failed_connection_attempts = total_failed_connection_attempts/mem_count
         avg_successful_connection_attempts = total_successful_connection_attempts/mem_count
         avg_met = total_met/mem_count
@@ -134,7 +172,6 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
             print "sumtotal of counted cycles does not equal total cycles"
         
         stats.append("members: %d" % mem_count)
-        stats.append("cycles: %d" % community.current_cycle)
         stats.append("available knowledge: %d" % len(the_truth))
         stats.append("average knowledge: %f" % avg_knowledge)
         stats.append("average false knowledge: %f" % avg_false_knowledge)
@@ -152,13 +189,19 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
         stats.append("average invitations to strangers: %f" % avg_inv_to_strangers)
         stats.append("average invitations to contacts: %f" % avg_inv_to_contacts)
         stats.append("average invitations to friends: %f" % avg_inv_to_friends)
+        stats.append("average successful connections to strangers: %f" % avg_succ_conn_strangers)
+        stats.append("average successful connections to contacts: %f" % avg_succ_conn_contacts)
+        stats.append("average successful connections to friends: %f" % avg_succ_conn_friends)
+        stats.append("average unsuccessful connections to strangers: %f" % avg_unsucc_conn_strangers)
+        stats.append("average unsuccessful connections to contacts: %f" % avg_unsucc_conn_contacts)
+        stats.append("average unsuccessful connections to friends: %f" % avg_unsucc_conn_friends)
         stats.append("average others met: %f" % avg_met)
         stats.append("average met through others: %f" % avg_met_through_others)
     
     if contact_count > 0:
         avg_ratings = total_ratings/contact_count
         avg_relative_ratings = total_relative_ratings/contact_count
-        avg_avg_offset = total_avg_offset/contact_count
+        avg_avg_offset = total_avg_offset/contact_offset_count
         avg_entries_of_contacts = total_entries_of_contacts/contact_count
         avg_interactions_with_contacts = total_interactions_with_contacts/contact_count
         
@@ -172,7 +215,7 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     if friend_count > 0:
         avg_rating_friends = total_rating_friends/friend_count
         avg_relative_ratings_friends = total_relative_ratings_friends/friend_count
-        avg_avg_offset_friends = total_avg_offset_friends/friend_count
+        avg_avg_offset_friends = total_avg_offset_friends/friend_offset_count
         avg_entries_of_friends = total_entries_of_friends/friend_count
         avg_interactions_with_friends = total_interactions_with_friends/friend_count
         
