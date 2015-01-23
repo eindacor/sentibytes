@@ -22,7 +22,7 @@ if platform.system() == 'Windows':
     population_count = 50
     
 else:
-    population_count = 10
+    population_count = 50
    
 random_sentibytes = createRandomSBs(population_count, the_truth)
 for sb_ID in random_sentibytes:
@@ -66,7 +66,4 @@ try:
 
 except KeyboardInterrupt:
     updateSummary(test_community, config_file, sb_summary, the_truth)
-    cleanup()
-
-except Exception:
     cleanup()

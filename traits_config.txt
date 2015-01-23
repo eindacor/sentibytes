@@ -14,7 +14,7 @@ p_adventurous = 5, 20
 p_private = 0, 75
 p_reflective = 0, 99
 p_trusting = 0, 99
-p_stamina = 10, 60
+p_stamina = 50, 80
 p_intelligence = 20, 99
 p_inquisitive = 0, 99
 

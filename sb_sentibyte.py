@@ -483,18 +483,21 @@ class sentibyte(object):
   
         if len(self.friend_list) > 0 and friends:
             lines.append("friends:")
-            for friend in self.friend_list:
-                perception = self.perceptions[friend]
+            for friend_ID in self.friend_list:
+                friend = self.community.getMember(friend_ID)
+                perception = self.perceptions[friend_ID]
                 
-                regard_range = perception.owner['regard']['upper'] - perception.owner['regard']['lower']
-                delta_to_min = perception.rating - perception.owner['regard']['lower']
+                regard_range = self['regard']['upper'] - self['regard']['lower']
+                delta_to_min = perception.rating - self['regard']['lower']
                 relative_rating = (delta_to_min / regard_range) * 99
-                lines.append("\t%s perception of %s: %f (%f relative)" % (perception.owner, perception.perceived, perception.rating, relative_rating))
+                lines.append("\t%s perception of %s: %f (%f relative)" % (self, friend, perception.rating, relative_rating))
                 lines.append("\t(%d entries, %d cycles, %d broadcasts)" % (perception.entries, perception.cycles_present, perception.broadcasts))
-                lines.append("\t%s has sent %d invitations to %s)" % (perception.perceived, perception.invitations, perception.owner))
-                lines.append("\t%s has sent %d invitations to %s)" % (perception.owner, perception.contacts['total'], perception.perceived))
+                lines.append("\t%s has sent %d invitations to %s)" % (friend, perception.invitations, self))
+                lines.append("\t%s has sent %d invitations to %s)" % (self, perception.contacts['total'], friend))
                 for key in perception.contacts:
                     lines.append("\t\t%s: %d" % (key, perception.contacts[key]))
+                    
+                self.community.deactivateMember(friend_ID)
             
         entry_list = [i.entries for i in self.perceptions.values()]
         if entry_list:

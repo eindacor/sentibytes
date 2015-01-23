@@ -13,7 +13,7 @@ def updateSBData(community, sb_data_file, traits=True, friends=True):
     
     member_info = list()
     for member_ID in community.members:
-        member = readSB(member_ID)
+        member = readSB(member_ID, community)
         member_info.append("----------------------")
         member_info += member.getInfo(traits=True, friends=True)
         #for line in member.getInfo(traits=True, friends=True):

@@ -13,6 +13,7 @@ class perception(object):
         owner = readSB(owner_ID)
         self.rating = owner.getCurrent('regard')
         
+        # change variable name
         self.contacts = {'accepted' : 0, 'declined': 0, 'rejected': 0, 'total': 0}
         # invitations from perceived to owner
         self.invitations = 0
