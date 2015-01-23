@@ -419,6 +419,7 @@ class sentibyte(object):
             
         elif other.current_session and len(other.current_session.participants) > 24:
             self.perceptions[str(other)].addUnavailable(self)
+            self.community.deactivateMember(other_ID)
             return False
         
         elif other.proc('sociable'):
@@ -440,10 +441,12 @@ class sentibyte(object):
                 
         elif self.proc('sensitivity'):
             self.perceptions[str(other)].addRejection(self)
+            self.community.deactivateMember(other_ID)
             return False
             
         else:
             self.perceptions[str(other)].addUnavailable(self)
+            self.community.deactivateMember(other_ID)
             return False
         
     def getInfo(self, traits=False, memory=False, perceptions=False, friends=False):

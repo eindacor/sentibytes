@@ -140,6 +140,11 @@ def writeSB(sb):
 def cleanup():
     sb_file_path = getPath() + '/sb_data'
     file_list = getListOfFiles(sb_file_path)
-    
+
     for file in file_list:
-        subprocess.Popen(['rm', sb_file_path + '/' + file])
+        if platform.system() == 'Windows':
+            output = subprocess.Popen([executable, 'rm', sb_file_path + '/' + file])
+        else:
+            subprocess.Popen(['rm', sb_file_path + '/' + file])
+    
+        

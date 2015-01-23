@@ -313,6 +313,9 @@ class community(object):
         
         # maintains a list of sb's currently in memory
         self.active_members = list()
+        self.most_members_active = 0
+        self.most_concurrent_sessions = 0
+        self.most_popular_session = 0
         
     def addMember(self, new_ID):
         self.members.append(new_ID)
@@ -336,6 +339,27 @@ class community(object):
         for member in self.active_members:
             if member_ID == str(member):
                 return member
+
+    # removes sb from memory, saving to file
+    def deactivateMember(self, member_ID):
+        if len(self.active_members) > self.most_members_active:
+            self.most_members_active = len(self.active_members)
+            self.printRecords()
+        
+        for member in self.active_members:
+            if member.sentibyte_ID == member_ID:
+                writeSB(member)
+                self.active_members.remove(member)              
+                return
+
+    def saveAndClearActiveMembers(self):
+        if len(self.active_members) > self.most_members_active:
+            self.most_members_active = len(self.active_members)
+            self.printRecords()
+        for member in self.active_members:
+            writeSB(member)
+            
+        self.active_members = list()
         
     def getAllOthers(self, member_ID):
         other_members = self.members[:]
@@ -347,18 +371,15 @@ class community(object):
         new_session.addParticipant(first_ID)
         new_session.addParticipant(second_ID)
         self.sessions.append(new_session)
-        
-    def saveAndClearActiveMembers(self):
-        for member in self.active_members:
-            writeSB(member)
-            
-        self.active_members = list()
     
     def cycle(self):
         self.status_log = list()
         self.logEntry("---- cycle %d ----" % self.current_cycle)
         self.logEntry("sessions: %s" % [ID.session_ID for ID in self.sessions])
         for session in self.sessions:
+            if len(session.participants) > self.most_popular_session:
+                self.most_popular_session = len(session.participants)
+                self.printRecords()
             session.cycle()
             
         void_sessions = [session for session in self.sessions if session.session_open == False]
@@ -388,5 +409,16 @@ class community(object):
         self.current_cycle += 1
         
         self.saveAndClearActiveMembers()
+
+        if len(self.sessions) > self.most_concurrent_sessions:
+            self.most_concurrent_sessions = len(self.sessions)
+            self.printRecords()
         
         return self.status_log
+
+    def printRecords(self):
+        print "cycles: ", self.current_cycle
+        print "Most concurrent sessions: ", self.most_concurrent_sessions
+        print "Most popular session: ", self.most_popular_session
+        print "Most active members: ", self.most_members_active
+        print "---"
