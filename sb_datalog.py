@@ -36,6 +36,8 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     total_false_knowledge = 0
     most_accurate_knowledge = 0
     least_accurate_knowledge = len(the_truth)
+    most_knowledge = 0
+    least_knowledge = len(the_truth)
     total_learned_from_others = 0
     total_learned_on_own = 0
     total_misled = 0
@@ -71,8 +73,6 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     for member_ID in community.members:
         member = readSB(member_ID)
         total_false_knowledge += len(member.false_knowledge)
-        total_knowledge += len(member.false_knowledge)
-        total_knowledge += len(member.accurate_knowledge)
         total_misled += member.misled_by_others
         total_corrected += member.corrected_by_others
 
@@ -81,6 +81,14 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
             
         if len(member.accurate_knowledge) < least_accurate_knowledge:
             least_accurate_knowledge = len(member.accurate_knowledge)
+        
+        member_knowledge_total = len(member.accurate_knowledge) + len(member.false_knowledge)
+        total_knowledge += member_knowledge_total
+        if member_knowledge_total > most_knowledge:
+            most_knowledge = member_knowledge_total
+            
+        if member_knowledge_total < least_knowledge:
+            least_knowledge = member_knowledge_total
         
         total_learned_from_others += member.learned_from_others
         total_learned_on_own += member.learned_on_own
@@ -172,6 +180,8 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
         stats.append("available knowledge: %d" % len(the_truth))
         stats.append("avg. knowledge: %f" % avg_knowledge)
         stats.append("avg. false knowledge: %f" % avg_false_knowledge)
+        stats.append("most knowledge: %d" % most_knowledge)
+        stats.append("least knowledge: %d" % least_knowledge)
         stats.append("most accurate knowledge: %d" % most_accurate_knowledge)
         stats.append("least accurate knowledge: %d" % least_accurate_knowledge)
         stats.append("avg. learned from others: %f" % avg_learned_from_others)

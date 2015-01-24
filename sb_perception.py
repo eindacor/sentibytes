@@ -71,7 +71,9 @@ class perception(object):
             trait_delta = abs(owner.getDesired(trait) - self.perceived_traits[trait])
             trait_rating = 99.0 - trait_delta
             
-            rating_list.append(trait_rating)
+            trait_priority = owner.desire_priority[trait]
+            for i in range(trait_priority):
+                rating_list.append(trait_rating)
         
 	    self.rating = listAverage(rating_list)
         

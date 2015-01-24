@@ -22,7 +22,7 @@ if platform.system() == 'Windows':
     population_count = 1000
     
 else:
-    population_count = 50
+    population_count = 100
    
 random_sentibytes = createRandomSBs(population_count, the_truth)
 for sb_ID in random_sentibytes:
@@ -38,7 +38,7 @@ config_file = script_location + '/traits_config.txt'
 
 status_log_lines = list()
 
-cycles = 50
+cycles = 1000
 
 if cycles > 20 or population_count > 20:
     status_tracking = False

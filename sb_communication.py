@@ -292,6 +292,8 @@ class community(object):
         self.recently_left_session = list()
         self.session_sb_list = {}
         
+        # modify session limit to be part of session class, and varies depending
+        # on how the session was made
         self.session_limit = 15
         
     def addMember(self, new_ID):

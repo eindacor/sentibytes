@@ -204,12 +204,12 @@ class sentibyte(object):
         self.current_interactions.pop(other_ID, None)
         
     def updateContacts(self):
-        num_friends = 8
+        num_friends = 12
         
-        perception_list = [self.perceptions[p] for p in self.contacts 
-                            if self.perceptions[p].interaction_count > 0]
+        perception_list = [self.perceptions[p] for p in self.contacts]
     
         perception_list.sort()
+        self.contacts = [p.other_ID for p in perception_list]
 
         list_length = len(perception_list)
         if len(perception_list) > num_friends:
@@ -412,7 +412,8 @@ class sentibyte(object):
     # regard level
     def getRating(self, other_ID):
         if other_ID not in self.perceptions:
-            self.perceptions[other_ID] = perception(other_ID, self)
+            default_perception = perception('default', self)
+            return default_perception.rating
             
         return self.perceptions[other_ID].rating
 
@@ -439,11 +440,13 @@ class sentibyte(object):
         other = self.community.getMember(other_ID)
         
         if not other.wantsToConnect(str(self)):
+            self.community.deactivateMember(other_ID)
             return False
             
         elif other.proc('sociable'):
             if self_status == 'alone' and other_status == 'alone':
                 self.community.createSession(self.sentibyte_ID, other_ID)
+                self.community.deactivateMember(other_ID)
                 return True
                 
             elif self_status == 'in open session' and other_status == 'alone':
@@ -453,7 +456,7 @@ class sentibyte(object):
                     if str(other) not in participant.contacts:
                         other.met_through_others += 1
                         participant.met_through_others += 1
-                self.current_session.addParticipant(str(other))
+                self.current_session.addParticipant(other_ID)
                 return True
                 
             elif self_status == 'alone' and other_status == 'in open session':
@@ -464,6 +467,7 @@ class sentibyte(object):
                         self.met_through_others += 1
                         participant.met_through_others += 1
                 other.current_session.addParticipant(str(self))
+                self.community.deactivateMember(other_ID)
                 return True
             
     def getInfo(self, traits=False, memory=False, perceptions=False, friends=False):
@@ -507,11 +511,13 @@ class sentibyte(object):
         if len(self.friend_list) > 0 and friends:
             lines.append("friends:")
             for friend_ID in self.friend_list:
-                perception = self.perceptions[friend_ID]
-                
-                lines.append("\t%s rating of %s: %f" % (self, friend_ID, perception.rating))
+                rating = self.perceptions[friend_ID].rating
+                cycles_observed =self.perceptions[friend_ID].cycles_observed
+                broadcasts_observed =self.perceptions[friend_ID].broadcasts_observed
+                interaction_count = self.perceptions[friend_ID].interaction_count
+                lines.append("\t%s rating of %s: %f" % (self, friend_ID, rating))
                 lines.append("\t(%d interactions, %d cycles, %d broadcasts)" % \
-                    (perception.interaction_count, perception.cycles_observed, perception.broadcasts_observed))
+                    (interaction_count, cycles_observed, broadcasts_observed))
         
         interaction_count_list = [p.interaction_count for p in self.perceptions.values()]
         if interaction_count_list:
