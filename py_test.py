@@ -1,13 +1,14 @@
 from sb_fileman import getTruth, cleanup, readSB
 from sb_sentibyte import createRandomSBs
 
-sb_list = createRandomSBs(5, getTruth())
+ID_list = createRandomSBs(5, getTruth())
+sb_list = [readSB(ID) for ID in ID_list]
 
-info = list()
+new_ID_list = [str(sb) for sb in sb_list]
+print new_ID_list
 
-for sb_ID in sb_list:
-    sb = readSB(sb_ID)
-    info += sb.getInfo()
-    
-print info
+sb_list = list()
+
+print new_ID_list
+
 cleanup()

@@ -22,7 +22,7 @@ if platform.system() == 'Windows':
     population_count = 100
     
 else:
-    population_count = 10
+    population_count = 100
    
 random_sentibytes = createRandomSBs(population_count, the_truth)
 for sb_ID in random_sentibytes:
@@ -38,9 +38,9 @@ config_file = script_location + '/traits_config.txt'
 
 status_log_lines = list()
 
-turns = 20
+cycles = 1000
 
-if turns > 20 or population_count > 20:
+if cycles > 20 or population_count > 20:
     status_tracking = False
 
 else:
@@ -48,9 +48,11 @@ else:
     updateStatusLog(sb_status, status_log_lines, True)
     
 try:
-    for i in range(turns):
-        if i % 50==0 and i != 0:
-            print "update, %d cycles" % i
+    for i in range(cycles):
+        if i % 2==0 and i != 0:
+            print "cycle: %d" % i
+        if i % 24==0 and i != 0:
+            print "cycle: %d (updating summary)" % i
             updateSummary(test_community, config_file, sb_summary, the_truth)
 
         status_lines = test_community.cycle()

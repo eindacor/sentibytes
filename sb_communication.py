@@ -193,9 +193,6 @@ class session(object):
         self.new_members = list()
         self.community = community
         
-    def __str__(self):
-        return str(self.session_ID)
-        
     def __eq__(self, other):
         if other == None:
             return False
@@ -207,8 +204,13 @@ class session(object):
         return self.session_ID != other.session_ID
       
     def addParticipant(self, entering_ID):
+        session_list_before = len(self.community.session_sb_list)
+        if entering_ID in self.community.session_sb_list:
+            print "attempted to add sb to multiple sessions"
+            raise Exception
+            
         entering = self.community.getMember(entering_ID)
-        entering.current_session = self
+        entering.joinSession(self)
         for participant_ID in self.participants:
             participant = self.community.getMember(participant_ID)
             participant.newInteraction(entering_ID)
@@ -217,6 +219,10 @@ class session(object):
         self.community.logEntry("%s entering session %d" % (entering, self.session_ID))
         self.participants.append(entering_ID)
         self.new_members.append(entering_ID)
+        self.community.session_sb_list[entering_ID] = self.session_ID
+        if session_list_before == len(self.community.session_sb_list):
+            print "failed to add sb to list"
+            raise Exception
 
     def getAllOthers(self, participant_ID):
         other_participants = [p_ID for p_ID in self.participants if p_ID != participant_ID]
@@ -231,7 +237,9 @@ class session(object):
             participant.endInteraction(leaving_ID)
     
         self.community.logEntry("%s leaving session %d" % (leaving, self.session_ID))
-        leaving.removeSession()
+        del self.community.session_sb_list[leaving_ID]
+        self.community.recently_left_session.append(leaving_ID)
+        leaving.leaveSession()
         self.participants.remove(leaving_ID)
         
     # Cycles through each participant, collecting broadcasts they might make
@@ -282,6 +290,10 @@ class session(object):
         self.current_cycle += 1
         for member_ID in self.participants:
             member = self.community.getMember(member_ID)
+            if member.current_session == None:
+                print "current_session not instantiated"
+                print "member.session_ID: %d" % member.current_session_ID
+                raise
             self.community.logEntry("%s in session %d" % (member, self.session_ID))
             member.cycles_in_session += 1
             member.cycles_in_current_session += 1
@@ -323,6 +335,11 @@ class community(object):
         self.total_unique_session_cycles = 0
         self.total_members_in_session = 0.0
         
+        self.recently_left_session = list()
+        self.session_sb_list = {}
+        
+        self.session_limit = 15
+        
     def addMember(self, new_ID):
         self.members.append(new_ID)
         
@@ -335,12 +352,31 @@ class community(object):
             if session_ID == session.session_ID:
                 return session
     
+    def getAvailability(self, member_ID):
+        if member_ID in self.recently_left_session:
+            return 'recently left'
+        
+        if member_ID in self.session_sb_list:
+            session_ID = self.session_sb_list[member_ID]
+            session = self.getSession(session_ID)
+            if len(session.participants) >= self.session_limit:
+                return 'in full session'
+                
+            else:
+                return 'in open session'
+                
+        else:
+            return 'alone'
+    
     # returns member in active_member list, activates member if they are not
     # in the list
     def getMember(self, member_ID):
         active_IDs = [member.sentibyte_ID for member in self.active_members]
         if member_ID not in active_IDs:
             self.active_members.append(readSB(member_ID, self))
+           
+        if len(self.active_members) > self.most_members_active:
+            self.most_members_active = len(self.active_members)
             
         for member in self.active_members:
             if member_ID == str(member):
@@ -348,10 +384,6 @@ class community(object):
 
     # removes sb from memory, saving to file
     def deactivateMember(self, member_ID):
-        if len(self.active_members) > self.most_members_active:
-            self.most_members_active = len(self.active_members)
-            self.printRecords()
-        
         for member in self.active_members:
             if member.sentibyte_ID == member_ID:
                 writeSB(member)
@@ -361,7 +393,6 @@ class community(object):
     def saveAndClearActiveMembers(self):
         if len(self.active_members) > self.most_members_active:
             self.most_members_active = len(self.active_members)
-            self.printRecords()
         for member in self.active_members:
             writeSB(member)
             
@@ -374,7 +405,7 @@ class community(object):
         
     def createSession(self, first_ID, second_ID):
         unavailable_IDs = [s.session_ID for s in self.sessions]
-        new_ID = 0
+        new_ID = 1
         while new_ID in unavailable_IDs:
             new_ID += 1
             
@@ -387,14 +418,13 @@ class community(object):
         self.status_log = list()
         self.logEntry("---- cycle %d ----" % self.current_cycle)
         self.logEntry("sessions: %s" % [ID.session_ID for ID in self.sessions])
+        self.total_members_in_session += len(self.session_sb_list)
         for session in self.sessions:
             self.total_session_count += 1
             if len(session.participants) > self.most_popular_session:
                 self.most_popular_session = len(session.participants)
-                self.printRecords()
             if session.current_cycle > self.oldest_session:
                 self.oldest_session = session.current_cycle
-                self.printRecords()
             session.cycle()
             
         void_sessions = [session for session in self.sessions if session.session_open == False]
@@ -403,25 +433,23 @@ class community(object):
             self.total_unique_sessions += 1
             self.total_unique_session_cycles += session.current_cycle
             self.sessions.remove(session)
-         
-        members_alone = list()
-        for member_ID in self.members:
-            member = readSB(member_ID, self) 
-            if member.isAvailable():
-                members_alone.append(member_ID)
         
+        members_alone = [ID for ID in self.members if self.getAvailability(ID) == 'alone']
         self.logEntry("members alone: %d" % len(members_alone))
+        self.logEntry("members recently left session: %d" % len(self.recently_left_session))
+        self.logEntry("members in session: %d" % len(self.session_sb_list))
         for member_ID in members_alone:
             member = self.getMember(member_ID) 
             self.logEntry("%s is alone" % member_ID)
             member.aloneCycle()
-            self.saveAndClearActiveMembers()
-                
-        for member_ID in self.members:
+            self.deactivateMember(member_ID)
+        
+        members_inviting = [ID for ID in self.members if self.getAvailability(ID) == 'in open session' \
+                            or self.getAvailability(ID) == 'alone']   
+        for member_ID in members_inviting:
             member = self.getMember(member_ID) 
-            if member.isAvailable():
-                member.invitationCycle()
-            self.saveAndClearActiveMembers()
+            member.invitationCycle()
+            self.deactivateMember(member_ID)
                 
         self.current_cycle += 1
         
@@ -429,14 +457,7 @@ class community(object):
 
         if len(self.sessions) > self.most_concurrent_sessions:
             self.most_concurrent_sessions = len(self.sessions)
-            self.printRecords()
+        
+        self.recently_left_session = list()
         
         return self.status_log
-
-    def printRecords(self):
-        print "cycles: ", self.current_cycle
-        print "Most concurrent sessions: %d" % self.most_concurrent_sessions
-        print "Most popular session: %d" % self.most_popular_session
-        print "Most active members: %d" % self.most_members_active
-        print "Longest running session: %d cycles" % self.oldest_session
-        print "---"

@@ -54,7 +54,6 @@ class sentibyte(object):
         # cooldowns prevent cycles spent in session and along at the same time,
         # and restricts when sb's are allowed to be social
         self.social_cooldown = 0
-        self.cycle_cooldown = 0
         
         # personal characteristics
         self.p_traits = traits[0]
@@ -123,17 +122,6 @@ class sentibyte(object):
             
     def getDesired(self, trait):
         return self.d_traits[trait]['current']
-        
-    def isAvailable(self):
-        return self.current_session == None
-            
-    # called from session cycle if stamina trait is not proc'ed
-    def removeSession(self):
-        self.current_session = None
-        self.cycles_in_current_session = 0
-        self.cycle_cooldown = 1
-        # removed after influence no longer changes within session
-        #self.i_traits['positivity'].params['current'] = self['positivity']['base'] 
       
     # this function analyzes transmissions even if self was not one of the targets
     # for better accuracty of guessing traits
@@ -190,33 +178,61 @@ class sentibyte(object):
             self.perceptions[other_ID] = perception(other_ID, str(self))
             
     def newInteraction(self, other_ID):
-        self.addPerception(other_ID)
-        
-        toAdd = interaction(str(self), other_ID)
-        
-        self.current_interactions[other_ID] = toAdd
+        try:
+            new_ID = False
+            if other_ID not in self.current_interactions:
+                new_ID = True
+            before_add = len(self.current_interactions)
+            self.addPerception(other_ID)
             
-        if other_ID not in self.contacts:
-            self.contacts.append(other_ID)
+            toAdd = interaction(str(self), other_ID)
+            
+            self.current_interactions[other_ID] = toAdd
+                
+            if other_ID not in self.contacts:
+                self.contacts.append(other_ID)
+                
+            if len(self.current_interactions) == before_add and new_ID:
+                print "new interaction not added"
+                raise Exception
+            
+        except:
+            print "self: %s" % self
+            print "other: %s" % other_ID
+            print "current_interactions: ", self.current_interactions.keys()
+            print "participants: ", self.current_session.participants
+            raise Exception
      
     def endInteraction(self, other_ID):
-        target = self.current_interactions[other_ID]
-        target.updateInteraction(self)
-        
-        # add to perception
-        self.perceptions[other_ID].addInteraction(target, self)
-        
-        # add to memory
-        if other_ID not in self.memory:
-            self.memory[other_ID] = list()
+        try:
+            target = self.current_interactions[other_ID]
+            target.updateInteraction(self)
             
-        heappush(self.memory[other_ID], self.current_interactions[other_ID])
+            # add to perception
+            self.perceptions[other_ID].addInteraction(target, self)
+            
+            # add to memory
+            if other_ID not in self.memory:
+                self.memory[other_ID] = list()
+                
+            heappush(self.memory[other_ID], self.current_interactions[other_ID])
+            
+            if len(self.memory[other_ID]) > 10:
+                heappop(self.memory[other_ID])
+            
+            # remove from interactions
+            self.current_interactions.pop(other_ID, None)
+            
+            if other_ID in self.current_interactions:
+                print "other not removed from current interactions"
+                raise Exception
         
-        if len(self.memory[other_ID]) > 10:
-            heappop(self.memory[other_ID])
-        
-        # remove from interactions
-        self.current_interactions.pop(other_ID, None)
+        except KeyError:
+            print "self: %s" % self
+            print "other: %s" % other_ID
+            print "current_interactions: ", self.current_interactions.keys()
+            print "participants: ", self.current_session.participants
+            raise Exception
         
     def updateFriends(self):
         num_friends = 8
@@ -266,7 +282,7 @@ class sentibyte(object):
         
         while self.proc('sociable'):
             for other_ID in target_list:
-                if self.wantsToContact(other_ID) and other_ID not in selected_targets:
+                if self.wantsToConnect(other_ID) and other_ID not in selected_targets:
                     selected_targets.append(other_ID)
             
         if len(selected_targets) == 0:
@@ -319,8 +335,8 @@ class sentibyte(object):
             self.i_traits[trait].fluctuate()
       
     def aloneCycle(self):
-        if self.cycle_cooldown == 0:
-            self.cycles_alone += 1
+        self.cycles_alone += 1
+        if str(self) not in self.community.recently_left_session:
             if self.proc('volatility'):
                 self.fluctuateTraits()
                 
@@ -329,25 +345,72 @@ class sentibyte(object):
     
             if self.proc('reflective'):
                 self.reflect()			
-        
-        else:
-            self.cycle_cooldown -= 1
-        
+                
     def invitationCycle(self):
-        if self.social_cooldown == 0:
-            if self.proc('sociable'):
-                self.sociable_count += 1
-                if not self.joinSession():
-                    # if connection is unsuccessful, lower positivity
-                    self['positivity'].influence(self['positivity']['lower'])
-                    self.failed_connection_attempts += 1
-                    
-                else:
-                    self.successful_connection_attempts += 1
-                        
+        if self.proc('sociable'):
+            self.sociable_count += 1
+            if self.sendInvitation():
+                self.successful_connection_attempts += 1
+            else:
+                self.failed_connection_attempts += 1
+    
+    # Seeks other sentibytes for communication, returns true if a connection is 
+    # made, false if not
+    def sendInvitation(self):
+        self.updateFriends()
+        # generate list of targets (strangers, contacts, or friends)
+        if len(self.contacts) == 0:
+            selected_type = 'strangers'
+            target_list = self.getStrangers()
+            
+        elif self.proc('adventurous') and len(self.getStrangers()) != 0:
+            selected_type = 'strangers'
+            target_list = self.getStrangers()
+            self.invitations_to_strangers += 1
+            
+        elif self.proc('pickiness') and len(self.friend_list) != 0:
+            selected_type = 'friends'
+            target_list = self.friend_list[:]
+            self.invitations_to_friends += 1
+        
         else:
-            self.social_cooldown -= 1
-
+            selected_type = 'contacts'
+            target_list = self.contacts[:]
+            self.invitations_to_contacts += 1
+        
+        # if self in session, invite someone sb that is alone
+        # update to give sb's opportunity to switch session
+        if self.current_session:
+            target_list = [sb_ID for sb_ID in target_list if self.community.getAvailability(sb_ID) == 'alone']
+        else:
+            target_list = [sb_ID for sb_ID in target_list if self.community.getAvailability(sb_ID) == 'in open session' \
+                            or self.community.getAvailability(sb_ID) == 'alone']
+            
+        target_list = [sb_ID for sb_ID in target_list if self.wantsToConnect(sb_ID)]
+        
+        weighed_options = {}
+        for other_ID in target_list:
+            if other_ID in self.perceptions:
+                weighed_options[other_ID] = self.getRating(other_ID, relative=True)
+            else:
+                weighed_options[other_ID] = self['regard']['current']
+            
+        if len(weighed_options) == 0:
+            return self.logConnection(False, selected_type)
+            
+        selected_ID = catRoll(weighed_options)
+        
+        # keep contacting until there are no targets left or a connection is made
+        while self.connect(selected_ID) == False:
+            del weighed_options[selected_ID]
+            
+            if len(weighed_options) == 0:
+                return self.logConnection(False, selected_type)
+         
+            selected_ID = catRoll(weighed_options)
+            
+        return self.logConnection(True, selected_type)
+        
     def logConnection(self, successful, target):
         if target == 'strangers':
             if successful:
@@ -375,52 +438,6 @@ class sentibyte(object):
             else:
                 self.unsuccessful_connections_friends += 1
                 return False
-      
-    # Seeks other sentibytes for communication, returns true if a connection is 
-    # made, false if not
-    def joinSession(self):
-        self.updateFriends()
-        # generate list of targets (strangers, contacts, or friends)
-        # target_list = list()
-        if (self.proc('adventurous') or len(self.friend_list) == 0) and len(self.getStrangers()) != 0:
-            selected_type = 'strangers'
-            target_list = self.getStrangers()
-            self.invitations_to_strangers += 1
-            
-        elif self.proc('pickiness'):
-            selected_type = 'friends'
-            target_list = self.friend_list[:]
-            self.invitations_to_friends += 1
-        
-        else:
-            selected_type = 'contacts'
-            target_list = self.contacts[:]
-            self.invitations_to_contacts += 1
-        
-        target_list = [sb_ID for sb_ID in target_list if self.wantsToContact(sb_ID)]
-        
-        weighed_options = {}
-        for other_ID in target_list:
-            if other_ID in self.perceptions:
-                weighed_options[other_ID] = self.getRating(other_ID, relative=True)
-            else:
-                weighed_options[other_ID] = self['regard']['current']
-            
-        if len(weighed_options) == 0:
-            return self.logConnection(False, selected_type)
-            
-        selected_ID = catRoll(weighed_options)
-        
-        # keep contacting until there are no targets left or a connection is made
-        while self.contact(selected_ID) == False:
-            del weighed_options[selected_ID]
-            
-            if len(weighed_options) == 0:
-                return self.logConnection(False, selected_type)
-         
-            selected_ID = catRoll(weighed_options)
-            
-        return self.logConnection(True, selected_type)
         
     # returns rating of particular sentibyte by ID or object
     # if the target is yet to make contact with self, returns self's current
@@ -448,51 +465,70 @@ class sentibyte(object):
     
     # must be separate from "contact" function to filter out potential contact attempts
     # not just for denying invitations, also for determining who to invite
-    def wantsToContact(self, other_ID):
+    def wantsToConnect(self, other_ID):
         inverse_tolerance = 99 - self['tolerance']['current']
         return self.getRating(other_ID, relative=True) >= inverse_tolerance
-       
+    
+    def joinSession(self, session):
+        self.current_session_ID = session.session_ID
+        self.current_session = session
+        
+    def leaveSession(self):
+        self.current_session_ID = None
+        self.current_session = None
+        self.cycles_in_current_session = 0
+      
     # returns true if a session is successfully joined or created
-    def contact(self, other_ID):
-        other = self.community.getMember(other_ID)
-        other.addPerception(str(self))
-        self.addPerception(other_ID)
-        other.perceptions[str(self)].addInvitation(other)
-        
-        if not other.wantsToContact(str(self)):
-            self.perceptions[str(other)].addRejection(self)
+    def connect(self, other_ID):
+        try:
+            self_status = self.community.getAvailability(str(self))
+            other_status = self.community.getAvailability(other_ID)
             
-        elif other.current_session and len(other.current_session.participants) > 24:
-            self.perceptions[str(other)].addUnavailable(self)
-            self.community.deactivateMember(other_ID)
-            return False
-        
-        elif other.proc('sociable'):
-            self.perceptions[str(other)].addAcceptance(self)
+            if other_ID not in self.perceptions:
+                self.addPerception(other_ID)
             
-            if not other.current_session:
-                self.community.createSession(self.sentibyte_ID, other_ID)
-                return True
+            other = self.community.getMember(other_ID)
+            other.addPerception(str(self))
+            other.perceptions[str(self)].addInvitation(other)
+            
+            if not other.wantsToConnect(str(self)):
+                self.perceptions[str(other)].addRejection(self)
+                return False
                 
-            else:
-                for participant_ID in other.current_session.participants:
-                    participant = self.community.getMember(participant_ID)
-                        
-                    if str(self) not in participant.contacts:
-                        self.met_through_others += 1
-                        participant.met_through_others += 1
-                other.current_session.addParticipant(self.sentibyte_ID)
-                return True
+            elif other.proc('sociable'):
+                self.perceptions[str(other)].addAcceptance(self)
                 
-        elif self.proc('sensitivity'):
-            self.perceptions[str(other)].addRejection(self)
-            self.community.deactivateMember(other_ID)
-            return False
-            
-        else:
-            self.perceptions[str(other)].addUnavailable(self)
-            self.community.deactivateMember(other_ID)
-            return False
+                if self_status == 'alone' and other_status == 'alone':
+                    self.community.createSession(self.sentibyte_ID, other_ID)
+                    return True
+                    
+                elif self_status == 'in open session' and other_status == 'alone':
+                    for participant_ID in self.current_session.participants:
+                        participant = self.community.getMember(participant_ID)
+                            
+                        if str(other) not in participant.contacts:
+                            other.met_through_others += 1
+                            participant.met_through_others += 1
+                    self.current_session.addParticipant(str(other))
+                    return True
+                    
+                elif self_status == 'alone' and other_status == 'in open session':
+                    for participant_ID in other.current_session.participants:
+                        participant = self.community.getMember(participant_ID)
+                            
+                        if str(self) not in participant.contacts:
+                            self.met_through_others += 1
+                            participant.met_through_others += 1
+                    other.current_session.addParticipant(str(self))
+                    return True
+                    
+        except AttributeError:
+            print "community session list: ", self.community.session_sb_list
+            print "%s current session: " % self, self.current_session
+            print "%s getAvailability: " % self, self.community.getAvailability(str(self))
+            print "%s current session: " % other, other.current_session
+            print "%s getAvailability: " % other, self.community.getAvailability(str(other))
+            raise
         
     def getInfo(self, traits=False, memory=False, perceptions=False, friends=False):
         lines = list()

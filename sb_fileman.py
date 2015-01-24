@@ -123,7 +123,6 @@ def readSB(sb_ID, community=None):
     sb.community = community
     if sb.current_session_ID and community:
         sb.current_session = community.getSession(sb.current_session_ID)
-        sb.current_session_ID = None
     file.close()
     return sb
     
@@ -131,7 +130,6 @@ def writeSB(sb):
     sb_file = getPath() + '/sb_data/' + sb.sentibyte_ID + '.sb'
     sb.community = None
     if sb.current_session:
-        sb.current_session_ID = sb.current_session.session_ID
         sb.current_session = None
     file = open(sb_file, 'w')
     pickle.dump(sb, file)

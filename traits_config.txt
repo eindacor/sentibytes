@@ -23,5 +23,5 @@ i_positivity = 0, 99
 i_energy = 0, 99
 i_talkative = 0, 99
 i_communicative = 0, 99
-i_sociable = 20, 60
+i_sociable = 10, 50
 i_intellectual = 0, 50

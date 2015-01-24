@@ -134,14 +134,22 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
 
     avg_sessions_per_cycle = community.total_session_count/community.current_cycle
     avg_cycles_per_session = community.total_unique_session_cycles/float(community.total_unique_sessions)
+    avg_members_in_session_per_cycle = community.total_members_in_session/community.current_cycle
+    avg_members_per_session = avg_members_in_session_per_cycle/avg_sessions_per_cycle
+    
+    stats.append("\tGENERAL INFORMATION")
     stats.append("cycles: %d" % community.current_cycle)
-    stats.append("average sessions per community cycle: %f" % avg_sessions_per_cycle)
-    stats.append("average session duration: %f cycles" % avg_cycles_per_session)
+    stats.append("avg. sessions per community cycle: %f" % avg_sessions_per_cycle)
+    stats.append("avg. session duration: %f cycles" % avg_cycles_per_session)
+    stats.append("avg. members in session per cycle: %f" % avg_members_in_session_per_cycle)
+    stats.append("avg. members per session: %f" % avg_members_per_session)
     stats.append("total unique sessions: %d" % community.total_unique_sessions)
-    print "total unique session cycles: %d" % community.total_unique_session_cycles
+    stats.append("total unique session cycles: %d" % community.total_unique_session_cycles)
     stats.append("most popular session: %d sentibytes" % community.most_popular_session)
     stats.append("most concurrent sessions active: %d" % community.most_concurrent_sessions)
     stats.append("longest running session: %d cycles" % community.oldest_session)
+    stats.append("most active members at one time: %d" % community.most_members_active)
+    stats.append("members: %d" % mem_count)
     
     if mem_count > 0:
         avg_knowledge = total_knowledge/mem_count
@@ -171,32 +179,36 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
         if community.current_cycle - avg_cycles_counted > 2:
             print "sumtotal of counted cycles does not equal total cycles"
         
-        stats.append("members: %d" % mem_count)
+        stats.append("\n\tKNOWLEDGE")
         stats.append("available knowledge: %d" % len(the_truth))
-        stats.append("average knowledge: %f" % avg_knowledge)
-        stats.append("average false knowledge: %f" % avg_false_knowledge)
+        stats.append("avg. knowledge: %f" % avg_knowledge)
+        stats.append("avg. false knowledge: %f" % avg_false_knowledge)
         stats.append("most accurate knowledge: %d" % most_accurate_knowledge)
         stats.append("least accurate knowledge: %d" % least_accurate_knowledge)
-        stats.append("average learned from others: %f" % avg_learned_from_others)
-        stats.append("average learned on own: %f" % avg_learned_on_own)
-        stats.append("average times misled by others: %f" % avg_misled)
-        stats.append("average times corrected by others: %f" % avg_corrected)
-        stats.append("average cycles alone: %f" % avg_cycles_alone)
-        stats.append("average cycles in session: %f" % avg_cycles_in_session)
-        stats.append("average sociable proc count: %f" % avg_sociable_procs)
-        stats.append("average failed connection attempts: %f" % avg_failed_connection_attempts)
-        stats.append("average successful connection attempts: %f" % avg_successful_connection_attempts)
-        stats.append("average invitations to strangers: %f" % avg_inv_to_strangers)
-        stats.append("average invitations to contacts: %f" % avg_inv_to_contacts)
-        stats.append("average invitations to friends: %f" % avg_inv_to_friends)
-        stats.append("average successful connections to strangers: %f" % avg_succ_conn_strangers)
-        stats.append("average successful connections to contacts: %f" % avg_succ_conn_contacts)
-        stats.append("average successful connections to friends: %f" % avg_succ_conn_friends)
-        stats.append("average unsuccessful connections to strangers: %f" % avg_unsucc_conn_strangers)
-        stats.append("average unsuccessful connections to contacts: %f" % avg_unsucc_conn_contacts)
-        stats.append("average unsuccessful connections to friends: %f" % avg_unsucc_conn_friends)
-        stats.append("average others met: %f" % avg_met)
-        stats.append("average met through others: %f" % avg_met_through_others)
+        stats.append("avg. learned from others: %f" % avg_learned_from_others)
+        stats.append("avg. learned on own: %f" % avg_learned_on_own)
+        stats.append("avg. times misled by others: %f" % avg_misled)
+        stats.append("avg. times corrected by others: %f" % avg_corrected)
+        
+        stats.append("\n\tBEHAVIORS")
+        stats.append("avg. cycles alone: %f" % avg_cycles_alone)
+        stats.append("avg. cycles in session: %f" % avg_cycles_in_session)
+        stats.append("avg. sociable proc count: %f" % avg_sociable_procs)
+        
+        stats.append("\n\tSOCIAL INTERACTION")
+        stats.append("avg. failed connection attempts: %f" % avg_failed_connection_attempts)
+        stats.append("avg. successful connection attempts: %f" % avg_successful_connection_attempts)
+        stats.append("avg. invitations to strangers: %f" % avg_inv_to_strangers)
+        stats.append("avg. invitations to contacts: %f" % avg_inv_to_contacts)
+        stats.append("avg. invitations to friends: %f" % avg_inv_to_friends)
+        stats.append("avg. successful connections to strangers: %f" % avg_succ_conn_strangers)
+        stats.append("avg. successful connections to contacts: %f" % avg_succ_conn_contacts)
+        stats.append("avg. successful connections to friends: %f" % avg_succ_conn_friends)
+        stats.append("avg. unsuccessful connections to strangers: %f" % avg_unsucc_conn_strangers)
+        stats.append("avg. unsuccessful connections to contacts: %f" % avg_unsucc_conn_contacts)
+        stats.append("avg. unsuccessful connections to friends: %f" % avg_unsucc_conn_friends)
+        stats.append("avg. others met: %f" % avg_met)
+        stats.append("avg. met through others: %f" % avg_met_through_others)
     
     if contact_count > 0:
         avg_ratings = total_ratings/contact_count
@@ -205,12 +217,13 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
         avg_entries_of_contacts = total_entries_of_contacts/contact_count
         avg_interactions_with_contacts = total_interactions_with_contacts/contact_count
         
-        stats.append("average relative rating: %f" % avg_relative_ratings)
+        stats.append("\n\tPERCEPTIONS")
+        stats.append("avg. relative rating: %f" % avg_relative_ratings)
         stats.append("highest relative rating: %f" % highest_relative_rating)
         stats.append("lowest relative rating: %f" % lowest_relative_rating)
-        stats.append("average perception offset: %f" % avg_avg_offset)
-        stats.append("average entries for contacts: %f" % avg_entries_of_contacts)
-        stats.append("average # of interactions with contacts: %f" % avg_interactions_with_contacts)
+        stats.append("avg. perception offset: %f" % avg_avg_offset)
+        stats.append("avg. entries for contacts: %f" % avg_entries_of_contacts)
+        stats.append("avg. # of interactions with contacts: %f" % avg_interactions_with_contacts)
     
     if friend_count > 0:
         avg_rating_friends = total_rating_friends/friend_count
@@ -219,13 +232,14 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
         avg_entries_of_friends = total_entries_of_friends/friend_count
         avg_interactions_with_friends = total_interactions_with_friends/friend_count
         
-        stats.append("average relative rating of friends: %f" % avg_relative_ratings_friends)
-        stats.append("average perception offset of friends: %f" % avg_avg_offset_friends)
-        stats.append("average entries for friends: %f" % avg_entries_of_friends)
-        stats.append("average # of interactions with friends: %f" % avg_interactions_with_friends)
+        stats.append("\n\tFRIENDS")
+        stats.append("avg. relative rating of friends: %f" % avg_relative_ratings_friends)
+        stats.append("avg. perception offset of friends: %f" % avg_avg_offset_friends)
+        stats.append("avg. entries for friends: %f" % avg_entries_of_friends)
+        stats.append("avg. # of interactions with friends: %f" % avg_interactions_with_friends)
     
     stats.append("---------------------")
-    stats.append("Config file:")
+    stats.append("SENTIBYTE CONFIGURATION SETTINGS")
     
     config_lines = linesFromFile(config_file)
     
