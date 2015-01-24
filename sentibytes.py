@@ -19,7 +19,7 @@ for sb_ID in premade_sentibytes:
     
 # generate specified number of random sentibytes 
 if platform.system() == 'Windows':
-    population_count = 100
+    population_count = 1000
     
 else:
     population_count = 100
