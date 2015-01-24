@@ -1,28 +1,29 @@
-from sb_utilities import getCoefficient, calcInfluence, calcAccuracy, boundsCheck, weightedAverage, valueState
-from sb_fileman import readSB
+from sb_utilities import getCoefficient, calcInfluence, calcAccuracy, \
+    boundsCheck, combineAverages, valueState, listAverage
 
 class perception(object):
-    def __init__(self, perceived_ID, owner_ID):
-        self.perceived_ID = perceived_ID
-        self.owner_ID = owner_ID
-        self.per_traits = {}
-        self.entries = 0
-        self.broadcasts = 0
-        self.cycles_present = 0
-        
-        owner = readSB(owner_ID)
-        self.rating = owner.getCurrent('regard')
-        
-        # change variable name
-        self.contacts = {'accepted' : 0, 'declined': 0, 'rejected': 0, 'total': 0}
-        # invitations from perceived to owner
-        self.invitations = 0
-        self.memories = 0
+    def __init__(self, other_ID, owner):
+        self.other_ID = other_ID
+        self.owner_ID = owner.sentibyte_ID
+        self.perceived_traits = {}
         self.interaction_count = 0
-        self.accuracy = 0
+        self.broadcasts_observed = 0
+        self.cycles_observed = 0
+        self.rating = 0
+        self.memories = 0
+        
+        # regard coefficient must be inverted. higher regard means assumed value
+        # will be closer to what the owner desires
+        inverted_regard_coefficient = 1 - owner['regard']['coefficient']
+        for trait in owner.d_traits:
+            desired_value = owner.getDesired(trait)
+            assumed_value = calcAccuracy(desired_value, inverted_regard_coefficient, max_offset=20)
+            self.perceived_traits[trait] = assumed_value
+            
+        self.updateRating(owner)
             
     def __getitem__(self, index):
-        return self.per_traits[index]
+        return self.perceived_traits[index]
     
     def __eq__(self, other):
         return self.rating == other.rating
@@ -44,105 +45,47 @@ class perception(object):
             
     def addInteraction(self, interaction, owner, isMemory=False):      
         if not isMemory:
-            self.broadcasts += interaction['total']['count']
-            self.cycles_present += interaction.cycles_present
+            self.broadcasts_observed += interaction['total']['count']
+            self.cycles_observed += interaction.cycles_present
             
         else:
             self.memories += 1
         
-        for key in interaction.g_traits:
-            if key not in self.per_traits:
-                self.per_traits[key] = interaction.g_traits[key]
+        for trait in interaction.trait_guesses:
+            if trait not in self.perceived_traits:
+                self.perceived_traits[trait] = interaction.trait_guesses[trait]
                 
             else:
-                self.per_traits[key] = weightedAverage(self.per_traits[key], self.entries, interaction.g_traits[key], 1)
-				
-        self.interaction_count += 1        
+                self.perceived_traits[trait] = \
+                    combineAverages(self.perceived_traits[trait], self.interaction_count, \
+                    interaction.trait_guesses[trait], 1)
+		
+        self.interaction_count += 1
         self.updateRating(owner)
         
     # get % desirability from traits and contacts, calc rating relative to 
     # regard lower/upper bounds
     def updateRating(self, owner):
-        self.entries += 1
         rating_list = list()
-        rating_coefficient = 0.0
-        
-        tolerance = owner['tolerance']['current']
-        
-        for key in self.per_traits:
-            trait_delta = abs(owner.getDesired(key) - self.per_traits[key])
-            tolerance_difference = tolerance - trait_delta
-            trait_rating = 0.0
+        for trait in self.perceived_traits:
+            trait_delta = abs(owner.getDesired(trait) - self.perceived_traits[trait])
+            trait_rating = 99.0 - trait_delta
             
-            if tolerance_difference > 0:
-                trait_rating = float(tolerance_difference) / float(tolerance)
-                trait_rating *= 99.0
-                
             rating_list.append(trait_rating)
-            
-        if len(rating_list) > 0:
-            rating_coefficient = float(sum(rating_list) / len(rating_list))
-            rating_coefficient /= 99
-            
-        else:
-            rating_coefficient = owner['regard']['relative']
-            
-        regard_range = owner['regard']['upper'] - owner['regard']['lower']
-        self.rating = (regard_range * rating_coefficient) + owner['regard']['lower']
-		
-    def getAverageOffset(self):
-        # change function to assume perceived traits if not have been observed
-        if len(self.per_traits) > 0:
-            total_delta = 0
-            perceived = readSB(self.perceived_ID)
-            for trait in self.per_traits:
-                delta = abs(perceived[trait]['base'] - self.per_traits[trait])
-                total_delta += delta
-				
-            return  total_delta / float(len(self.per_traits))
-			
-        else:
-            return None
         
-    def addRejection(self, owner):
-        self.contacts['rejected'] += 1
-        self.contacts['total'] += 1
-        self.updateRating(owner)
+	    self.rating = listAverage(rating_list)
         
-    def addInvitation(self, owner):
-        self.invitations += 1
+    def getPerceivedOffset(self, trait, other):
+        if str(other) != self.other_ID:
+            raise Exception
             
-    def addAcceptance(self, owner):
-        self.contacts['accepted'] += 1
-        self.contacts['total'] += 1
-        non_rejections = self.contacts['total'] - self.contacts['rejected']
-        if non_rejections > 10:
-            self.per_traits['sociable'] = self.contacts['accepted'] / float(non_rejections)
-            self.per_traits['sociable'] *= 99
-        self.updateRating(owner)
+        delta = abs(other[trait]['base'] - self.perceived_traits[trait])
+        return delta
         
-    def addUnavailable(self, owner):
-        self.contacts['declined'] += 1
-        self.contacts['total'] += 1
-        if self.contacts['total'] > 10 and self.contacts['rejected'] != self.contacts['total']:
-            self.per_traits['sociable'] = self.contacts['accepted'] / (self.contacts['accepted'] + self.contacts['declined'])
-        self.updateRating(owner)
+    def getAverageOffset(self, other):
+        offset_list = list()
+        for trait in self.perceived_traits:
+            trait_offset = self.getPerceivedOffset(trait, other)
+            offset_list.append(trait_offset)
             
-    def printPerception(self):
-        owner = readSB(self.owner_ID)
-        perceived = readSB(self.perceived_ID)
-        regard_range = owner['regard']['upper'] - owner['regard']['lower']
-        delta_to_min = self.rating - owner['regard']['lower']
-        relative_rating = (delta_to_min / regard_range) * 99
-        print "\t%s perception of %s: %f (%f relative)" % (self.owner_ID, self.perceived_ID, self.rating, relative_rating)
-        print "\t(%d entries, %d cycles, %d broadcasts)" % (self.entries, self.cycles_present, self.broadcasts)
-        print "\t%s has sent %d invitations to %s)" % (self.perceived_ID, self.invitations, self.owner_ID)
-        print "\t%s has sent %d invitations to %s)" % (self.owner_ID, self.contacts['total'], self.perceived_ID)
-        for contact in self.contacts:
-            print "\t\t%s: %d" % (contact, self.contacts[contact])
-            
-        for trait in self.per_traits:
-            print "\t\t%s: %f" % (trait, self.per_traits[trait]), 
-            print " (%f desired)" % owner.d_traits[trait]['base'], 
-            print " (%f actual)" % perceived.i_traits[trait]['base'],
-            print " (%d priority weight)" % owner.desire_priority[trait]
+        return listAverage(offset_list)

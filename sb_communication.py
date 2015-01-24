@@ -1,5 +1,5 @@
 from random import random, randint
-from sb_utilities import boundsCheck, weightedAverage
+from sb_utilities import boundsCheck, combineAverages
 from sb_fileman import readSB, writeSB
 
 class context(object):
@@ -20,17 +20,8 @@ class interaction(object):
     def __init__(self, owner_ID, other_ID):
         self.owner_ID = owner_ID
         self.other_ID = other_ID
-        self.others_present = list()
-        self.overall_rating = None
         
-        owner = readSB(owner_ID)
-        if other_ID not in owner.perceptions:
-            self.overall_rating = owner['regard']['current']
-            
-        else:
-            self.overall_rating = owner.getRating(other_ID)
-        
-        self.g_traits = {}
+        self.trait_guesses = {}
         self.cycles_present = 0
         
         recorded_data = ('owner', 'others', 'total')
@@ -41,58 +32,38 @@ class interaction(object):
                 'count': 0, 'statements': 0, 'declarations': 0,
                 'avg positivity': 0, 'avg energy': 0, 
                 'min positivity': 0, 'min energy': 0, 
-                'max positivity': 0, 'max energy': 0,
-                'first positivity': 0, 'first energy': 0,
-                'last positivity': 0, 'last energy': 0}
+                'max positivity': 0, 'max energy': 0}
+                #'first positivity': 0, 'first energy': 0,
+                #'last positivity': 0, 'last energy': 0}
 
     # all comparitors prioritize cycles present first, then rating
     # this way the interactions that had the most correspondance take priority
     def __eq__(self, other_interaction):
-        if self.cycles_present < 4:
-            return self.cycles_present == other_interaction.cycles_present
-        else:
-            return self.overall_rating == other_interaction.overall_rating
+        return self.cycles_present == other_interaction.cycles_present
         
     def __ne__(self, other_interaction):
-        if self.cycles_present < 4:
-            return self.cycles_present != other_interaction.cycles_present
-        else:
-            return self.overall_rating != other_interaction.overall_rating
+        return self.cycles_present != other_interaction.cycles_present
         
     def __gt__(self, other_interaction):
-        if self.cycles_present < 4:
-            return self.cycles_present > other_interaction.cycles_present
-        else:
-            return self.overall_rating > other_interaction.overall_rating
+        return self.cycles_present > other_interaction.cycles_present
         
     def __ge__(self, other_interaction):
-        if self.cycles_present < 4:
-            return self.cycles_present >= other_interaction.cycles_present
-        else:
-            return self.overall_rating >= other_interaction.overall_rating
+        return self.cycles_present >= other_interaction.cycles_present
         
     def __lt__(self, other_interaction):
-        if self.cycles_present < 4:
-            return self.cycles_present < other_interaction.cycles_present
-        else:
-            return self.overall_rating < other_interaction.overall_rating
-        
+        return self.cycles_present < other_interaction.cycles_present
+
     def __le__(self, other_interaction):
-        if self.cycles_present < 4:
-            return self.cycles_present <= other_interaction.cycles_present
-        else:
-            return self.overall_rating <= other_interaction.overall_rating
+        return self.cycles_present <= other_interaction.cycles_present
         
     def __getitem__(self, index):
         return self.data[index]
         
-    def addTransmission(self, transmission, owner):
-        # adjust stamina levels based on mood, stay longer for good results
-        self.others_present = [target for target in transmission.targets if target != self.owner_ID]
-            
+    def addTransmission(self, transmission):
+        # this list made to differentiate messages to the owner, to others, or both   
         audience = ['total'] 
             
-        if not self.owner_ID in transmission.targets:
+        if self.owner_ID not in transmission.targets:
             audience.append('others')
             
         elif len(transmission.targets) == 1:
@@ -100,11 +71,11 @@ class interaction(object):
             
         for item in audience:
             self.data[item]['avg positivity'] = \
-                weightedAverage(self.data[item]['avg positivity'],
+                combineAverages(self.data[item]['avg positivity'],
                 self.data[item]['count'], transmission.positivity, 1)
                 
             self.data[item]['avg energy'] = \
-                weightedAverage(self.data[item]['avg energy'],
+                combineAverages(self.data[item]['avg energy'],
                 self.data[item]['count'], transmission.energy, 1)
               
             # Interactions were once judged by the first transmission received,
@@ -133,11 +104,8 @@ class interaction(object):
         
             self.data[item]['count'] += 1
             
-            self.updateInteraction(owner)
-            
-    def updateInteraction(self, owner=None):
-        self.cycles_present = owner.cycles_in_current_session
-            
+    def guessTraits(self, cycles_present):
+        self.cycles_present = cycles_present
         # The following algorithms attempt to guess the other's traits based on
         # received transmissions
         
@@ -145,40 +113,26 @@ class interaction(object):
         # The number 12 refers to the number of communications per cycle set in
         # the session parameters
         communicative_guess = float(self.data['total']['count']) / \
-                            (float(self.cycles_present) * 12)
-        self.g_traits['communicative'] = communicative_guess * 99
+                            (float(cycles_present) * 12)
+        self.trait_guesses['communicative'] = boundsCheck(communicative_guess * 99)
                         
         # TALKATIVE
         if self.data['total']['count'] > 0:
             talkative_guess = float(self.data['total']['statements']) / \
                                 float(self.data['total']['count']) * 99
-            self.g_traits['talkative'] = talkative_guess
+            self.trait_guesses['talkative'] = boundsCheck(talkative_guess)
             
         # INTELLECTUAL
         if self.data['total']['statements'] > 0:
             intellectual_guess = float(self.data['total']['declarations']) / \
                                 float(self.data['total']['statements']) * 99
-            self.g_traits['intellectual'] = intellectual_guess
+            self.trait_guesses['intellectual'] = boundsCheck(intellectual_guess)
         
         # POSITIVITY
-        self.g_traits['positivity'] = float(self.data['total']['avg positivity'])
+        self.trait_guesses['positivity'] = float(self.data['total']['avg positivity'])
 
         # ENERGY     
-        self.g_traits['energy'] = float(self.data['total']['avg energy'])
-        
-        ratings = list()
-        for key in self.g_traits:
-            acceptable_range = owner.d_traits[key]['upper'] - owner.d_traits[key]['lower']
-            delta = abs(owner.getDesired(key) - self.g_traits[key])
-            rating = acceptable_range - float(delta)
-            rating = boundsCheck(rating)
-            priority = owner.desire_priority[key]
-            for i in range(priority):
-                ratings.append(rating)
-        
-        self.overall_rating = float(sum(ratings)) / float(len(ratings))
-    
-        return self.overall_rating
+        self.trait_guesses['energy'] = float(self.data['total']['avg energy'])
 
 # This is the managing class for social interactions between sentibytes.
 # Sentibytes involved in a session are called 'participants'

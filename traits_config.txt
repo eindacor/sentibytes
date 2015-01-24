@@ -17,11 +17,11 @@ p_trusting = 0, 99
 p_stamina = 50, 80
 p_intelligence = 20, 99
 p_inquisitive = 0, 99
+p_sociable = 10, 50
 
 $ INTERPERSONAL
 i_positivity = 0, 99
 i_energy = 0, 99
 i_talkative = 0, 99
 i_communicative = 0, 99
-i_sociable = 10, 50
 i_intellectual = 0, 50

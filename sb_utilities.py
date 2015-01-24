@@ -12,9 +12,16 @@ def calcInfluence(starting, influence, coefficient):
     delta = influence - starting
     return delta * coefficient
     
+def listAverage(target_list):
+    if len(target_list) == 0:
+        raise Exception("listAverage cannot except empty lists")
+        
+    else:
+        return sum(target_list) / float(len(target_list))
+    
 # returns new value within a range based on range coefficient
-def calcAccuracy(value, range_coefficient):
-    margain = 10 * range_coefficient * random.random()
+def calcAccuracy(value, range_coefficient, max_offset=10):
+    margain = max_offset * range_coefficient * random.random()
     new_value = value + (margain * choice((1, -1)))
     if new_value > 99:
         new_value = 99
@@ -36,7 +43,7 @@ def boundsCheck(value):
     
 # calculates an average based on current average, previous entry count,
 # new average, and new entry count
-def weightedAverage(initial_avg, prevoius_count, added_avg, added_count):
+def combineAverages(initial_avg, prevoius_count, added_avg, added_count):
     new_count = prevoius_count + added_count
     new_avg = (initial_avg * prevoius_count) + (added_avg * added_count)
     return float(new_avg/new_count)
