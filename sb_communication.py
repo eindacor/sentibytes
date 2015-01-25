@@ -269,7 +269,7 @@ class session(object):
         self.community.saveAndClearActiveMembers()
         
 class community(object):
-    def __init__(self):
+    def __init__(self, keep_members_active=False):
         self.community_ID = randint(0, 100000)
         
         self.current_cycle = 0
@@ -295,6 +295,9 @@ class community(object):
         # modify session limit to be part of session class, and varies depending
         # on how the session was made
         self.session_limit = 15
+        
+        # when True, members stay in memory instead of relying on file access
+        self.keep_members_active = keep_members_active
         
     def addMember(self, new_ID):
         self.members.append(new_ID)
@@ -340,19 +343,21 @@ class community(object):
 
     # removes sb from memory, saving to file
     def deactivateMember(self, member_ID):
-        for member in self.active_members:
-            if member.sentibyte_ID == member_ID:
-                writeSB(member)
-                self.active_members.remove(member)              
-                return
+        if not self.keep_members_active:
+            for member in self.active_members:
+                if member.sentibyte_ID == member_ID:
+                    writeSB(member)
+                    self.active_members.remove(member)              
+                    return
 
     def saveAndClearActiveMembers(self):
-        if len(self.active_members) > self.most_members_active:
-            self.most_members_active = len(self.active_members)
-        for member in self.active_members:
-            writeSB(member)
+        if not self.keep_members_active:
+            if len(self.active_members) > self.most_members_active:
+                self.most_members_active = len(self.active_members)
+            for member in self.active_members:
+                writeSB(member)
             
-        self.active_members = list()
+            self.active_members = list()
         
     def getAllOthers(self, member_ID):
         other_members = self.members[:]

@@ -466,6 +466,8 @@ class sentibyte(object):
                     if str(self) not in participant.contacts:
                         self.met_through_others += 1
                         participant.met_through_others += 1
+                    if participant_ID != other_ID:
+                        self.community.deactivateMember(participant_ID)
                 other.current_session.addParticipant(str(self))
                 self.community.deactivateMember(other_ID)
                 return True

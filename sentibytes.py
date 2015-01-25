@@ -11,7 +11,7 @@ random.seed()
 
 the_truth = getTruth()
 
-test_community = community()
+test_community = community(keep_members_active=False)
 # load premade sentibytes from ./sb_files 
 premade_sentibytes = loadPremadeSBs(the_truth)
 for sb_ID in premade_sentibytes:
