@@ -11,18 +11,45 @@ random.seed()
 
 the_truth = getTruth()
 
-test_community = community(keep_members_active=False)
+run_on_memory = False
+if platform.system() == 'Windows':
+    population_count = 1000
+            
+else:
+    population_count = 180
+    
+cycles = 1000
+update_frequency = 10
+
+if len(argv) > 1:
+    for i in range(len(argv)):
+        # -m flag makes program run on memory only
+        if argv[i] == '-m':
+            run_on_memory = True
+            
+        if 'pop=' in argv[i]:
+            pop_string = argv[i].replace('pop=', '')
+            if int(pop_string) < 0:
+                raise Exception('population cannot be negative')
+            population_count = int(pop_string)
+            
+        if 'cycles=' in argv[i]:
+            cycle_string = argv[i].replace('cycles=', '')
+            if int(cycle_string) < 0:
+                raise Exception('cycle count cannot be negative')
+            cycles = int(cycle_string)
+            
+        if 'update=' in argv[i]:
+            update_string = argv[i].replace('update=', '')
+            if int(update_string) < 0:
+                raise Exception('update frequency cannot be negative')
+            update_frequency = int(update_string)
+
+test_community = community(keep_members_active=run_on_memory)
 # load premade sentibytes from ./sb_files 
 premade_sentibytes = loadPremadeSBs(the_truth)
 for sb_ID in premade_sentibytes:
     test_community.addMember(sb_ID)
-    
-# generate specified number of random sentibytes 
-if platform.system() == 'Windows':
-    population_count = 1000
-    
-else:
-    population_count = 100
    
 random_sentibytes = createRandomSBs(population_count, the_truth)
 for sb_ID in random_sentibytes:
@@ -38,8 +65,6 @@ config_file = script_location + '/traits_config.txt'
 
 status_log_lines = list()
 
-cycles = 1000
-
 if cycles > 20 or population_count > 20:
     status_tracking = False
 
@@ -49,22 +74,23 @@ else:
     
 try:
     for i in range(cycles):
-        if i % 2==0 and i != 0:
-            print "cycle: %d" % i
-        if i % 24==0 and i != 0:
-            print "cycle: %d (updating summary)" % i
+        print "cycle: %d" % i
+        if i % update_frequency==0 and i != 0:
+            print "......updating summary"
             updateSummary(test_community, config_file, sb_summary, the_truth)
 
         status_lines = test_community.cycle()
 
         if status_tracking:
-                updateStatusLog(sb_status, status_lines, False)
-        
+            updateStatusLog(sb_status, status_lines, False)
+     
+    print "......updating summary"   
     updateSummary(test_community, config_file, sb_summary, the_truth)
     updateSBData(test_community, sb_data)
         
     cleanup()
 
 except KeyboardInterrupt:
+    print "......updating summary"
     updateSummary(test_community, config_file, sb_summary, the_truth)
     cleanup()

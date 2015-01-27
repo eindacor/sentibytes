@@ -35,6 +35,7 @@ class sentibyte(object):
         self.misled_by_others = 0
         self.corrected_by_others = 0
         self.met_through_others = 0
+        self.met_on_own = 0
         self.invitations_to_friends = 0
         self.invitations_to_contacts = 0
         self.invitations_to_strangers = 0
@@ -129,19 +130,11 @@ class sentibyte(object):
         source = sent.source_ID
         
         # add modifiers for interpretation
-        try:
-            if sent.t_type == 'statement' or self.proc('observant'):
-                self.current_interactions[source].addTransmission(sent)
-                
-                if str(self) in sent.targets:
-                    self.receiveTransmission(sent)
-
-        except KeyError:
-            print "interpreter: %s" % self
-            print "source: %s" % source
-            print "current_interactions: ", self.current_interactions.keys()
-            print "participants: ", self.current_session.participants
-            raise Exception
+        if sent.t_type == 'statement' or self.proc('observant'):
+            self.current_interactions[source].addTransmission(sent)
+            
+            if str(self) in sent.targets:
+                self.receiveTransmission(sent)
                 
     def receiveTransmission(self, received):
         # transmissions no longer have effect on others' positivity and energy
@@ -186,7 +179,7 @@ class sentibyte(object):
      
     def endInteraction(self, other_ID):
         target = self.current_interactions[other_ID]
-        target.guessTraits(self.cycles_in_current_session)
+        target.guessTraits(self.cycles_in_current_session, self.community.communications_per_cycle)
         
         # add to perception
         self.perceptions[other_ID].addInteraction(target, self)
@@ -446,30 +439,14 @@ class sentibyte(object):
         elif other.proc('sociable'):
             if self_status == 'alone' and other_status == 'alone':
                 self.community.createSession(self.sentibyte_ID, other_ID)
-                self.community.deactivateMember(other_ID)
                 return True
                 
             elif self_status == 'in open session' and other_status == 'alone':
-                for participant_ID in self.current_session.participants:
-                    participant = self.community.getMember(participant_ID)
-                        
-                    if str(other) not in participant.contacts:
-                        other.met_through_others += 1
-                        participant.met_through_others += 1
-                self.current_session.addParticipant(other_ID)
+                self.current_session.addParticipant(other_ID, inviter_ID=str(self))
                 return True
                 
             elif self_status == 'alone' and other_status == 'in open session':
-                for participant_ID in other.current_session.participants:
-                    participant = self.community.getMember(participant_ID)
-                        
-                    if str(self) not in participant.contacts:
-                        self.met_through_others += 1
-                        participant.met_through_others += 1
-                    if participant_ID != other_ID:
-                        self.community.deactivateMember(participant_ID)
-                other.current_session.addParticipant(str(self))
-                self.community.deactivateMember(other_ID)
+                other.current_session.addParticipant(str(self), inviter_ID=str(other))
                 return True
             
     def getInfo(self, traits=False, memory=False, perceptions=False, friends=False):

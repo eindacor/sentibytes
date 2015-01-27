@@ -1,6 +1,7 @@
 from random import random, randint
-from sb_utilities import boundsCheck, combineAverages
+from sb_utilities import boundsCheck, combineAverages, averageContainer
 from sb_fileman import readSB, writeSB
+from datetime import datetime
 
 class context(object):
     def __init__(self, session, community):
@@ -104,16 +105,14 @@ class interaction(object):
         
             self.data[item]['count'] += 1
             
-    def guessTraits(self, cycles_present):
+    def guessTraits(self, cycles_present, communications_per_cycle):
         self.cycles_present = cycles_present
         # The following algorithms attempt to guess the other's traits based on
         # received transmissions
         
         # COMMUNICATIVE
-        # The number 12 refers to the number of communications per cycle set in
-        # the session parameters
         communicative_guess = float(self.data['total']['count']) / \
-                            (float(cycles_present) * 12)
+                            (float(cycles_present) * communications_per_cycle)
         self.trait_guesses['communicative'] = boundsCheck(communicative_guess * 99)
                         
         # TALKATIVE
@@ -142,10 +141,9 @@ class session(object):
         self.participants = list()
         self.current_cycle = 0
         self.session_open = True
-        # if communications per cycle changes, interaction class must be updated
-        self.communications_per_cycle = 12
         self.new_members = list()
         self.community = community
+        self.session_active = False
         
     def __eq__(self, other):
         if other == None:
@@ -157,26 +155,36 @@ class session(object):
     def __ne__(self, other):
         return self.session_ID != other.session_ID
       
-    def addParticipant(self, entering_ID):
-        session_list_before = len(self.community.session_sb_list)
-        if entering_ID in self.community.session_sb_list:
-            print "attempted to add sb to multiple sessions"
-            raise Exception
-            
+    def addParticipant(self, entering_ID, inviter_ID=None):
         entering = self.community.getMember(entering_ID)
         entering.joinSession(self)
         for participant_ID in self.participants:
             participant = self.community.getMember(participant_ID)
+            
+            # following code monitors how sb's meet others, either by direct 
+            # connection or by meeting through another sb
+            if entering_ID not in participant.contacts:
+                if participant_ID == inviter_ID:
+                    participant.met_on_own += 1
+                    entering.met_on_own += 1
+                
+                else:
+                    participant.met_through_others += 1
+                    entering.met_through_others += 1
+            
             participant.newInteraction(entering_ID)
             entering.newInteraction(participant_ID)
+            
+            if not self.session_active:
+                self.community.deactivateMember(participant_ID)
             
         self.community.logEntry("%s entering session %d" % (entering, self.session_ID))
         self.participants.append(entering_ID)
         self.new_members.append(entering_ID)
         self.community.session_sb_list[entering_ID] = self.session_ID
-        if session_list_before == len(self.community.session_sb_list):
-            print "failed to add sb to list"
-            raise Exception
+        
+        if not self.session_active:
+            self.community.deactivateMember(entering_ID)
 
     def getAllOthers(self, participant_ID):
         other_participants = [p_ID for p_ID in self.participants if p_ID != participant_ID]
@@ -252,7 +260,7 @@ class session(object):
             member.cycles_in_session += 1
             member.cycles_in_current_session += 1
         
-        for i in range(self.communications_per_cycle):
+        for i in range(self.community.communications_per_cycle):
             transmission_list = list()
             self.transmissionPhase(transmission_list)
             self.interpretPhase(transmission_list)
@@ -291,6 +299,9 @@ class community(object):
         
         self.recently_left_session = list()
         self.session_sb_list = {}
+        self.communications_per_cycle = 20
+        
+        self.seconds_per_cycle = averageContainer()
         
         # modify session limit to be part of session class, and varies depending
         # on how the session was made
@@ -372,21 +383,24 @@ class community(object):
             
         new_session = session(self, new_ID)
         new_session.addParticipant(first_ID)
-        new_session.addParticipant(second_ID)
+        new_session.addParticipant(second_ID, inviter_ID=first_ID)
         self.sessions.append(new_session)
     
     def cycle(self):
+        cycle_start = datetime.now()
         self.status_log = list()
         self.logEntry("---- cycle %d ----" % self.current_cycle)
         self.logEntry("sessions: %s" % [ID.session_ID for ID in self.sessions])
         self.total_members_in_session += len(self.session_sb_list)
         for session in self.sessions:
+            session.session_active = True
             self.total_session_count += 1
             if len(session.participants) > self.most_popular_session:
                 self.most_popular_session = len(session.participants)
             if session.current_cycle > self.oldest_session:
                 self.oldest_session = session.current_cycle
             session.cycle()
+            session.session_active = False
             
         void_sessions = [session for session in self.sessions if session.session_open == False]
         
@@ -420,5 +434,12 @@ class community(object):
             self.most_concurrent_sessions = len(self.sessions)
         
         self.recently_left_session = list()
+        cycle_end = datetime.now()
+        time_spent = cycle_end - cycle_start
+        actual_time = float(time_spent.seconds) + (time_spent.microseconds/float(10000000))
+        self.seconds_per_cycle.addValue(actual_time)
+        print "cycle duration: %f" % actual_time
+        print "average seconds per cycle: %f" % self.seconds_per_cycle
+        print "-----"
         
         return self.status_log

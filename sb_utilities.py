@@ -243,3 +243,25 @@ def dissectString(target, dissector):
             
     return separated
     
+class averageContainer(object):
+    def __init__(self, initial_average=0.0, initial_count=0.0):
+        self.average = float(initial_average)
+        self.count = float(initial_count)
+        
+    def addAverage(self, average_to_add, count):
+        self.average = combineAverages(self.average, self.count, average_to_add, count)
+        self.count += count
+        return float(self.average)
+        
+    def addValue(self, value_to_add):
+        self.average = float(combineAverages(self.average, self.count, value_to_add, 1))
+        self.count += 1
+        return float(self.average)
+        
+    def __int__(self):
+        return int(self.average)
+        
+    def __float__(self):
+        return float(self.average)
+        
+    
