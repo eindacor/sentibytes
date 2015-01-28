@@ -13,13 +13,13 @@ the_truth = getTruth()
 
 run_on_memory = False
 if platform.system() == 'Windows':
-    population_count = 1000
+    population_count = 500
             
 else:
     population_count = 180
     
 cycles = 1000
-update_frequency = 10
+update_frequency = 100
 
 if len(argv) > 1:
     for i in range(len(argv)):
