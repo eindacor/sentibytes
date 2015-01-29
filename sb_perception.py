@@ -1,5 +1,5 @@
 from sb_utilities import getCoefficient, calcInfluence, calcAccuracy, \
-    boundsCheck, combineAverages, valueState, listAverage
+    boundsCheck, combineAverages, valueState, listAverage, averageContainer
 
 class perception(object):
     def __init__(self, other_ID, owner):
@@ -9,8 +9,11 @@ class perception(object):
         self.interaction_count = 0
         self.broadcasts_observed = 0
         self.cycles_observed = 0
+        self.rumors_heard = 0
+        self.memories_counted = 0
         self.rating = 0
-        self.memories = 0
+        # trust level will eventually override proc('trusting') in communication
+        self.trust = 0.0
         
         # regard coefficient must be inverted. higher regard means assumed value
         # will be closer to what the owner desires
@@ -43,13 +46,16 @@ class perception(object):
     def __ge__(self, other):
         return self.rating >= other.rating
             
-    def addInteraction(self, interaction, owner, isMemory=False):      
-        if not isMemory:
-            self.broadcasts_observed += interaction['total']['count']
-            self.cycles_observed += interaction.cycles_present
+    def addInteraction(self, interaction, owner, isMemory=False, isRumor=False):
+        if isRumor:
+            self.rumors_heard += 1
+            
+        elif isMemory:
+            self.memories_counted += 1
             
         else:
-            self.memories += 1
+            self.broadcasts_observed += interaction['total']['count']
+            self.cycles_observed += interaction.cycles_present
         
         for trait in interaction.trait_guesses:
             if trait not in self.perceived_traits:
@@ -66,16 +72,16 @@ class perception(object):
     # get % desirability from traits and contacts, calc rating relative to 
     # regard lower/upper bounds
     def updateRating(self, owner):
-        rating_list = list()
+        avg_rating = averageContainer()
         for trait in self.perceived_traits:
             trait_delta = abs(owner.getDesired(trait) - self.perceived_traits[trait])
             trait_rating = 99.0 - trait_delta
             
             trait_priority = owner.desire_priority[trait]
-            for i in range(trait_priority):
-                rating_list.append(trait_rating)
+            
+            avg_rating.addAverage(trait_rating, trait_priority)
         
-	    self.rating = listAverage(rating_list)
+	    self.rating = avg_rating.average
         
     def getPerceivedOffset(self, trait, other):
         if str(other) != self.other_ID:

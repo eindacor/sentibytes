@@ -80,6 +80,8 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     avg_interactions = averageContainer()
     avg_interactions_friends = averageContainer()
     avg_interactions_non_friends = averageContainer()
+    avg_rumors_per_perception = averageContainer()
+    avg_memories_per_perception = averageContainer()
     
     mem_count = float(len(community.members))
     for member_ID in community.members:
@@ -120,10 +122,13 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
             other_interaction_count = member.perceptions[other_ID].interaction_count
             avg_interactions.addValue(other_interaction_count)
             other = readSB(other_ID)
-            other_perceived_offset = member.perceptions[other_ID].getAveragePerceivedOffset(other)
+            other_perception = member.perceptions[other_ID]
+            other_perceived_offset = other_perception.getAveragePerceivedOffset(other)
             avg_perceived_offset.addValue(other_perceived_offset)
-            other_desired_offset = member.perceptions[other_ID].getAverageDesiredOffset(member)
+            other_desired_offset = other_perception.getAverageDesiredOffset(member)
             avg_desired_offset.addValue(other_desired_offset)
+            avg_rumors_per_perception.addValue(other_perception.rumors_heard)
+            avg_memories_per_perception.addValue(other_perception.memories_counted)
 
             if other_ID in member.friend_list:
                 if other_rating > best_friend_rating:
@@ -239,6 +244,8 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     stats.append("avg. interactions with others: %f" % avg_interactions)
     stats.append("avg. interactions with friends: %f" % avg_interactions_friends)
     stats.append("avg. interactions with non-friends: %f" % avg_interactions_non_friends)
+    stats.append("avg. rumors heard per perception: %s" % avg_rumors_per_perception)
+    stats.append("avg. memories relived per perception: %s" % avg_memories_per_perception)
     
     stats.append("---------------------")
     stats.append("SENTIBYTE CONFIGURATION SETTINGS")

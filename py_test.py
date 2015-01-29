@@ -1,20 +1,7 @@
-from sb_utilities import averageContainer
+from random import choice
 
-container = averageContainer()
 
-container.addAverage(50, 2)
 
-print container.average
+knowledge = {1: 'a', 2: 'b'}
 
-container.addValue(20)
-
-print container.average
-
-container.addAverage(10, 7)
-
-print container.average
-
-empty_container = averageContainer()
-
-print str(container)
-print str(empty_container)
+print choice(knowledge)

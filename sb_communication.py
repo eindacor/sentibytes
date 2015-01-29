@@ -9,13 +9,15 @@ class context(object):
         self.community = community
 
 class transmission(object):
-    def __init__(self, source_ID, targets, positivity, energy, t_type, information):
+    def __init__(self, source_ID, targets, positivity, energy, t_type, knowledge=None, gossip=None, brag=None):
         self.positivity = positivity
         self.energy = energy
         self.source_ID = source_ID
         self.targets = targets[:]
         self.t_type = t_type
-        self.information = information
+        self.knowledge = knowledge
+        self.gossip = gossip
+        self.brag = brag
 
 class interaction(object):
     def __init__(self, owner_ID, other_ID):
@@ -30,20 +32,25 @@ class interaction(object):
         self.data = {}
         for item in recorded_data:
             self.data[item] = {
-                'count': 0, 'statements': 0, 'declarations': 0,
+                'count': 0, 'statements': 0, 'knowledge': 0,
+                'gossip': 0, 'brag': 0,
                 'avg positivity': 0, 'avg energy': 0, 
                 'min positivity': 0, 'min energy': 0, 
                 'max positivity': 0, 'max energy': 0}
-                #'first positivity': 0, 'first energy': 0,
-                #'last positivity': 0, 'last energy': 0}
 
     # all comparitors prioritize cycles present first, then rating
     # this way the interactions that had the most correspondance take priority
     def __eq__(self, other_interaction):
-        return self.cycles_present == other_interaction.cycles_present
+        if other_interaction == None:
+            return False
+        else:
+            return self.cycles_present == other_interaction.cycles_present
         
     def __ne__(self, other_interaction):
-        return self.cycles_present != other_interaction.cycles_present
+        if other_interaction == None:
+            return True
+        else:
+            return self.cycles_present != other_interaction.cycles_present
         
     def __gt__(self, other_interaction):
         return self.cycles_present > other_interaction.cycles_present
@@ -78,14 +85,6 @@ class interaction(object):
             self.data[item]['avg energy'] = \
                 combineAverages(self.data[item]['avg energy'],
                 self.data[item]['count'], transmission.energy, 1)
-              
-            # Interactions were once judged by the first transmission received,
-            # with the intention of comparing first to last to identify mood change
-            #if self.data[item]['count'] == 0:
-                #self.data[item]['first positivity'] = transmission.positivity
-                #self.data[item]['first energy'] = transmission.energy
-            #self.data[item]['last positivity'] = transmission.positivity
-            #self.data[item]['last energy'] = transmission.positivity
             
             if transmission.positivity > self.data[item]['max positivity']:
                 self.data[item]['max positivity'] = transmission.positivity
@@ -100,8 +99,14 @@ class interaction(object):
             if transmission.t_type == 'statement':
                 self.data[item]['statements'] +=1
         
-            if len(transmission.information) > 0:
-                self.data[item]['declarations'] +=1
+            if transmission.knowledge != None :
+                self.data[item]['knowledge'] +=1
+                
+            if transmission.gossip != None :
+                self.data[item]['gossip'] +=1
+                
+            if transmission.brag != None :
+                self.data[item]['brag'] +=1
         
             self.data[item]['count'] += 1
             
@@ -123,9 +128,21 @@ class interaction(object):
             
         # INTELLECTUAL
         if self.data['total']['statements'] > 0:
-            intellectual_guess = float(self.data['total']['declarations']) / \
+            intellectual_guess = float(self.data['total']['knowledge']) / \
                                 float(self.data['total']['statements']) * 99
             self.trait_guesses['intellectual'] = boundsCheck(intellectual_guess)
+            
+        # GOSSIPY
+        if self.data['total']['statements'] > 0:
+            gossipy_guess = float(self.data['total']['gossip']) / \
+                                float(self.data['total']['statements']) * 99
+            self.trait_guesses['gossipy'] = boundsCheck(gossipy_guess)
+            
+        # CONFIDENT
+        if self.data['total']['statements'] > 0:
+            confident_guess = float(self.data['total']['brag']) / \
+                                float(self.data['total']['statements']) * 99
+            self.trait_guesses['confident'] = boundsCheck(confident_guess)
         
         # POSITIVITY
         self.trait_guesses['positivity'] = float(self.data['total']['avg positivity'])
@@ -148,12 +165,14 @@ class session(object):
     def __eq__(self, other):
         if other == None:
             return False
-            
         else:
             return self.session_ID == other.session_ID
         
     def __ne__(self, other):
-        return self.session_ID != other.session_ID
+        if other == None:
+            return True
+        else:
+            return self.session_ID != other.session_ID
       
     def addParticipant(self, entering_ID, inviter_ID=None):
         entering = self.community.getMember(entering_ID)

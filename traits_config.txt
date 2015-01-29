@@ -25,3 +25,5 @@ i_energy = 0, 99
 i_talkative = 0, 99
 i_communicative = 0, 99
 i_intellectual = 0, 50
+i_confident = 0, 50
+i_gossipy = 0, 50

@@ -142,29 +142,39 @@ class sentibyte(object):
         # self['energy'].influence(received.energy)
         
         # add perception effects for agreements/disagreements
-        
-        if len(received.information) and self.proc('trusting') and self.proc('intellectual'):
-            info_index = received.information[0]
-            
-            # if the information given is false
-            if len(received.information) > 1:
-                if self.proc('intelligence'):
-                    return
+        if self.proc('trusting'):
+            if received.knowledge != None and self.proc('intellectual'):
+                info_index = received.knowledge[0]
                 
-                elif info_index in self.accurate_knowledge:
-                    self.accurate_knowledge.remove(info_index)
+                # if the information given is false
+                if len(received.knowledge) > 1:
+                    if self.proc('intelligence'):
+                        return
+                    
+                    elif info_index in self.accurate_knowledge:
+                        self.accurate_knowledge.remove(info_index)
+                    
+                    self.false_knowledge[info_index] = received.knowledge[1]
+                    self.misled_by_others += 1
                 
-                self.false_knowledge[info_index] = received.information[1]
-                self.misled_by_others += 1
-            
-            elif info_index in self.false_knowledge:
-                del self.false_knowledge[info_index]
-                self.corrected_by_others += 1
-            
-            if info_index not in self.accurate_knowledge:
-                self.accurate_knowledge.append(info_index)
+                elif info_index in self.false_knowledge:
+                    del self.false_knowledge[info_index]
+                    self.corrected_by_others += 1
                 
-            self.learned_from_others += 1
+                if info_index not in self.accurate_knowledge:
+                    self.accurate_knowledge.append(info_index)
+                    
+                self.learned_from_others += 1
+                
+            if received.gossip != None:
+                other_ID = received.gossip.other_ID
+                if other_ID not in self.perceptions:
+                    self.perceptions[other_ID] = perception(other_ID, self)
+                    
+                self.perceptions[other_ID].addInteraction(received.gossip, self, isRumor=True)
+                
+            if received.brag != None:
+                pass
             
     def newInteraction(self, other_ID):
         if other_ID not in self.perceptions:
@@ -190,7 +200,7 @@ class sentibyte(object):
             
         heappush(self.memory[other_ID], self.current_interactions[other_ID])
         
-        if len(self.memory[other_ID]) > 10:
+        if len(self.memory[other_ID]) > 8:
             heappop(self.memory[other_ID])
         
         # remove from interactions
@@ -211,8 +221,8 @@ class sentibyte(object):
         self.friend_list = [p.other_ID for p in perception_list]
     
     def getStrangers(self):
-        stranger_list = [m_ID for m_ID in self.community.members 
-                        if m_ID != self.sentibyte_ID and m_ID not in self.memory]
+        stranger_list = [other_ID for other_ID in self.community.members 
+                        if other_ID != self.sentibyte_ID and other_ID not in self.memory]
               
         return stranger_list
         
@@ -223,18 +233,32 @@ class sentibyte(object):
         energy_current = self.getCurrent('energy')
         energy_co = self.getCoefficient('energy_range')
         energy = calcAccuracy(energy_current, energy_co)
-        information = list()
+        knowledge = None
+        gossip = None
+        brag = None
         if self.proc('talkative'):
             t_type = 'statement'
             
-            if self.proc('intellectual'):
-                all_knowledge = self.accurate_knowledge + self.false_knowledge.keys()
+            all_knowledge = self.accurate_knowledge + self.false_knowledge.keys()
+            if self.proc('intellectual') and len(all_knowledge) > 0:
+                knowledge = list()
                 index = choice(all_knowledge)
-                information.append(index)
-                
+                knowledge.append(index)
                 if index in self.false_knowledge:
-                    information.append(self.false_knowledge[index])
-        
+                    knowledge.append(self.false_knowledge[index])
+            
+            # if gossipy procs, sb sends an interaction memory as a broadcast
+            gossip_targets = [other_ID for other_ID in self.memory.keys() if other_ID not in self.current_session.participants]   
+            if len(gossip_targets) > 0 and self.proc('gossipy'):     
+                other_ID = choice(gossip_targets)
+                memory_list = self.memory[other_ID]
+                gossip = choice(memory_list)
+                    
+            if self.proc('confident'):
+                brag = {}
+                trait = choice(self.p_traits.keys())
+                brag[trait] = self[trait]['current']
+      
         else:
             t_type = 'signal'
             
@@ -250,12 +274,16 @@ class sentibyte(object):
             selected_targets.append(choice(target_list))
             
         toSend = transmission(self.sentibyte_ID, selected_targets, positivity, 
-                                energy, t_type, information)
+                        energy, t_type, knowledge=knowledge, gossip=gossip, brag=brag)
         return toSend
         
     def reflect(self):
         # add modifier for positivity
-        pass
+        if len(self.memory) > 0:
+            other_ID = choice(self.memory.keys())
+            memory_list = self.memory[other_ID]
+            memory = choice(memory_list)
+            self.perceptions[other_ID].addInteraction(memory, self, isMemory=True)
     
     def learn(self):
         all_knowledge = (self.accurate_knowledge + self.false_knowledge.keys())
@@ -498,13 +526,16 @@ class sentibyte(object):
             lines.append("friends:")
             for friend_ID in self.friend_list:
                 friend = self.community.getMember(friend_ID)
-                rating = self.perceptions[friend_ID].rating
-                cycles_observed =self.perceptions[friend_ID].cycles_observed
-                broadcasts_observed =self.perceptions[friend_ID].broadcasts_observed
-                interaction_count = self.perceptions[friend_ID].interaction_count
+                perception = self.perceptions[friend_ID]
+                rating = perception.rating
+                cycles_observed = perception.cycles_observed
+                broadcasts_observed = perception.broadcasts_observed
+                interaction_count = perception.interaction_count
+                memories = perception.memories_counted
+                rumors = perception.rumors_heard
                 lines.append("\t%s rating of %s: %f" % (self, friend_ID, rating))
-                lines.append("\t(%d interactions, %d cycles, %d broadcasts)" % \
-                    (interaction_count, cycles_observed, broadcasts_observed))
+                lines.append("\t(%d interactions, %d cycles, %d broadcasts, %d rumors, %d memories)" % \
+                    (interaction_count, cycles_observed, broadcasts_observed, rumors, memories))
                 
                 for trait in self.d_traits:
                     perceived_trait = self.perceptions[friend_ID].perceived_traits[trait]
