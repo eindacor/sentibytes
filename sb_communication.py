@@ -100,7 +100,7 @@ class interaction(object):
             if transmission.t_type == 'statement':
                 self.data[item]['statements'] +=1
         
-            if transmission.information != None:
+            if len(transmission.information) > 0:
                 self.data[item]['declarations'] +=1
         
             self.data[item]['count'] += 1
@@ -292,10 +292,10 @@ class community(object):
         self.most_concurrent_sessions = 0
         self.most_popular_session = 0
         self.oldest_session = 0
-        self.total_session_count = 0
-        self.total_unique_sessions = 0
-        self.total_unique_session_cycles = 0
-        self.total_members_in_session = 0.0
+        self.sessions_per_cycle = averageContainer()
+        self.cycles_per_session = averageContainer()
+        self.members_in_session = averageContainer()
+        self.members_per_session = averageContainer()
         
         self.recently_left_session = list()
         self.session_sb_list = {}
@@ -391,10 +391,11 @@ class community(object):
         self.status_log = list()
         self.logEntry("---- cycle %d ----" % self.current_cycle)
         self.logEntry("sessions: %s" % [ID.session_ID for ID in self.sessions])
-        self.total_members_in_session += len(self.session_sb_list)
+        self.members_in_session.addValue(len(self.session_sb_list))
+        self.sessions_per_cycle.addValue(len(self.sessions))
         for session in self.sessions:
             session.session_active = True
-            self.total_session_count += 1
+            self.members_per_session.addValue(len(session.participants))
             if len(session.participants) > self.most_popular_session:
                 self.most_popular_session = len(session.participants)
             if session.current_cycle > self.oldest_session:
@@ -405,8 +406,7 @@ class community(object):
         void_sessions = [session for session in self.sessions if session.session_open == False]
         
         for session in void_sessions:
-            self.total_unique_sessions += 1
-            self.total_unique_session_cycles += session.current_cycle
+            self.cycles_per_session.addValue(session.current_cycle)
             self.sessions.remove(session)
         
         members_alone = [ID for ID in self.members if self.getAvailability(ID) == 'alone']
@@ -436,7 +436,7 @@ class community(object):
         self.recently_left_session = list()
         cycle_end = datetime.now()
         time_spent = cycle_end - cycle_start
-        actual_time = float(time_spent.seconds) + (time_spent.microseconds/float(10000000))
+        actual_time = float(time_spent.seconds) + (time_spent.microseconds/float(1000000))
         self.seconds_per_cycle.addValue(actual_time)
         print "cycle duration: %f" % actual_time
         print "average seconds per cycle: %f" % self.seconds_per_cycle

@@ -84,10 +84,25 @@ class perception(object):
         delta = abs(other[trait]['base'] - self.perceived_traits[trait])
         return delta
         
-    def getAverageOffset(self, other):
+    def getDesiredOffset(self, trait, owner):
+        if str(owner) != self.owner_ID:
+            raise Exception("owner_ID does not matched owner passed")
+            
+        delta = abs(owner.d_traits[trait]['base'] - self.perceived_traits[trait])
+        return delta
+        
+    def getAveragePerceivedOffset(self, other):
         offset_list = list()
         for trait in self.perceived_traits:
             trait_offset = self.getPerceivedOffset(trait, other)
+            offset_list.append(trait_offset)
+            
+        return listAverage(offset_list)
+        
+    def getAverageDesiredOffset(self, owner):
+        offset_list = list()
+        for trait in self.perceived_traits:
+            trait_offset = self.getDesiredOffset(trait, owner)
             offset_list.append(trait_offset)
             
         return listAverage(offset_list)

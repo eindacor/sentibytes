@@ -1,14 +1,20 @@
-from sb_fileman import getTruth, cleanup, readSB
-from sb_sentibyte import createRandomSBs
+from sb_utilities import averageContainer
 
-ID_list = createRandomSBs(5, getTruth())
-sb_list = [readSB(ID) for ID in ID_list]
+container = averageContainer()
 
-new_ID_list = [str(sb) for sb in sb_list]
-print new_ID_list
+container.addAverage(50, 2)
 
-sb_list = list()
+print container.average
 
-print new_ID_list
+container.addValue(20)
 
-cleanup()
+print container.average
+
+container.addAverage(10, 7)
+
+print container.average
+
+empty_container = averageContainer()
+
+print str(container)
+print str(empty_container)

@@ -244,7 +244,7 @@ def dissectString(target, dissector):
     return separated
     
 class averageContainer(object):
-    def __init__(self, initial_average=0.0, initial_count=0.0):
+    def __init__(self, initial_average=0.0, initial_count=0):
         self.average = float(initial_average)
         self.count = float(initial_count)
         
@@ -263,5 +263,11 @@ class averageContainer(object):
         
     def __float__(self):
         return float(self.average)
+        
+    def __str__(self):
+        if self.count == 0:
+            return "n/a"
+        else:
+            return str(self.average)
         
     

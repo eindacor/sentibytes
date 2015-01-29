@@ -18,8 +18,6 @@ class sentibyte(object):
         
         self.memory = {} #dict of lists of interaction logs, key = sentibyte_ID
         self.perceptions = {}
-        # when sb is active, ID is None and current_session is either None or a session
-        # when sb is inactive, ID is a str and current_session is None
         self.current_session_ID = None
         self.current_session = None
         
@@ -47,6 +45,8 @@ class sentibyte(object):
         self.unsuccessful_connections_friends = 0
         self.unsuccessful_connections_contacts = 0
         self.unsuccessful_connections_strangers = 0
+        self.rejection_count = 0
+        self.accepted_count = 0
         self.sociable_count = 0
         self.cycles_alone = 0
         self.cycles_in_session = 0
@@ -413,8 +413,15 @@ class sentibyte(object):
     # must be separate from "contact" function to filter out potential contact attempts
     # not just for denying invitations, also for determining who to invite
     def wantsToConnect(self, other_ID):
-        inverse_tolerance = 99 - self['tolerance']['current']
-        return self.getRating(other_ID) >= inverse_tolerance
+        inverse_tolerance_coefficient = 1.0 - self['tolerance']['coefficient']
+        minimum_rating = 99 * inverse_tolerance_coefficient
+        accepted = self.getRating(other_ID) >= minimum_rating
+        if not accepted:
+            self.rejection_count += 1
+            
+        else:
+            self.accepted_count += 1
+        return accepted
     
     def joinSession(self, session):
         self.current_session_ID = session.session_ID
@@ -490,6 +497,7 @@ class sentibyte(object):
         if len(self.friend_list) > 0 and friends:
             lines.append("friends:")
             for friend_ID in self.friend_list:
+                friend = self.community.getMember(friend_ID)
                 rating = self.perceptions[friend_ID].rating
                 cycles_observed =self.perceptions[friend_ID].cycles_observed
                 broadcasts_observed =self.perceptions[friend_ID].broadcasts_observed
@@ -497,6 +505,17 @@ class sentibyte(object):
                 lines.append("\t%s rating of %s: %f" % (self, friend_ID, rating))
                 lines.append("\t(%d interactions, %d cycles, %d broadcasts)" % \
                     (interaction_count, cycles_observed, broadcasts_observed))
+                
+                for trait in self.d_traits:
+                    perceived_trait = self.perceptions[friend_ID].perceived_traits[trait]
+                    actual_trait = friend[trait]['base']
+                    lines.append("\t\t%s: %f (actual: %f, desired: %f)" % \
+                        (trait, perceived_trait, actual_trait, self.d_traits[trait]['base']))
+                    
+                lines.append("\t\tperception offset: %f" % self.perceptions[friend_ID].getAveragePerceivedOffset(friend))
+                lines.append("\t\tdesire offset: %f" % self.perceptions[friend_ID].getAverageDesiredOffset(self))
+                    
+                self.community.deactivateMember(friend_ID)
         
         interaction_count_list = [p.interaction_count for p in self.perceptions.values()]
         if interaction_count_list:
