@@ -45,9 +45,6 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     avg_rating_non_friends = averageContainer()
     avg_rating_best_friend = averageContainer()
     avg_lowest_rating = averageContainer()
-    avg_perceived_offset = averageContainer()
-    avg_perceived_offset_friends = averageContainer()
-    avg_perceived_offset_non_friends = averageContainer()
     avg_desired_offset = averageContainer()
     avg_desired_offset_friends = averageContainer()
     avg_desired_offset_non_friends = averageContainer()
@@ -125,9 +122,7 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
             other_interaction_rating = other_perception.avg_interaction_rating.average
             avg_interactions.addValue(other_interaction_count)
             avg_interaction_rating.addValue(other_interaction_rating)
-            other_perceived_offset = other_perception.avg_actual_offset.average
             other_desired_offset = other_perception.avg_desired_offset.average
-            avg_perceived_offset.addValue(other_perceived_offset)
             avg_desired_offset.addValue(other_desired_offset)
             avg_rumors_per_perception.addValue(other_perception.rumors_heard)
             avg_memories_per_perception.addValue(other_perception.memories_counted)
@@ -136,13 +131,11 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
                 if other_rating > best_friend_rating:
                     best_friend_rating = other_rating
                 avg_rating_friends.addValue(other_rating)
-                avg_perceived_offset_friends.addValue(other_perceived_offset)
                 avg_desired_offset_friends.addValue(other_desired_offset)
                 avg_interactions_friends.addValue(other_interaction_count)
                 
             else:
                 avg_rating_non_friends.addValue(other_rating)
-                avg_perceived_offset_non_friends.addValue(other_perceived_offset)
                 avg_desired_offset_non_friends.addValue(other_desired_offset)
                 avg_interactions_non_friends.addValue(other_interaction_count)
         if best_friend_rating > 1:
@@ -238,9 +231,6 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     stats.append("avg. lowest rating: %s" % avg_lowest_rating)
     stats.append("avg. friend rating: %s" % avg_rating_friends)
     stats.append("avg. non-friend rating: %s" % avg_rating_non_friends)
-    stats.append("avg. perception offset: %s" % avg_perceived_offset)
-    stats.append("avg. friend perception offset: %s" % avg_perceived_offset_friends)
-    stats.append("avg. non-friend perception offset: %s" % avg_perceived_offset_non_friends)
     stats.append("avg. desired offset: %s" % avg_desired_offset)
     stats.append("avg. friend desired offset: %s" % avg_desired_offset_friends)
     stats.append("avg. non-friend desired offset: %s" % avg_desired_offset_non_friends)

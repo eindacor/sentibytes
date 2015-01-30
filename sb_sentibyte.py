@@ -168,12 +168,10 @@ class sentibyte(object):
                 
             if received.gossip != None:
                 other_ID = received.gossip.other_ID
-                other = self.community.getMember(other_ID)
                 if other_ID not in self.perceptions:
                     self.perceptions[other_ID] = perception(other_ID, self)
                     
-                self.perceptions[other_ID].addInteraction(received.gossip, self, other, isRumor=True)
-                self.community.deactivateMember(other_ID)
+                self.perceptions[other_ID].addInteraction(received.gossip, self, isRumor=True)
                 
             if received.brag != None:
                 pass
@@ -194,8 +192,7 @@ class sentibyte(object):
         target.guessTraits(self.cycles_in_current_session, self.community.communications_per_cycle)
         
         # add to perception
-        other = self.community.getMember(other_ID)
-        self.perceptions[other_ID].addInteraction(target, self, other)
+        self.perceptions[other_ID].addInteraction(target, self)
         
         # add to memory
         if other_ID not in self.memory:
@@ -285,11 +282,9 @@ class sentibyte(object):
         # add modifier for positivity
         if len(self.memory) > 0:
             other_ID = choice(self.memory.keys())
-            other = self.community.getMember(other_ID)
             memory_list = self.memory[other_ID]
             memory = choice(memory_list)
-            self.perceptions[other_ID].addInteraction(memory, self, other, isMemory=True)
-            self.community.deactivateMember(other_ID)
+            self.perceptions[other_ID].addInteraction(memory, self, isMemory=True)
     
     def learn(self):
         all_knowledge = (self.accurate_knowledge + self.false_knowledge.keys())
@@ -547,7 +542,6 @@ class sentibyte(object):
                     lines.append("\t\t%s: actual = %f, desired = %f, priority = %d" % \
                         (trait, actual_trait, self.d_traits[trait]['base'], self.desire_priority[trait]))
                     
-                lines.append("\t\tperception offset: %f" % self.perceptions[friend_ID].avg_actual_offset.average)
                 lines.append("\t\tdesire offset: %f" % self.perceptions[friend_ID].avg_desired_offset.average)
                     
                 self.community.deactivateMember(friend_ID)
