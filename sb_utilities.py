@@ -14,7 +14,7 @@ def calcInfluence(starting, influence, coefficient):
     
 def listAverage(target_list):
     if len(target_list) == 0:
-        raise Exception("listAverage cannot except empty lists")
+        raise Exception("listAverage cannot accept empty lists")
         
     else:
         return sum(target_list) / float(len(target_list))
@@ -23,8 +23,8 @@ def listAverage(target_list):
 def calcAccuracy(value, range_coefficient, max_offset=10):
     margain = max_offset * range_coefficient * random.random()
     new_value = value + (margain * choice((1, -1)))
-    if new_value > 99:
-        new_value = 99
+    if new_value > 100:
+        new_value = 100
         
     elif new_value < 0:
         new_value = 0
@@ -32,8 +32,8 @@ def calcAccuracy(value, range_coefficient, max_offset=10):
     return new_value
     
 def boundsCheck(value):
-    if value > 99:
-        return float(99)
+    if value > 100:
+        return float(100)
         
     elif value < 0:
         return float(0)
@@ -83,7 +83,7 @@ def randomIndex(line):
 # valueState objects contain a range of values known as 'min' and 'max'
 # within the min and max exists a 'base'
 class valueState(object):
-    def __init__(self, lower_min=0.0, upper_max=99.0):
+    def __init__(self, lower_min=0.0, upper_max=100.0):
         self.params = {}
         span = boundsCheck(upper_max) - boundsCheck(lower_min)
         self.setBounds(boundsCheck(lower_min), span)

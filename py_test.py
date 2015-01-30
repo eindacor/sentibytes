@@ -1,7 +1,8 @@
 from random import choice
 
+random = {1: 'a'}
 
+if random:
+    print "works"
 
-knowledge = {1: 'a', 2: 'b'}
-
-print choice(knowledge)
+print random

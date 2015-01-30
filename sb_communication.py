@@ -34,9 +34,7 @@ class interaction(object):
             self.data[item] = {
                 'count': 0, 'statements': 0, 'knowledge': 0,
                 'gossip': 0, 'brag': 0,
-                'avg positivity': 0, 'avg energy': 0, 
-                'min positivity': 0, 'min energy': 0, 
-                'max positivity': 0, 'max energy': 0}
+                'avg positivity': 0, 'avg energy': 0}
 
     # all comparitors prioritize cycles present first, then rating
     # this way the interactions that had the most correspondance take priority
@@ -86,6 +84,7 @@ class interaction(object):
                 combineAverages(self.data[item]['avg energy'],
                 self.data[item]['count'], transmission.energy, 1)
             
+            '''
             if transmission.positivity > self.data[item]['max positivity']:
                 self.data[item]['max positivity'] = transmission.positivity
             if transmission.positivity < self.data[item]['min positivity']:
@@ -95,6 +94,7 @@ class interaction(object):
                 self.data[item]['max energy'] = transmission.energy
             if transmission.energy < self.data[item]['min energy']:
                 self.data[item]['min energy'] = transmission.energy
+            '''
             
             if transmission.t_type == 'statement':
                 self.data[item]['statements'] +=1
@@ -118,30 +118,30 @@ class interaction(object):
         # COMMUNICATIVE
         communicative_guess = float(self.data['total']['count']) / \
                             (float(cycles_present) * communications_per_cycle)
-        self.trait_guesses['communicative'] = boundsCheck(communicative_guess * 99)
+        self.trait_guesses['communicative'] = boundsCheck(communicative_guess * 100)
                         
         # TALKATIVE
         if self.data['total']['count'] > 0:
             talkative_guess = float(self.data['total']['statements']) / \
-                                float(self.data['total']['count']) * 99
+                                float(self.data['total']['count']) * 100
             self.trait_guesses['talkative'] = boundsCheck(talkative_guess)
             
         # INTELLECTUAL
         if self.data['total']['statements'] > 0:
             intellectual_guess = float(self.data['total']['knowledge']) / \
-                                float(self.data['total']['statements']) * 99
+                                float(self.data['total']['statements']) * 100
             self.trait_guesses['intellectual'] = boundsCheck(intellectual_guess)
             
         # GOSSIPY
         if self.data['total']['statements'] > 0:
             gossipy_guess = float(self.data['total']['gossip']) / \
-                                float(self.data['total']['statements']) * 99
+                                float(self.data['total']['statements']) * 100
             self.trait_guesses['gossipy'] = boundsCheck(gossipy_guess)
             
         # CONFIDENT
         if self.data['total']['statements'] > 0:
             confident_guess = float(self.data['total']['brag']) / \
-                                float(self.data['total']['statements']) * 99
+                                float(self.data['total']['statements']) * 100
             self.trait_guesses['confident'] = boundsCheck(confident_guess)
         
         # POSITIVITY

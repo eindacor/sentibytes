@@ -168,10 +168,12 @@ class sentibyte(object):
                 
             if received.gossip != None:
                 other_ID = received.gossip.other_ID
+                other = self.community.getMember(other_ID)
                 if other_ID not in self.perceptions:
                     self.perceptions[other_ID] = perception(other_ID, self)
                     
-                self.perceptions[other_ID].addInteraction(received.gossip, self, isRumor=True)
+                self.perceptions[other_ID].addInteraction(received.gossip, self, other, isRumor=True)
+                self.community.deactivateMember(other_ID)
                 
             if received.brag != None:
                 pass
@@ -192,7 +194,8 @@ class sentibyte(object):
         target.guessTraits(self.cycles_in_current_session, self.community.communications_per_cycle)
         
         # add to perception
-        self.perceptions[other_ID].addInteraction(target, self)
+        other = self.community.getMember(other_ID)
+        self.perceptions[other_ID].addInteraction(target, self, other)
         
         # add to memory
         if other_ID not in self.memory:
@@ -209,6 +212,7 @@ class sentibyte(object):
     def updateContacts(self):
         num_friends = 12
         
+        # probably a way to make this simpler, not pulling all perceptions
         perception_list = [self.perceptions[p] for p in self.contacts]
     
         perception_list.sort()
@@ -281,9 +285,11 @@ class sentibyte(object):
         # add modifier for positivity
         if len(self.memory) > 0:
             other_ID = choice(self.memory.keys())
+            other = self.community.getMember(other_ID)
             memory_list = self.memory[other_ID]
             memory = choice(memory_list)
-            self.perceptions[other_ID].addInteraction(memory, self, isMemory=True)
+            self.perceptions[other_ID].addInteraction(memory, self, other, isMemory=True)
+            self.community.deactivateMember(other_ID)
     
     def learn(self):
         all_knowledge = (self.accurate_knowledge + self.false_knowledge.keys())
@@ -433,16 +439,15 @@ class sentibyte(object):
     # regard level
     def getRating(self, other_ID):
         if other_ID not in self.perceptions:
-            default_perception = perception('default', self)
-            return default_perception.rating
+            return self['regard']['current']
             
-        return self.perceptions[other_ID].rating
+        return self.perceptions[other_ID].overall_rating.average
 
     # must be separate from "contact" function to filter out potential contact attempts
     # not just for denying invitations, also for determining who to invite
     def wantsToConnect(self, other_ID):
         inverse_tolerance_coefficient = 1.0 - self['tolerance']['coefficient']
-        minimum_rating = 99 * inverse_tolerance_coefficient
+        minimum_rating = 100 * inverse_tolerance_coefficient
         accepted = self.getRating(other_ID) >= minimum_rating
         if not accepted:
             self.rejection_count += 1
@@ -527,7 +532,7 @@ class sentibyte(object):
             for friend_ID in self.friend_list:
                 friend = self.community.getMember(friend_ID)
                 perception = self.perceptions[friend_ID]
-                rating = perception.rating
+                rating = perception.overall_rating.average
                 cycles_observed = perception.cycles_observed
                 broadcasts_observed = perception.broadcasts_observed
                 interaction_count = perception.interaction_count
@@ -538,13 +543,12 @@ class sentibyte(object):
                     (interaction_count, cycles_observed, broadcasts_observed, rumors, memories))
                 
                 for trait in self.d_traits:
-                    perceived_trait = self.perceptions[friend_ID].perceived_traits[trait]
                     actual_trait = friend[trait]['base']
-                    lines.append("\t\t%s: %f (actual: %f, desired: %f)" % \
-                        (trait, perceived_trait, actual_trait, self.d_traits[trait]['base']))
+                    lines.append("\t\t%s: actual = %f, desired = %f, priority = %d" % \
+                        (trait, actual_trait, self.d_traits[trait]['base'], self.desire_priority[trait]))
                     
-                lines.append("\t\tperception offset: %f" % self.perceptions[friend_ID].getAveragePerceivedOffset(friend))
-                lines.append("\t\tdesire offset: %f" % self.perceptions[friend_ID].getAverageDesiredOffset(self))
+                lines.append("\t\tperception offset: %f" % self.perceptions[friend_ID].avg_actual_offset.average)
+                lines.append("\t\tdesire offset: %f" % self.perceptions[friend_ID].avg_desired_offset.average)
                     
                 self.community.deactivateMember(friend_ID)
         
@@ -552,9 +556,9 @@ class sentibyte(object):
         if interaction_count_list:
             lines.append("\taverage entries for connections: %f" % listAverage(interaction_count_list))
             
-        rating_list = [p.rating for p in self.perceptions.values()]
+        rating_list = [p.overall_average.average for p in self.perceptions.values()]
         if rating_list:
-            lines.append("\taverage rating for connections: %f" % listAverage(rating_list))
+            lines.append("\taverage rating for perceptions: %f" % listAverage(rating_list))
         
         return lines
         

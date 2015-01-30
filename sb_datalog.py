@@ -38,7 +38,7 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     most_false_knowledge = 0
     least_false_knowledge = len(the_truth)
     highest_rating = 0
-    lowest_rating = 99
+    lowest_rating = 100
     
     avg_rating = averageContainer()
     avg_rating_friends = averageContainer()
@@ -80,6 +80,7 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     avg_interactions = averageContainer()
     avg_interactions_friends = averageContainer()
     avg_interactions_non_friends = averageContainer()
+    avg_interaction_rating = averageContainer()
     avg_rumors_per_perception = averageContainer()
     avg_memories_per_perception = averageContainer()
     
@@ -108,7 +109,7 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
         avg_learned_from_others.addValue(member.learned_from_others)
         avg_learned_on_own.addValue(member.learned_on_own)
         
-        lowest_other_rating = 99.0
+        lowest_other_rating = 100.0
         best_friend_rating = 0.0
         for other_ID in member.contacts:
             other_rating = member.getRating(other_ID)
@@ -119,13 +120,14 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
                 lowest_rating = other_rating
             if other_rating < lowest_other_rating:
                 lowest_other_rating = other_rating
-            other_interaction_count = member.perceptions[other_ID].interaction_count
-            avg_interactions.addValue(other_interaction_count)
-            other = readSB(other_ID)
             other_perception = member.perceptions[other_ID]
-            other_perceived_offset = other_perception.getAveragePerceivedOffset(other)
+            other_interaction_count = other_perception.avg_interaction_rating.count
+            other_interaction_rating = other_perception.avg_interaction_rating.average
+            avg_interactions.addValue(other_interaction_count)
+            avg_interaction_rating.addValue(other_interaction_rating)
+            other_perceived_offset = other_perception.avg_actual_offset.average
+            other_desired_offset = other_perception.avg_desired_offset.average
             avg_perceived_offset.addValue(other_perceived_offset)
-            other_desired_offset = other_perception.getAverageDesiredOffset(member)
             avg_desired_offset.addValue(other_desired_offset)
             avg_rumors_per_perception.addValue(other_perception.rumors_heard)
             avg_memories_per_perception.addValue(other_perception.memories_counted)
@@ -145,7 +147,7 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
                 avg_interactions_non_friends.addValue(other_interaction_count)
         if best_friend_rating > 1:
             avg_rating_best_friend.addValue(best_friend_rating)
-        if lowest_other_rating < 99.0:
+        if lowest_other_rating < 100.0:
             avg_lowest_rating.addValue(lowest_other_rating)
             
         avg_sociable_procs.addValue(member.sociable_count)
@@ -172,6 +174,7 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     
     stats.append("\tGENERAL INFORMATION")
     stats.append("cycles: %d" % community.current_cycle)
+    stats.append("avg. seconds per cycle: %f" % community.seconds_per_cycle.average)
     stats.append("members: %d" % mem_count)
     stats.append("avg. sessions per community cycle: %s" % community.sessions_per_cycle)
     stats.append("avg. session duration: %s cycles" % community.cycles_per_session)

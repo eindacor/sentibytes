@@ -1,0 +1,26 @@
+bragging system:
+    Currently transmissions with bragged data has no effect on perception.
+    
+popularity/celebrity:
+    Sb's with extremely high/low traits should have increased popularity, and should
+    be discussed more often by others. Other factors should come into play with 
+    celebrities.
+    
+private sessions:
+    Sb initiating a session should determine what that session's max capacity
+    should be. Only highest-rated others should be invited to private sessions.
+    
+arguments/agreements:
+    Intellectual conversations should affect perceptions.
+    
+perception affects:
+    Mechanics should be built to allow perceptions to be adjusted outside of 
+    analyzing perceived traits. Invitations, rejections, arguments, extreme levels
+    in session, and other events should modify perceptions.
+    
+perception changes:
+    Perceived traits should be made into averageContainer objects.
+    
+relationships:
+    Add more tiers to relationships other than friends. Acquaintences, best
+    friends, etc.
