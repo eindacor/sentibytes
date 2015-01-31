@@ -24,3 +24,7 @@ perception changes:
 relationships:
     Add more tiers to relationships other than friends. Acquaintences, best
     friends, etc.
+    
+change sb cycles so entire cycle takes place in sb wrapper, not in session cycle
+
+revise bond system, make sure bonds increment every cycle, not just alone cycles

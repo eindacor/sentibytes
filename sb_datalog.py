@@ -80,6 +80,11 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     avg_interaction_rating = averageContainer()
     avg_rumors_per_perception = averageContainer()
     avg_memories_per_perception = averageContainer()
+    avg_children = averageContainer()
+    avg_family_size = averageContainer()
+    avg_bonds_denied = averageContainer()
+    avg_bonds_postponed = averageContainer()
+    avg_bonds_found = averageContainer()
     
     mem_count = float(len(community.members))
     for member_ID in community.members:
@@ -143,6 +148,8 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
         if lowest_other_rating < 100.0:
             avg_lowest_rating.addValue(lowest_other_rating)
             
+        avg_children.addValue(len(member.children))
+        avg_family_size.addValue(len(member.family))
         avg_sociable_procs.addValue(member.sociable_count)
         avg_inv_to_strangers.addValue(member.invitations_to_strangers)
         avg_inv_to_contacts.addValue(member.invitations_to_contacts)
@@ -162,13 +169,17 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
         avg_successful_connection_attempts.addValue(member.successful_connection_attempts)
         avg_cycles_in_session.addValue(member.cycles_in_session)
         avg_cycles_alone.addValue(member.cycles_alone)
-    
+        avg_bonds_denied.addValue(member.bonds_denied)
+        avg_bonds_found.addValue(member.bonds_confirmed)
+        avg_bonds_postponed.addValue(member.bonds_postponed)
+        
     stats = list()
     
     stats.append("\tGENERAL INFORMATION")
     stats.append("cycles: %d" % community.current_cycle)
     stats.append("avg. seconds per cycle: %f" % community.seconds_per_cycle.average)
     stats.append("members: %d" % mem_count)
+    stats.append("children created: %d" % community.children_born)
     stats.append("avg. sessions per community cycle: %s" % community.sessions_per_cycle)
     stats.append("avg. session duration: %s cycles" % community.cycles_per_session)
     stats.append("avg. members in session per cycle: %s" % community.members_in_session)
@@ -178,10 +189,6 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     stats.append("most concurrent sessions active: %d" % community.most_concurrent_sessions)
     stats.append("longest running session: %d cycles" % community.oldest_session)
     stats.append("most active members at one time: %d" % community.most_members_active)
-    
-    avg_cycles_counted = int(avg_cycles_alone) + int(avg_cycles_in_session)
-    if community.current_cycle - avg_cycles_counted > 2:
-        print "sumtotal of counted cycles does not equal total cycles"
     
     stats.append("\n\tKNOWLEDGE")
     stats.append("available knowledge: %s" % len(the_truth))
@@ -203,6 +210,11 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     stats.append("avg. cycles alone: %s" % avg_cycles_alone)
     stats.append("avg. cycles in session: %s" % avg_cycles_in_session)
     stats.append("avg. sociable proc count: %s" % avg_sociable_procs)
+    stats.append("avg. number of children: %s" % avg_children)
+    stats.append("avg. family size: %s" % avg_family_size)
+    stats.append("avg. bonds denied: %s" % avg_bonds_denied)
+    stats.append("avg. bonds postponed: %s" % avg_bonds_postponed)
+    stats.append("avg. bonds confirmed: %s" % avg_bonds_found)
     
     stats.append("\n\tSOCIAL INTERACTION")
     stats.append("avg. failed connection attempts: %s" % avg_failed_connection_attempts)

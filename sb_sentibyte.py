@@ -1,4 +1,4 @@
-from random import randrange, randint, choice, uniform, shuffle
+from random import randint, choice, shuffle, random
 from jep_loot.jeploot import catRoll
 from sb_utilities import getCoefficient, calcInfluence, calcAccuracy, \
     boundsCheck, valueState, randomIndex, listAverage
@@ -9,7 +9,7 @@ from heapq import heappush, heappop
 from sb_communication import transmission, interaction
             
 class sentibyte(object):
-    def __init__(self, name, the_truth, traits):
+    def __init__(self, name, traits):
         self.user_ID = name
         self.name = randint(0, 1000000)
         self.location = randint(0, 10)
@@ -20,11 +20,15 @@ class sentibyte(object):
         self.perceptions = {}
         self.current_session_ID = None
         self.current_session = None
+        self.bond_ID = None
+        self.family = list()
+        self.children = list()
         
         self.community = None
         self.current_interactions = {}
         self.friend_list = list()
         self.contacts = list()
+        self.bonds = {}
         self.accurate_knowledge = list()
         self.false_knowledge = {}
         
@@ -51,10 +55,13 @@ class sentibyte(object):
         self.cycles_alone = 0
         self.cycles_in_session = 0
         self.cycles_in_current_session = 0
+        self.bonds_denied = 0
+        self.bonds_postponed = 0
+        self.bonds_confirmed = 0
         
         # cooldowns prevent cycles spent in session and along at the same time,
         # and restricts when sb's are allowed to be social
-        self.social_cooldown = 0
+        self.social_cooldown = 20
         
         # personal characteristics
         self.p_traits = traits[0]
@@ -172,6 +179,7 @@ class sentibyte(object):
                     self.perceptions[other_ID] = perception(other_ID, self)
                     
                 self.perceptions[other_ID].addInteraction(received.gossip, self, isRumor=True)
+                self.updateContacts()
                 
             if received.brag != None:
                 pass
@@ -184,8 +192,8 @@ class sentibyte(object):
             self.contacts.append(other_ID)
             
         toAdd = interaction(str(self), other_ID)
-        
         self.current_interactions[other_ID] = toAdd
+        self.updateContacts()
      
     def endInteraction(self, other_ID):
         target = self.current_interactions[other_ID]
@@ -193,6 +201,7 @@ class sentibyte(object):
         
         # add to perception
         self.perceptions[other_ID].addInteraction(target, self)
+        self.updateContacts()
         
         # add to memory
         if other_ID not in self.memory:
@@ -210,17 +219,28 @@ class sentibyte(object):
         num_friends = 12
         
         # probably a way to make this simpler, not pulling all perceptions
-        perception_list = [self.perceptions[p] for p in self.contacts]
+        perception_list = [self.perceptions[p] for p in self.contacts if p not in self.family]
     
         perception_list.sort()
-        self.contacts = [p.other_ID for p in perception_list]
+        #self.contacts = [p.other_ID for p in perception_list]
 
         list_length = len(perception_list)
         if len(perception_list) > num_friends:
             perception_list = perception_list[(list_length - num_friends):]
             
         self.friend_list = [p.other_ID for p in perception_list]
-    
+        
+        bond_list = [other_ID for other_ID in self.contacts if other_ID not in self.family]
+        bond_list = [other_ID for other_ID in bond_list if self.getRating(other_ID) > self['selective']['current']]
+        
+        for other_ID in bond_list:
+            if other_ID not in self.bonds:
+                self.bonds[other_ID] = 0
+        
+        omitted = [other_ID for other_ID in self.bonds if other_ID not in bond_list]
+        for other_ID in omitted:
+            self.bonds.pop(other_ID, None)
+                
     def getStrangers(self):
         stranger_list = [other_ID for other_ID in self.community.members 
                         if other_ID != self.sentibyte_ID and other_ID not in self.memory]
@@ -285,6 +305,7 @@ class sentibyte(object):
             memory_list = self.memory[other_ID]
             memory = choice(memory_list)
             self.perceptions[other_ID].addInteraction(memory, self, isMemory=True)
+            self.updateContacts()
     
     def learn(self):
         all_knowledge = (self.accurate_knowledge + self.false_knowledge.keys())
@@ -323,26 +344,78 @@ class sentibyte(object):
             
         for trait in self.i_traits:
             self.i_traits[trait].fluctuate()
+            
+    def wantsToBond(self, other_ID):
+        if other_ID not in self.bonds:
+            return 'no'
+            
+        if other_ID in self.bonds and self.bonds[other_ID] < 50:
+            return 'not now'
+            
+        elif other_ID in self.bonds and self.bonds[other_ID] >= 50:
+            return 'yes'
       
+    def proposeBond(self, other_ID):
+        other = self.community.getMember(other_ID)
+        other_response = other.wantsToBond(str(self))
+        child_made = False
+        if other_response == 'no':
+            self.bonds_denied += 1
+            #possibly change rating effect
+            self.perceptions[other_ID].addInstance(-10)
+            self.updateContacts()
+        elif other_response == 'not now':
+            self.perceptions[other_ID].addInstance(10)
+            self.updateContacts()
+            self.bonds_postponed += 1
+        elif other_response == 'yes':
+            self.perceptions[other_ID].addInstance(10)
+            self.updateContacts()
+            self.bonds_confirmed += 1
+            if other.proc('concupiscent'):
+                self.community.addMember(createChild(self, other))
+                self.community.children_born += 1
+                child_made = True
+                
+        self.community.deactivateMember(other_ID)
+        return child_made
+     
     def aloneCycle(self):
         self.cycles_alone += 1
         if str(self) not in self.community.recently_left_session:
             if self.proc('volatility'):
                 self.fluctuateTraits()
                 
-            elif self.proc('intellectual'):
+            if self.proc('intellectual'):
                 self.learn()
     
             if self.proc('reflective'):
-                self.reflect()			
+                self.reflect()		
+            
+            for other_ID in self.bonds:
+                self.bonds[other_ID] += 1
+            
+            if len(self.children) < 3 and self.proc('concupiscent'):
+                potential_bonds = [other_ID for other_ID in self.bonds if self.wantsToBond(other_ID) == 'yes']
+                if len(potential_bonds) == 0:
+                    return
+                
+                shuffle(potential_bonds)
+                for other_ID in potential_bonds:
+                    if self.proposeBond(other_ID):
+                        return
                 
     def invitationCycle(self):
-        if self.proc('sociable'):
-            self.sociable_count += 1
-            if self.sendInvitation():
-                self.successful_connection_attempts += 1
-            else:
-                self.failed_connection_attempts += 1
+        if self.social_cooldown == 0:
+            if self.proc('sociable'):
+                self.sociable_count += 1
+                if self.sendInvitation():
+                    self.successful_connection_attempts += 1
+                else:
+                    self.failed_connection_attempts += 1
+                    
+        else:
+            self.social_cooldown -= 1
     
     # Seeks other sentibytes for communication, returns true if a connection is 
     # made, false if not
@@ -566,7 +639,7 @@ def loadPremadeSBs(the_truth):
     for file_name in files_present:
         full_path = getPath() + '/sb_files/' + file_name
         traits = traitsFromFile(full_path)
-        premade_sentibytes.append(sentibyte(file_name, the_truth, traits))
+        premade_sentibytes.append(sentibyte(file_name, traits))
         
     for sb in premade_sentibytes:
         writeSB(sb)
@@ -585,7 +658,7 @@ def createRandomSBs(quantity, the_truth):
         if i % (4946 / quantity) == 0:
             name = line.replace('\n', '')
             traits = traitsFromConfig(config_file)
-            random_sentibytes.append(sentibyte(name, the_truth, traits))
+            random_sentibytes.append(sentibyte(name, traits))
             member_counter += 1
             
         if member_counter == quantity:
@@ -597,5 +670,65 @@ def createRandomSBs(quantity, the_truth):
         writeSB(sb)
     
     return [str(sb) for sb in random_sentibytes]
+
+def mergeTraits(sb1_traits, sb2_traits):
+    new_traits = {}
+    for trait in sb1_traits:
+        if random() < .5:
+            parent_traits = sb1_traits
+        else:
+            parent_traits = sb2_traits
+        
+        parent_lower = 0.0
+        parent_base = 50.0
+        parent_upper = 100.0
+        
+        valid_range = False   
+        while not valid_range:
+            parent_lower = calcAccuracy(parent_traits[trait]['lower'], 1.0, 5)
+            parent_base = calcAccuracy(parent_traits[trait]['base'], 1.0, 5)
+            parent_upper = calcAccuracy(parent_traits[trait]['upper'], 1.0, 5)
+            
+            valid_range = parent_lower < parent_base and parent_base < parent_upper
+            
+        temp_vs = parent_traits[trait].duplicate()
+        temp_vs.params['lower'] = parent_lower
+        temp_vs.params['base'] = parent_base
+        temp_vs.params['current'] = parent_base
+        temp_vs.params['upper'] = parent_upper
+        temp_vs.update()
+    
+        new_traits[trait] = temp_vs
+        
+    return new_traits
+    
+def createChild(sb1, sb2):
+    p_traits = mergeTraits(sb1.p_traits, sb2.p_traits)
+    i_traits = mergeTraits(sb1.i_traits, sb2.i_traits)
+    d_traits = mergeTraits(sb1.d_traits, sb2.d_traits)
+    traits = [p_traits, i_traits, d_traits]
+    
+    name = ''
+    namefile = open(getPath() + '/names.txt')
+    index = randint(0, 4946)
+    for i, line in enumerate(namefile):
+        if i % index == 0 and i != 0:
+            name = line.replace('\n', '')
+            break
+    
+    sentibaby = sentibyte(name, traits)
+    sentibaby.family = sb1.family + sb2.family
+    sb1.family.append(str(sentibaby))
+    sb1.children.append(str(sentibaby))
+    sb2.family.append(str(sentibaby))
+    sb2.children.append(str(sentibaby))
+    sentibaby.family.append(str(sb1))
+    sentibaby.family.append(str(sb2))
+    writeSB(sentibaby)
+    
+    print "a sentibaby, %s, is born to %s and %s" % (sentibaby, sb1, sb2)
+    return sentibaby.sentibyte_ID
+
+        
         
             

@@ -107,11 +107,9 @@ class valueState(object):
         
     def duplicate(self):
         new_vs = valueState()
-        
         new_vs.params = self.params.copy()
         new_vs.fluct_c = self.fluct_c
         new_vs.sensitivity = self.sensitivity
-
         return new_vs
         
     def update(self):

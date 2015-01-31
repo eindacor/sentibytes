@@ -1,8 +1,15 @@
-from random import choice
+mate = None
 
-random = {1: 'a'}
+if mate:
+    print 'set'
+    
+else:
+    print 'not set'
+    
+mate = 'set'
 
-if random:
-    print "works"
-
-print random
+if mate:
+    print 'set'
+    
+else:
+    print 'not set'

@@ -319,6 +319,7 @@ class community(object):
         self.recently_left_session = list()
         self.session_sb_list = {}
         self.communications_per_cycle = 20
+        self.children_born = 0
         
         self.seconds_per_cycle = averageContainer()
         

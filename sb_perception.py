@@ -41,7 +41,8 @@ class perception(object):
     def __ge__(self, other):
         return self.overall_rating.average >= other.overall_rating.average
         
-    def addInstance(self, rating):
+    def addInstance(self, weight):
+        rating = boundsCheck(self.overall_rating.average + weight)
         self.avg_instance_rating.addValue(rating)
         self.overall_rating.addValue(rating)
             
