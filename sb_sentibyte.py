@@ -237,7 +237,9 @@ class sentibyte(object):
             bond_list = [other_ID for other_ID in self.contacts if other_ID not in self.family]
             bond_list = [other_ID for other_ID in bond_list if other_ID not in self.community.children]
             bond_list = [other_ID for other_ID in bond_list if other_ID not in self.community.max_children]
-            bond_list = [other_ID for other_ID in bond_list if self.getRating(other_ID) > self['selective']['current']]
+            age_factor = 1.0 - (self.death_coefficient * self.age * 100)
+            bond_threshold = age_factor * self['selective']['current']
+            bond_list = [other_ID for other_ID in bond_list if self.getRating(other_ID) > bond_threshold]
             
             for other_ID in bond_list:
                 if other_ID not in self.bonds:
@@ -391,6 +393,7 @@ class sentibyte(object):
                     other.community.max_children.append(other_ID)
                 self.community.children_born += 1
                 child_made = True
+        else: raise
                 
         self.community.deactivateMember(other_ID)
         return child_made
@@ -408,12 +411,12 @@ class sentibyte(object):
         for other_ID in self.contacts:
             if other_ID not in self.community.members:
                 self.contacts.remove(other_ID)
-            if other_ID in self.children:
-                self.children.remove(other_ID)
-            if other_ID in self.family:
-                self.family.remove(other_ID)
-            if other_ID in self.bonds:
-                self.bonds.pop(other_ID, None)
+                if other_ID in self.children:
+                    self.children.remove(other_ID)
+                if other_ID in self.family:
+                    self.family.remove(other_ID)
+                if other_ID in self.bonds:
+                    self.bonds.pop(other_ID, None)
         
         self.age += 1
         if self.current_session:

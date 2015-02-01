@@ -281,7 +281,7 @@ class community(object):
         self.session_sb_list = {}
         self.communications_per_cycle = 20
         self.children_born = 0
-        self.child_age = 50
+        self.child_age = 20
         self.child_limit = 3
         
         self.seconds_per_cycle = averageContainer()
