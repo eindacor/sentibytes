@@ -800,6 +800,7 @@ def createChild(sb1, sb2):
     sb2.children.append(str(sentibaby))
     sentibaby.family.append(str(sb1))
     sentibaby.family.append(str(sb2))
+    writeSB(sentibaby)
     
     print "a sentibaby, %s, is born to %s and %s" % (sentibaby, sb1, sb2)
     return sentibaby.sentibyte_ID

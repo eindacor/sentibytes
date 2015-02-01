@@ -415,8 +415,9 @@ class community(object):
             member.aloneCycle()
             self.deactivateMember(member_ID)
         
-        members_inviting = [ID for ID in self.members if self.getAvailability(ID) == 'in open session' \
-                            or self.getAvailability(ID) == 'alone']   
+        members_inviting = [ID for ID in self.members if (self.getAvailability(ID) == 'in open session' \
+                            or self.getAvailability(ID) == 'alone') and ID not in self.children]
+                            
         for member_ID in members_inviting:
             member = self.getMember(member_ID) 
             member.invitationCycle()
