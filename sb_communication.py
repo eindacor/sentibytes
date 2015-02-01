@@ -161,6 +161,7 @@ class session(object):
         self.new_members = list()
         self.community = community
         self.session_active = False
+        self.leaving_list = list()
         
     def __eq__(self, other):
         if other == None:
@@ -197,7 +198,6 @@ class session(object):
             if not self.session_active:
                 self.community.deactivateMember(participant_ID)
             
-        self.community.logEntry("%s entering session %d" % (entering, self.session_ID))
         self.participants.append(entering_ID)
         self.new_members.append(entering_ID)
         self.community.session_sb_list[entering_ID] = self.session_ID
@@ -217,83 +217,40 @@ class session(object):
             leaving.endInteraction(participant_ID)
             participant.endInteraction(leaving_ID)
     
-        self.community.logEntry("%s leaving session %d" % (leaving, self.session_ID))
         del self.community.session_sb_list[leaving_ID]
         self.community.recently_left_session.append(leaving_ID)
         leaving.leaveSession()
         self.participants.remove(leaving_ID)
-        
-    # Cycles through each participant, collecting broadcasts they might make
-    # recieves transmission_list from cycle()
-    def transmissionPhase(self, transmission_list):
-        for participant_ID in self.participants:
-            participant = self.community.getMember(participant_ID)
+    
+    def distributeTransmissions(self, source_ID, transmission_list):
+        audience = self.getAllOthers(source_ID)
+        for other_ID in audience:
+            other = self.community.getMember(other_ID)
+            for transmission in transmission_list:
+                other.interpretTransmission(transmission)
+    
+    def sessionCleanup(self):
+        for other_ID in self.leaving_list:
+            if other_ID in self.participants:
+                self.removeParticipant(other_ID)
             
-            if participant.proc('communicative'):
-                available_targets = self.getAllOthers(participant_ID)
-                if len(available_targets) > 0:
-                    transmission_generated = participant.broadcast(available_targets)
-                    transmission_list.append(transmission_generated)
-                    
-        
-    # Cycles through each participant, allowing each to interpret transmissions
-    # that were sent by others
-    def interpretPhase(self, transmission_list):
-        for participant_ID in self.participants:
-            participant = self.community.getMember(participant_ID)
-            for item in transmission_list:
-                if participant_ID != item.source_ID:
-                    participant.interpretTransmission(item)
-                    
-    def leavePhase(self):
-        if self.current_cycle > 1:
-            leaving = list()
-            for participant_ID in self.participants:
-                participant = self.community.getMember(participant_ID)
-                if not participant.proc('stamina'):
-                    leaving.append(participant_ID)
-                
-            for participant_ID in leaving:
-                self.removeParticipant(participant_ID)
-                    
-            if len(self.participants) == 1:
-                self.removeParticipant(self.participants[0])
-                
-            if len(self.participants) == 0:
-                self.endPhase()
-                
-    # Placeholder function for any overhead work that might be involved in 
-    # ending a session
-    def endPhase(self):
-        self.session_open = False
+        if len(self.participants) < 2:
+            for other_ID in self.participants:
+                self.removeParticipant(other_ID)
+            self.session_open = False
+            
+        self.new_members = list()
+        self.leaving_list = list()
+        self.community.saveAndClearActiveMembers()
                 
     def cycle(self):
         self.current_cycle += 1
-        for member_ID in self.participants:
-            member = self.community.getMember(member_ID)
-            if member.current_session == None:
-                print "current_session not instantiated"
-                print "member.session_ID: %d" % member.current_session_ID
-                raise
-            self.community.logEntry("%s in session %d" % (member, self.session_ID))
-            member.cycles_in_session += 1
-            member.cycles_in_current_session += 1
         
-        for i in range(self.community.communications_per_cycle):
-            transmission_list = list()
-            self.transmissionPhase(transmission_list)
-            self.interpretPhase(transmission_list)
+        for sb_ID in self.participants:
+            sb = self.community.getMember(sb_ID)
+            sb.sessionCycle()
             
-        for member_ID in self.participants:
-            member = self.community.getMember(member_ID)
-            if member.proc('volatility'):
-                member.fluctuateTraits()
-        
-        if len(self.new_members) == 0:
-            self.leavePhase()
-        self.new_members = list()
-        
-        self.community.saveAndClearActiveMembers()
+        self.sessionCleanup()
         
 class community(object):
     def __init__(self, keep_members_active=False):
@@ -302,6 +259,8 @@ class community(object):
         self.current_cycle = 0
         
         self.members = list()
+        self.children = list()
+        self.max_children = list()
         self.sessions = list()
         self.status_log = list()
         
@@ -315,11 +274,15 @@ class community(object):
         self.cycles_per_session = averageContainer()
         self.members_in_session = averageContainer()
         self.members_per_session = averageContainer()
+        self.avg_age_of_death = averageContainer()
+        self.deceased_members = 0
         
         self.recently_left_session = list()
         self.session_sb_list = {}
         self.communications_per_cycle = 20
         self.children_born = 0
+        self.child_age = 50
+        self.child_limit = 3
         
         self.seconds_per_cycle = averageContainer()
         
@@ -330,11 +293,30 @@ class community(object):
         # when True, members stay in memory instead of relying on file access
         self.keep_members_active = keep_members_active
         
+    def removeMember(self, other_ID):
+        other = self.getMember(other_ID)
+        self.avg_age_of_death.addValue(other.age)
+        if other_ID in self.session_sb_list:
+            # add trauma for all other members in session
+            session = self.getSession(other.current_session_ID)
+            already_active = session.session_active
+            session.session_active = True
+            session.removeParticipant(other_ID)
+            session.sessionCleanup()
+            session.session_active = already_active
+            
+        self.deactivateMember(other_ID)
+            
+        if other_ID in self.children:
+            self.children.remove(other_ID)
+        if other_ID in self.max_children:
+            self.max_children.remove(other_ID)
+        self.members.remove(other_ID)
+        self.deceased_members += 1
+        
     def addMember(self, new_ID):
         self.members.append(new_ID)
-        
-    def logEntry(self, line):
-        self.status_log.append(line)
+        self.children.append(new_ID)
         
     def getSession(self, session_ID):
         # porobably an easier way to do this
@@ -408,11 +390,9 @@ class community(object):
     
     def cycle(self):
         cycle_start = datetime.now()
-        self.status_log = list()
-        self.logEntry("---- cycle %d ----" % self.current_cycle)
-        self.logEntry("sessions: %s" % [ID.session_ID for ID in self.sessions])
         self.members_in_session.addValue(len(self.session_sb_list))
         self.sessions_per_cycle.addValue(len(self.sessions))
+        
         for session in self.sessions:
             session.session_active = True
             self.members_per_session.addValue(len(session.participants))
@@ -430,12 +410,8 @@ class community(object):
             self.sessions.remove(session)
         
         members_alone = [ID for ID in self.members if self.getAvailability(ID) == 'alone']
-        self.logEntry("members alone: %d" % len(members_alone))
-        self.logEntry("members recently left session: %d" % len(self.recently_left_session))
-        self.logEntry("members in session: %d" % len(self.session_sb_list))
         for member_ID in members_alone:
             member = self.getMember(member_ID) 
-            self.logEntry("%s is alone" % member_ID)
             member.aloneCycle()
             self.deactivateMember(member_ID)
         

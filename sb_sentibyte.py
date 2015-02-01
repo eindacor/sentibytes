@@ -13,6 +13,7 @@ class sentibyte(object):
         self.user_ID = name
         self.name = randint(0, 1000000)
         self.location = randint(0, 10)
+        self.age = 0
         
         self.sentibyte_ID = str(self.user_ID) + '.' + str(self.name)
         
@@ -58,6 +59,7 @@ class sentibyte(object):
         self.bonds_denied = 0
         self.bonds_postponed = 0
         self.bonds_confirmed = 0
+        self.death_coefficient = .00001
         
         # cooldowns prevent cycles spent in session and along at the same time,
         # and restricts when sb's are allowed to be social
@@ -197,20 +199,21 @@ class sentibyte(object):
      
     def endInteraction(self, other_ID):
         target = self.current_interactions[other_ID]
-        target.guessTraits(self.cycles_in_current_session, self.community.communications_per_cycle)
-        
-        # add to perception
-        self.perceptions[other_ID].addInteraction(target, self)
-        self.updateContacts()
-        
-        # add to memory
-        if other_ID not in self.memory:
-            self.memory[other_ID] = list()
+        if self.cycles_in_current_session > 0:
+            target.guessTraits(self.cycles_in_current_session, self.community.communications_per_cycle)
             
-        heappush(self.memory[other_ID], self.current_interactions[other_ID])
+            # add to perception
+            self.perceptions[other_ID].addInteraction(target, self)
+            self.updateContacts()
         
-        if len(self.memory[other_ID]) > 8:
-            heappop(self.memory[other_ID])
+            # add to memory
+            if other_ID not in self.memory:
+                self.memory[other_ID] = list()
+            
+            heappush(self.memory[other_ID], self.current_interactions[other_ID])
+        
+            if len(self.memory[other_ID]) > 8:
+                heappop(self.memory[other_ID])
         
         # remove from interactions
         self.current_interactions.pop(other_ID, None)
@@ -230,20 +233,25 @@ class sentibyte(object):
             
         self.friend_list = [p.other_ID for p in perception_list]
         
-        bond_list = [other_ID for other_ID in self.contacts if other_ID not in self.family]
-        bond_list = [other_ID for other_ID in bond_list if self.getRating(other_ID) > self['selective']['current']]
-        
-        for other_ID in bond_list:
-            if other_ID not in self.bonds:
-                self.bonds[other_ID] = 0
-        
-        omitted = [other_ID for other_ID in self.bonds if other_ID not in bond_list]
-        for other_ID in omitted:
-            self.bonds.pop(other_ID, None)
+        if self.age >= self.community.child_age:
+            bond_list = [other_ID for other_ID in self.contacts if other_ID not in self.family]
+            bond_list = [other_ID for other_ID in bond_list if other_ID not in self.community.children]
+            bond_list = [other_ID for other_ID in bond_list if other_ID not in self.community.max_children]
+            bond_list = [other_ID for other_ID in bond_list if self.getRating(other_ID) > self['selective']['current']]
+            
+            for other_ID in bond_list:
+                if other_ID not in self.bonds:
+                    self.bonds[other_ID] = 0
+            
+            omitted = [other_ID for other_ID in self.bonds if other_ID not in bond_list]
+            for other_ID in omitted:
+                self.bonds.pop(other_ID, None)
                 
     def getStrangers(self):
-        stranger_list = [other_ID for other_ID in self.community.members 
-                        if other_ID != self.sentibyte_ID and other_ID not in self.memory]
+        stranger_list = [other_ID for other_ID in self.community.members if 
+                            other_ID != str(self) and 
+                            other_ID not in self.memory and
+                            other_ID not in self.community.children]
               
         return stranger_list
         
@@ -302,6 +310,9 @@ class sentibyte(object):
         # add modifier for positivity
         if len(self.memory) > 0:
             other_ID = choice(self.memory.keys())
+            if other_ID not in self.community.members:
+                # add negative effect for mourning
+                pass
             memory_list = self.memory[other_ID]
             memory = choice(memory_list)
             self.perceptions[other_ID].addInteraction(memory, self, isMemory=True)
@@ -349,7 +360,7 @@ class sentibyte(object):
         if other_ID not in self.bonds:
             return 'no'
             
-        if other_ID in self.bonds and self.bonds[other_ID] < 50:
+        if other_ID in self.bonds and (self.bonds[other_ID] < 50 or self.current_session):
             return 'not now'
             
         elif other_ID in self.bonds and self.bonds[other_ID] >= 50:
@@ -374,14 +385,74 @@ class sentibyte(object):
             self.bonds_confirmed += 1
             if other.proc('concupiscent'):
                 self.community.addMember(createChild(self, other))
+                if len(self.children) >= self.community.child_limit:
+                    self.community.max_children.append(str(self))
+                if len(other.children) >= self.community.child_limit:
+                    other.community.max_children.append(other_ID)
                 self.community.children_born += 1
                 child_made = True
                 
         self.community.deactivateMember(other_ID)
         return child_made
+    
+    def checkHealth(self):
+        if random() < self.death_coefficient * self.age:
+            self.community.removeMember(str(self))
+            return False
+            
+        else:
+            return True
+    
+    def updateCounts(self):
+        # add emotional effects for deaceased friends/family
+        for other_ID in self.contacts:
+            if other_ID not in self.community.members:
+                self.contacts.remove(other_ID)
+            if other_ID in self.children:
+                self.children.remove(other_ID)
+            if other_ID in self.family:
+                self.family.remove(other_ID)
+            if other_ID in self.bonds:
+                self.bonds.pop(other_ID, None)
+        
+        self.age += 1
+        if self.current_session:
+            self.cycles_in_session += 1
+            self.cycles_in_current_session += 1
+            
+        else:
+            self.cycles_alone += 1
+            
+        if self.age == self.community.child_age:
+            self.community.children.remove(str(self))
+    
+    def sessionCycle(self):
+        session = self.current_session
+        # increment counts
+        self.updateCounts()
+        # submit transmissions
+        available_targets = session.getAllOthers(str(self))
+        transmission_list = list()
+        for i in range(self.community.communications_per_cycle):
+            if self.proc('communicative'):
+                transmission_list.append(self.broadcast(available_targets))
+                
+        session.distributeTransmissions(str(self), transmission_list)        
+        # fluctuate traits
+        if self.proc('volatility'):
+            self.fluctuateTraits()
+        # proc stamina/leave
+        if len(session.new_members) == 0:
+            if not self.proc('stamina'):
+                session.leaving_list.append(str(self))
+                
+        if not self.checkHealth():
+            return
      
     def aloneCycle(self):
-        self.cycles_alone += 1
+        if not self.checkHealth():
+            return
+        self.updateCounts()
         if str(self) not in self.community.recently_left_session:
             if self.proc('volatility'):
                 self.fluctuateTraits()
@@ -395,15 +466,16 @@ class sentibyte(object):
             for other_ID in self.bonds:
                 self.bonds[other_ID] += 1
             
-            if len(self.children) < 3 and self.proc('concupiscent'):
-                potential_bonds = [other_ID for other_ID in self.bonds if self.wantsToBond(other_ID) == 'yes']
-                if len(potential_bonds) == 0:
-                    return
-                
-                shuffle(potential_bonds)
-                for other_ID in potential_bonds:
-                    if self.proposeBond(other_ID):
+            if str(self) not in self.community.max_children and str(self) not in self.community.children:
+                if self.proc('concupiscent'):
+                    potential_bonds = [other_ID for other_ID in self.bonds if self.wantsToBond(other_ID) == 'yes']
+                    if len(potential_bonds) == 0:
                         return
+                    
+                    shuffle(potential_bonds)
+                    for other_ID in potential_bonds:
+                        if self.proposeBond(other_ID):
+                            return
                 
     def invitationCycle(self):
         if self.social_cooldown == 0:
@@ -561,6 +633,7 @@ class sentibyte(object):
         lines = list()
         lines.append("unique ID: %s" % self.sentibyte_ID)
         lines.append("name: %s" % self.name)
+        lines.append("age: %d" % self.age)
         lines.append("accurate knowledge: %d" % len(self.accurate_knowledge))
         lines.append("false knowledge: %d" % len(self.false_knowledge))
         lines.append("learned from others: %d" % self.learned_from_others)
@@ -623,7 +696,7 @@ class sentibyte(object):
         if interaction_count_list:
             lines.append("\taverage entries for connections: %f" % listAverage(interaction_count_list))
             
-        rating_list = [p.overall_average.average for p in self.perceptions.values()]
+        rating_list = [p.overall_rating.average for p in self.perceptions.values()]
         if rating_list:
             lines.append("\taverage rating for perceptions: %f" % listAverage(rating_list))
         
@@ -724,7 +797,6 @@ def createChild(sb1, sb2):
     sb2.children.append(str(sentibaby))
     sentibaby.family.append(str(sb1))
     sentibaby.family.append(str(sb2))
-    writeSB(sentibaby)
     
     print "a sentibaby, %s, is born to %s and %s" % (sentibaby, sb1, sb2)
     return sentibaby.sentibyte_ID

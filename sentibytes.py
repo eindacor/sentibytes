@@ -60,17 +60,7 @@ time_string = currentTimeString()
 script_location = path.dirname(path.abspath('__file__'))
 sb_data = script_location + '/sb_datalog/' + time_string + "_sb_data.txt"
 sb_summary = script_location + '/sb_datalog/' + time_string + "_summary.txt"
-sb_status = script_location + '/sb_datalog/' + time_string + "_status_log.txt"
 config_file = script_location + '/traits_config.txt'
-
-status_log_lines = list()
-
-if cycles > 20 or population_count > 20:
-    status_tracking = False
-
-else:
-    status_tracking = True
-    updateStatusLog(sb_status, status_log_lines, True)
     
 try:
     for i in range(cycles):
@@ -79,10 +69,10 @@ try:
             print "......updating summary"
             updateSummary(test_community, config_file, sb_summary, the_truth)
 
-        status_lines = test_community.cycle()
-
-        if status_tracking:
-            updateStatusLog(sb_status, status_lines, False)
+        test_community.cycle()
+        
+        if len(test_community.members) == 0:
+            break
      
     print "......updating summary"   
     updateSummary(test_community, config_file, sb_summary, the_truth)

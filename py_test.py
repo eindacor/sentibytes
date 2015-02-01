@@ -1,15 +1,5 @@
-mate = None
 
-if mate:
-    print 'set'
-    
-else:
-    print 'not set'
-    
-mate = 'set'
 
-if mate:
-    print 'set'
-    
-else:
-    print 'not set'
+random = [1,2,3,4,5]
+
+random.remove(6)

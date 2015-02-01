@@ -39,6 +39,7 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     least_false_knowledge = len(the_truth)
     highest_rating = 0
     lowest_rating = 100
+    oldest_sb = 0
     
     avg_rating = averageContainer()
     avg_rating_friends = averageContainer()
@@ -85,6 +86,8 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     avg_bonds_denied = averageContainer()
     avg_bonds_postponed = averageContainer()
     avg_bonds_found = averageContainer()
+    avg_bonds = averageContainer()
+    avg_age = averageContainer()
     
     mem_count = float(len(community.members))
     for member_ID in community.members:
@@ -102,6 +105,8 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
             most_false_knowledge = len(member.false_knowledge)
         if len(member.false_knowledge) < least_false_knowledge:
             least_false_knowledge = len(member.false_knowledge)
+        if member.age > oldest_sb:
+            oldest_sb = member.age
             
         avg_knowledge.addValue(member_total_knowledge)
         avg_accurate_knowledge.addValue(len(member.accurate_knowledge))
@@ -172,6 +177,8 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
         avg_bonds_denied.addValue(member.bonds_denied)
         avg_bonds_found.addValue(member.bonds_confirmed)
         avg_bonds_postponed.addValue(member.bonds_postponed)
+        avg_bonds.addValue(len(member.bonds))
+        avg_age.addValue(member.age)
         
     stats = list()
     
@@ -180,6 +187,7 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     stats.append("avg. seconds per cycle: %f" % community.seconds_per_cycle.average)
     stats.append("members: %d" % mem_count)
     stats.append("children created: %d" % community.children_born)
+    stats.append("members deceased: %d" % community.deceased_members)
     stats.append("avg. sessions per community cycle: %s" % community.sessions_per_cycle)
     stats.append("avg. session duration: %s cycles" % community.cycles_per_session)
     stats.append("avg. members in session per cycle: %s" % community.members_in_session)
@@ -189,6 +197,9 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     stats.append("most concurrent sessions active: %d" % community.most_concurrent_sessions)
     stats.append("longest running session: %d cycles" % community.oldest_session)
     stats.append("most active members at one time: %d" % community.most_members_active)
+    stats.append("average age: %s" % avg_age)
+    stats.append("oldest member: %d" % oldest_sb)
+    stats.append("avg. age of death: %s" % community.avg_age_of_death)
     
     stats.append("\n\tKNOWLEDGE")
     stats.append("available knowledge: %s" % len(the_truth))
@@ -212,6 +223,7 @@ def updateSummary(community, config_file, sb_summary_file, the_truth):
     stats.append("avg. sociable proc count: %s" % avg_sociable_procs)
     stats.append("avg. number of children: %s" % avg_children)
     stats.append("avg. family size: %s" % avg_family_size)
+    stats.append("avg. potential bonds: %s" % avg_bonds)
     stats.append("avg. bonds denied: %s" % avg_bonds_denied)
     stats.append("avg. bonds postponed: %s" % avg_bonds_postponed)
     stats.append("avg. bonds confirmed: %s" % avg_bonds_found)
