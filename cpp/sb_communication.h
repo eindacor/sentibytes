@@ -16,7 +16,7 @@ public:
 	void setType(transmission_type t) { t_type = t; }
 	void addAudience(string other_ID) { audience.push_back(other_ID); }
 	void setFact(unsigned short index, unsigned short error) { fact.first = index; fact.second = error; }
-	void addGossip(const interaction &g) { gossip = g; }
+	void setGossip(const interaction &g) { gossip = g; }
 
 	const bool hasFact() const { return fact.first != -1; }
 	const bool isAccurate() const { return (hasFact() && fact.second != -1); }
@@ -65,6 +65,8 @@ public:
 	const bool operator > (const interaction &other) const { return cycles_present > other.getCyclesPresent(); }
 	const bool operator < (const interaction &other) const { return cycles_present < other.getCyclesPresent(); }
 
+	void operator = (const interaction &other);
+
 	void addTransmission(const transmission &received);
 	void guessTraits(signed short cycles_in_ession, signed short communications_per_cycle);
 
@@ -85,9 +87,13 @@ private:
 class session
 {
 public:
+	session(){};
+	~session(){};
+
+	const bool hasParticipant(string sb_ID) const { return std::find(participants.begin(), participants.end(), sb_ID) == participants.end(); }
 
 private:
-
+	vector<string> participants;
 };
 
 class community
@@ -96,10 +102,12 @@ public:
 	community(){};
 	~community(){};
 
-
+	const vector<string> getMembers() const { return members; }
+	const bool isChild(string sb_ID) const;
 
 private:
-
+	vector<string> members;
+	vector<string> children;
 };
 
 #endif

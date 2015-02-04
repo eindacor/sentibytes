@@ -4,6 +4,7 @@
 #include "sb_header.h"
 
 float boundsCheck(float f);
+float calcAccuracy(float target_value, float range_coefficient, float max_offset = 10.0);
 
 class valueState
 {

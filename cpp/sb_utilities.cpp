@@ -22,3 +22,13 @@ float boundsCheck(float f)
 
 	else return f;
 }
+
+float calcAccuracy(float target_value, float range_coefficient, float max_offset=10.0)
+{
+	float random_float = float(rand() % 101) / 100.0f;
+	float margain = max_offset * range_coefficient * random_float;
+	if (rand() % 2 == 0)
+		margain *= -1;
+	float new_value = boundsCheck(target_value + margain);
+	return new_value;
+}

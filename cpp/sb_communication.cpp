@@ -90,3 +90,8 @@ void interaction::guessTraits(signed short cycles_in_session, signed short commu
 		else trait_guesses.insert(pair<string, float>("energy", energy_guess));
 	}
 }
+
+const bool community::isChild(string sb_ID) const
+{
+	return std::find(children.begin(), children.end(), sb_ID) == children.end();
+}

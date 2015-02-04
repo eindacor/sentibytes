@@ -50,8 +50,10 @@ public:
 
 	const string getID() const { return sentibyte_ID; }
 	operator string() const { return sentibyte_ID; }
-	const bool proc(string trait) { return (*this)[trait].proc(); }
+	const bool proc(string trait) const { return (*this)[trait].proc(); }
 	const float getRating(string other_ID) const { return perceptions.at(other_ID).getOverallRating(); }
+	const vector<string> getStrangers() const;
+	void broadcast(vector<string> target_list) const;
 
 	// transmission functions cannot be const, because the trait guesses of 
 	// each are determined only when 
@@ -75,13 +77,13 @@ private:
 	memory_map memory;
 	perception_map perceptions;
 	string current_session_ID;
-	session current_session;
+	session* current_session;
+	community* current_community;
 	signed short cycles_in_current_session;
-	community current_community;
 	map<string, interaction> current_interactions;
 	//first int is line, second int is error index
 	//if the error index is -1, that knowledge is accurate
-	map<signed short, signed short> knowledge;
+	map<unsigned short, unsigned short> knowledge;
 	int social_cooldown;
 	contactManager contacts;
 	float death_coefficient;

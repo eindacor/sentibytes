@@ -1,4 +1,5 @@
 #include "sb_sentibyte.h"
+#include "sb_utilities.h"
 
 void contactManager::addContact(string other_ID)
 {
@@ -183,3 +184,96 @@ void sentibyte::updateContacts()
 
 	contacts.setFriends(friend_list);		
 }
+
+const vector<string> sentibyte::getStrangers() const
+{
+	vector<string> strangers;
+	vector<string> members = current_community->getMembers();
+	for (vector<string>::iterator it = members.begin(); it != members.end(); it++)
+	{
+		string other_ID = *it;
+		if (contacts.inContacts(other_ID) || contacts.inFamily(other_ID)
+			|| other_ID == sentibyte_ID || current_community->isChild(other_ID))
+			continue;
+
+		else strangers.push_back(other_ID);
+	}
+
+	return strangers;
+}
+
+void sentibyte::broadcast(vector<string> target_list) const
+{
+	transmission temp_transmission(sentibyte_ID);
+
+	float positivity_current = (*this)["positivity"]["current"];
+	float positivity_coefficient = (*this)["positivity"]["coefficient"];
+	float positivity = calcAccuracy(positivity_current, positivity_coefficient);
+	float energy_current = (*this)["energy"]["current"];
+	float energy_coefficient = (*this)["energy"]["coefficient"];
+	float energy = calcAccuracy(energy_current, energy_coefficient);
+
+	pair<unsigned short, unsigned short> fact(-1, -1);
+	interaction gossip();
+
+	transmission_type t_type = (proc("talkative") ? STATEMENT : SIGNAL);
+
+	if (t_type == STATEMENT)
+	{
+		if (proc("intellectual"))
+		{
+			int knowledge_total = knowledge.size();
+			int random_index = rand() % knowledge_total;
+			map<unsigned short, unsigned short>::const_iterator it = knowledge.cbegin();
+			for (int i = 0; i < random_index; i++)
+				it++;
+
+			fact = *it;
+			temp_transmission.setFact(fact.first, fact.second);
+		}
+
+		if (proc("gossipy"))
+		{
+			vector<string> gossip_targets;
+			for (memory_iterator it = memory.begin(); it != memory.end(); it++)
+			{
+				string other_ID = it->first;
+				if (!current_session->hasParticipant(other_ID))
+					gossip_targets.push_back(other_ID);
+			}
+
+			int random_memory_index = rand() % gossip_targets.size();
+			vector<string>::iterator vector_it = gossip_targets.begin() + random_memory_index;
+			string target_ID = *vector_it;
+			
+			// selects a random index between 0 and # of interactions for that ID
+			int random_interaction_index = rand() % memory.at(target_ID).size();
+			vector<interaction>::const_iterator interaction_it = memory.at(target_ID).begin() + random_interaction_index;
+			temp_transmission.setGossip(*interaction_it);
+		}
+	}
+
+	
+}
+
+/*
+def broadcast(self, target_list):
+
+	else:
+	t_type = 'signal'
+
+	# add preference for talking to different people
+	selected_targets = list()
+
+	while self.proc('sociable'):
+	for other_ID in target_list:
+	if self.wantsToConnect(other_ID) and other_ID not in selected_targets:
+	selected_targets.append(other_ID)
+
+	if len(selected_targets) == 0:
+	selected_targets.append(choice(target_list))
+
+	toSend = transmission(self.sentibyte_ID, selected_targets, positivity,
+	energy, t_type, knowledge=knowledge, gossip=gossip, brag=brag)
+	return toSend
+*/
