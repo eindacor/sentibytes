@@ -20,11 +20,12 @@ class transmission(object):
         self.brag = brag
 
 class interaction(object):
-    def __init__(self, owner_ID, other_ID):
+    def __init__(self, owner_ID, other_ID, start_cycle):
         self.owner_ID = owner_ID
         self.other_ID = other_ID
         
         self.trait_guesses = {}
+        self.start_cycle = start_cycle
         self.cycles_present = 0
         
         recorded_data = ('owner', 'others', 'total')
@@ -110,8 +111,8 @@ class interaction(object):
         
             self.data[item]['count'] += 1
             
-    def guessTraits(self, cycles_present, communications_per_cycle):
-        self.cycles_present = cycles_present
+    def guessTraits(self, cycles_in_session, communications_per_cycle):
+        cycles_present = cycles_in_session - self.start_cycle
         # The following algorithms attempt to guess the other's traits based on
         # received transmissions
         
@@ -153,7 +154,7 @@ class interaction(object):
 # This is the managing class for social interactions between sentibytes.
 # Sentibytes involved in a session are called 'participants'
 class session(object):
-    def __init__(self, community, ID):
+    def __init__(self, community, ID, max_participants):
         self.session_ID = ID
         self.participants = list()
         self.current_cycle = 0
@@ -162,6 +163,7 @@ class session(object):
         self.community = community
         self.session_active = False
         self.leaving_list = list()
+        self.max_participants = max_participants
         
     def __eq__(self, other):
         if other == None:
@@ -274,6 +276,7 @@ class community(object):
         self.cycles_per_session = averageContainer()
         self.members_in_session = averageContainer()
         self.members_per_session = averageContainer()
+        self.avg_participant_limit = averageContainer()
         self.avg_age_of_death = averageContainer()
         self.deceased_members = 0
         
@@ -285,10 +288,6 @@ class community(object):
         self.child_limit = 3
         
         self.seconds_per_cycle = averageContainer()
-        
-        # modify session limit to be part of session class, and varies depending
-        # on how the session was made
-        self.session_limit = 15
         
         # when True, members stay in memory instead of relying on file access
         self.keep_members_active = keep_members_active
@@ -331,7 +330,7 @@ class community(object):
         if member_ID in self.session_sb_list:
             session_ID = self.session_sb_list[member_ID]
             session = self.getSession(session_ID)
-            if len(session.participants) >= self.session_limit:
+            if len(session.participants) >= session.max_participants:
                 return 'in full session'
                 
             else:
@@ -377,13 +376,13 @@ class community(object):
         other_members.remove(member_ID)
         return other_members
         
-    def createSession(self, first_ID, second_ID):
+    def createSession(self, first_ID, second_ID, max_participants):
         unavailable_IDs = [s.session_ID for s in self.sessions]
         new_ID = 1
         while new_ID in unavailable_IDs:
             new_ID += 1
             
-        new_session = session(self, new_ID)
+        new_session = session(self, new_ID, max_participants)
         new_session.addParticipant(first_ID)
         new_session.addParticipant(second_ID, inviter_ID=first_ID)
         self.sessions.append(new_session)
@@ -396,6 +395,7 @@ class community(object):
         for session in self.sessions:
             session.session_active = True
             self.members_per_session.addValue(len(session.participants))
+            self.avg_participant_limit.addValue(session.max_participants)
             if len(session.participants) > self.most_popular_session:
                 self.most_popular_session = len(session.participants)
             if session.current_cycle > self.oldest_session:
@@ -415,6 +415,7 @@ class community(object):
             member.aloneCycle()
             self.deactivateMember(member_ID)
         
+        '''
         members_inviting = [ID for ID in self.members if (self.getAvailability(ID) == 'in open session' \
                             or self.getAvailability(ID) == 'alone') and ID not in self.children]
                             
@@ -422,9 +423,9 @@ class community(object):
             member = self.getMember(member_ID) 
             member.invitationCycle()
             self.deactivateMember(member_ID)
+        '''
                 
         self.current_cycle += 1
-        
         self.saveAndClearActiveMembers()
 
         if len(self.sessions) > self.most_concurrent_sessions:

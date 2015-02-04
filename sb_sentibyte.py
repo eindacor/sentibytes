@@ -12,16 +12,14 @@ class sentibyte(object):
     def __init__(self, name, traits):
         self.user_ID = name
         self.name = randint(0, 1000000)
+        self.sentibyte_ID = str(self.user_ID) + '.' + str(self.name)
         self.location = randint(0, 10)
         self.age = 0
-        
-        self.sentibyte_ID = str(self.user_ID) + '.' + str(self.name)
         
         self.memory = {} #dict of lists of interaction logs, key = sentibyte_ID
         self.perceptions = {}
         self.current_session_ID = None
         self.current_session = None
-        self.bond_ID = None
         self.family = list()
         self.children = list()
         
@@ -52,14 +50,13 @@ class sentibyte(object):
         self.unsuccessful_connections_strangers = 0
         self.rejection_count = 0
         self.accepted_count = 0
-        self.sociable_count = 0
         self.cycles_alone = 0
         self.cycles_in_session = 0
         self.cycles_in_current_session = 0
         self.bonds_denied = 0
         self.bonds_postponed = 0
         self.bonds_confirmed = 0
-        self.death_coefficient = .00001
+        self.death_coefficient = .000001
         
         # cooldowns prevent cycles spent in session and along at the same time,
         # and restricts when sb's are allowed to be social
@@ -108,35 +105,11 @@ class sentibyte(object):
             
         else:
             raise Exception("trait (%s) not found" % trait)
-        
-    # returns current value of passed trait    
-    def getCurrent(self, trait):
-        if trait in self.p_traits:
-            return self.p_traits[trait].params['current']
-            
-        elif trait in self.i_traits:
-            return self.i_traits[trait].params['current']
-
-        else:
-            raise Exception("trait (%s) not found" % trait)
-            
-    def getCoefficient(self, trait):
-        if trait in self.p_traits:
-            return self.p_traits[trait].params['coefficient']
-            
-        elif trait in self.i_traits:
-            return self.i_traits[trait].params['coefficient']
-
-        else:
-            raise Exception("trait (%s) not found" % trait)
-            
-    def getDesired(self, trait):
-        return self.d_traits[trait]['current']
       
     # this function analyzes transmissions even if self was not one of the targets
     # for better accuracty of guessing traits
     def interpretTransmission(self, sent):
-        source = sent.source_ID
+        source = sent.source_ID7
         
         # add modifiers for interpretation
         if sent.t_type == 'statement' or self.proc('observant'):
@@ -193,7 +166,7 @@ class sentibyte(object):
         if other_ID not in self.contacts:
             self.contacts.append(other_ID)
             
-        toAdd = interaction(str(self), other_ID)
+        toAdd = interaction(str(self), other_ID, self.cycles_in_session)
         self.current_interactions[other_ID] = toAdd
         self.updateContacts()
      
@@ -258,11 +231,11 @@ class sentibyte(object):
         return stranger_list
         
     def broadcast(self, target_list):
-        positivity_current = self.getCurrent('positivity')
-        positivity_co = self.getCoefficient('positivity')
+        positivity_current = self['positivity']['current']
+        positivity_co = self['positivity']['coefficient']
         positivity = calcAccuracy(positivity_current, positivity_co)
-        energy_current = self.getCurrent('energy')
-        energy_co = self.getCoefficient('energy_range')
+        energy_current = self['energy']['current']
+        energy_co = self['energy range']['coefficient']
         energy = calcAccuracy(energy_current, energy_co)
         knowledge = None
         gossip = None
@@ -406,33 +379,47 @@ class sentibyte(object):
         else:
             return True
     
-    def updateCounts(self):
+    def updateSelf(self):
         # add emotional effects for deaceased friends/family
+        deceased_others = list()
         for other_ID in self.contacts:
             if other_ID not in self.community.members:
-                self.contacts.remove(other_ID)
-                if other_ID in self.children:
-                    self.children.remove(other_ID)
-                if other_ID in self.family:
-                    self.family.remove(other_ID)
-                if other_ID in self.bonds:
-                    self.bonds.pop(other_ID, None)
+                deceased_others.append(other_ID)
+                
+        for other_ID in deceased_others:
+            self.contacts.remove(other_ID)
+            '''
+            if other_ID in self.children:
+                self.children.remove(other_ID)
+            if other_ID in self.family:
+                self.family.remove(other_ID)
+            '''
+            if other_ID in self.bonds:
+                self.bonds.pop(other_ID, None)
+        self.updateContacts()
         
         self.age += 1
         if self.current_session:
             self.cycles_in_session += 1
             self.cycles_in_current_session += 1
-            
         else:
             self.cycles_alone += 1
             
         if self.age == self.community.child_age:
             self.community.children.remove(str(self))
+            
+        if self.proc('volatility'):
+            self.fluctuateTraits()
     
     def sessionCycle(self):
+        self.updateSelf()
         session = self.current_session
-        # increment counts
-        self.updateCounts()
+        if len(session.participants) < session.max_participants and self.proc('sociable'):
+            if self.sendInvitation():
+                self.successful_connection_attempts += 1
+            else:
+                self.failed_connection_attempts += 1
+                
         # submit transmissions
         available_targets = session.getAllOthers(str(self))
         transmission_list = list()
@@ -441,9 +428,6 @@ class sentibyte(object):
                 transmission_list.append(self.broadcast(available_targets))
                 
         session.distributeTransmissions(str(self), transmission_list)        
-        # fluctuate traits
-        if self.proc('volatility'):
-            self.fluctuateTraits()
         # proc stamina/leave
         if len(session.new_members) == 0:
             if not self.proc('stamina'):
@@ -455,35 +439,40 @@ class sentibyte(object):
     def aloneCycle(self):
         if not self.checkHealth():
             return
-        self.updateCounts()
-        if str(self) not in self.community.recently_left_session:
-            if self.proc('volatility'):
-                self.fluctuateTraits()
+        self.updateSelf()
+            
+        if self.proc('intellectual'):
+            self.learn()
+
+        if self.proc('reflective'):
+            self.reflect()		
+        
+        for other_ID in self.bonds:
+            self.bonds[other_ID] += 1
+        
+        if str(self) not in self.community.max_children and str(self) not in self.community.children:
+            if self.proc('concupiscent'):
+                potential_bonds = [other_ID for other_ID in self.bonds if self.wantsToBond(other_ID) == 'yes']
+                if len(potential_bonds) == 0:
+                    return
                 
-            if self.proc('intellectual'):
-                self.learn()
-    
-            if self.proc('reflective'):
-                self.reflect()		
-            
-            for other_ID in self.bonds:
-                self.bonds[other_ID] += 1
-            
-            if str(self) not in self.community.max_children and str(self) not in self.community.children:
-                if self.proc('concupiscent'):
-                    potential_bonds = [other_ID for other_ID in self.bonds if self.wantsToBond(other_ID) == 'yes']
-                    if len(potential_bonds) == 0:
+                shuffle(potential_bonds)
+                for other_ID in potential_bonds:
+                    if self.proposeBond(other_ID):
                         return
                     
-                    shuffle(potential_bonds)
-                    for other_ID in potential_bonds:
-                        if self.proposeBond(other_ID):
-                            return
-                
+        if self.social_cooldown == 0:
+            if self.proc('sociable'):
+                if self.sendInvitation():
+                    self.successful_connection_attempts += 1
+                else:
+                    self.failed_connection_attempts += 1
+        else:
+            self.social_cooldown -= 1
+    '''      
     def invitationCycle(self):
         if self.social_cooldown == 0:
             if self.proc('sociable'):
-                self.sociable_count += 1
                 if self.sendInvitation():
                     self.successful_connection_attempts += 1
                 else:
@@ -491,6 +480,7 @@ class sentibyte(object):
                     
         else:
             self.social_cooldown -= 1
+    '''
     
     # Seeks other sentibytes for communication, returns true if a connection is 
     # made, false if not
@@ -607,6 +597,7 @@ class sentibyte(object):
         self.current_session_ID = None
         self.current_session = None
         self.cycles_in_current_session = 0
+        self.social_cooldown = 10
       
     # returns true if a session is successfully joined or created
     def connect(self, other_ID):
@@ -615,13 +606,18 @@ class sentibyte(object):
         
         other = self.community.getMember(other_ID)
         
-        if not other.wantsToConnect(str(self)):
+        if other.social_cooldown > 0 or not other.wantsToConnect(str(self)):
             self.community.deactivateMember(other_ID)
             return False
             
         elif other.proc('sociable'):
             if self_status == 'alone' and other_status == 'alone':
-                self.community.createSession(self.sentibyte_ID, other_ID)
+                max_participants = 2
+                while self.proc('sociable') or other.proc('sociable'):
+                    max_participants += 2
+                    if max_participants == 24:
+                        break
+                self.community.createSession(self.sentibyte_ID, other_ID, max_participants)
                 return True
                 
             elif self_status == 'in open session' and other_status == 'alone':
@@ -669,7 +665,7 @@ class sentibyte(object):
             lines.append("desired traits...")
             for trait in self.d_traits:
                 lines.append("\t%s: %f (%d priority weight)" % (
-                            trait, self.getDesired(trait), self.desire_priority[trait]))
+                            trait, self.d_traits[trait]['current'], self.desire_priority[trait]))
   
         if len(self.friend_list) > 0 and friends:
             lines.append("friends:")

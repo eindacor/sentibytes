@@ -14,12 +14,12 @@ p_adventurous = 5, 20
 p_private = 0, 75
 p_reflective = 0, 100
 p_trusting = 0, 100
-p_stamina = 50, 80
+p_stamina = 50, 90
 p_intelligence = 20, 100
 p_inquisitive = 0, 100
-p_sociable = 10, 50
+p_sociable = 30, 90
 p_concupiscent = 0, 50
-p_selective = 70, 85
+p_selective = 90, 95
 
 $ INTERPERSONAL
 i_positivity = 0, 100

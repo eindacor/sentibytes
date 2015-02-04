@@ -5,7 +5,6 @@ class perception(object):
     def __init__(self, other_ID, owner):
         self.other_ID = other_ID
         self.owner_ID = owner.sentibyte_ID
-        self.interaction_count = 0
         self.broadcasts_observed = 0
         self.cycles_observed = 0
         self.rumors_heard = 0
