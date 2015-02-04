@@ -1,3 +1,5 @@
 *.pyc
-*/*
 py_test.py
+/sb_datalog
+/sb_files
+/sb_data
