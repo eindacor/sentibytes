@@ -91,7 +91,14 @@ void interaction::guessTraits(signed short cycles_in_session, signed short commu
 	}
 }
 
-const bool community::isChild(string sb_ID) const
+const vec_str session::getAllOthers(string sb_ID) const
 {
-	return std::find(children.begin(), children.end(), sb_ID) == children.end();
+	vec_str others;
+	for (vec_str_it it = participants.begin(); it != participants.end(); it++)
+	{
+		if (*it != sb_ID)
+			others.push_back(*it);
+	}
+
+	return others;
 }

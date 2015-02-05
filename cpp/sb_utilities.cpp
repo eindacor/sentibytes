@@ -12,6 +12,11 @@ const float avgContainer::combineAverages
 	return float(new_total / float(new_count));
 }
 
+void valueState::fluctuate()
+{
+
+}
+
 float boundsCheck(float f)
 {
 	if (f > 100)
@@ -31,4 +36,34 @@ float calcAccuracy(float target_value, float range_coefficient, float max_offset
 		margain *= -1;
 	float new_value = boundsCheck(target_value + margain);
 	return new_value;
+}
+
+template <typename t>
+const vector<t>::const_iterator randomVectorIterator(const vector<t> &vec)
+{
+	if (vec.size() == 0)
+		return vec.end();
+
+	int random_index = rand() % vec.size();
+	vector<t>::const_iterator it = vec.begin() + random_interaction_index;
+	return it;
+}
+
+template <typename t1, typename t2>
+const map<t1, t2>::const_iterator randomMapIterator(const map<t1, t2> &m)
+{
+	if (m.size() == 0)
+		return m.end();
+
+	int random_index = rand() % m.size();
+	map<t1, t2>::const_iterator it = m.cbegin();
+	for (int i = 0; i < random_index; i++)
+		it++;
+
+	return it;
+}
+
+const bool stringInVector(string s, const vec_str &vec)
+{
+	return std::find(vec.begin(), vec.end(), s) != vec.end();
 }

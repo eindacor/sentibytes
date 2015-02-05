@@ -11,31 +11,37 @@ public:
 	contactManager(){};
 	~contactManager(){};
 
-	const bool inContacts(string other_ID) const;
-	const bool inFamily(string other_ID) const;
-	const bool inChildren(string other_ID) const;
+	const bool inContacts(string other_ID) const { return stringInVector(other_ID, contacts); }
+	const bool inFamily(string other_ID) const { return stringInVector(other_ID, family); }
+	const bool inChildren(string other_ID) const { return stringInVector(other_ID, children); }
+	const bool inFriends(string other_ID) const { return stringInVector(other_ID, friends); }
+	const bool inBonds(string other_ID) const { return std::find(bonds.begin(), bonds.end(), other_ID) == bonds.end(); }
+	const bool wouldBond(string other_ID) const;
+	const bool inDeparted(string other_ID) const { return stringInVector(other_ID, departed); }
 
 	void addContact(string other_ID);
-	void setFriends(vector<string> f_list) { friends = f_list; }
+	void setFriends(vec_str f_list) { friends = f_list; }
 	void addFamily(string other_ID) { family.push_back(other_ID); }
 	void addChild(string other_ID) { children.push_back(other_ID); }
 	void incrementBond(string other_ID);
 	void decrementBond(string other_ID);
+	void departContact(string other_ID);
 
-	const vector<string> getFamily() const { return family; }
-	const vector<string> getChildren() const { return children; }
+	const vec_str getFamily() const { return family; }
+	const vec_str getChildren() const { return children; }
 	const map<string, int> getBonds() const { return bonds; }
-	const vector<string> getContacts() const { return contacts; }
-	const vector<string> getFriends() const { return friends; }
+	const vec_str getContacts() const { return contacts; }
+	const vec_str getFriends() const { return friends; }
+	const vec_str getDeparted() const { return friends; }
 
 private:
-	vector<string> family;
-	vector<string> children;
+	vec_str family;
+	vec_str children;
 	//int refers to number of rounds in bond list
 	map<string, int> bonds;
-	vector<string> contacts;
-	vector<string> friends;
-	community *current_community;
+	vec_str contacts;
+	vec_str friends;
+	vec_str departed;
 };
 
 class sentibyte
@@ -52,8 +58,20 @@ public:
 	operator string() const { return sentibyte_ID; }
 	const bool proc(string trait) const { return (*this)[trait].proc(); }
 	const float getRating(string other_ID) const { return perceptions.at(other_ID).getOverallRating(); }
-	const vector<string> getStrangers() const;
-	void broadcast(vector<string> target_list) const;
+	const vec_str getStrangers() const;
+	transmission broadcast(const vec_str &target_list) const;
+	void interpretTransmission(const transmission &sent);
+	const string wantsToBond(string other_ID) const;
+	const bool proposeBond(string other_ID);
+	const bool checkHealth();
+	const bool inviteOthers();
+	const bool wantsToConnect(string other_ID) const;
+	void reflect();
+	void learn();
+	void fluctuateTraits();
+	void updateSelf();
+	void sessionCycle();
+	void aloneCycle();
 
 	// transmission functions cannot be const, because the trait guesses of 
 	// each are determined only when 
@@ -78,8 +96,10 @@ private:
 	perception_map perceptions;
 	string current_session_ID;
 	session* current_session;
-	community* current_community;
+	population* community;
 	signed short cycles_in_current_session;
+	signed short cycles_in_session;
+	signed short cycles_alone;
 	map<string, interaction> current_interactions;
 	//first int is line, second int is error index
 	//if the error index is -1, that knowledge is accurate

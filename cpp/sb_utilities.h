@@ -5,6 +5,13 @@
 
 float boundsCheck(float f);
 float calcAccuracy(float target_value, float range_coefficient, float max_offset = 10.0);
+const bool stringInVector(string s, const vec_str &vec);
+
+template <typename t>
+const vector<t>::const_iterator randomVectorIterator(const vector<t> &vec);
+
+template <typename t1, typename t2>
+const map<t1, t2>::const_iterator randomMapIterator(const map<t1, t2> &m);
 
 class valueState
 {
@@ -14,6 +21,7 @@ public:
 
 	const bool proc() const;
 	const float operator [] (string trait) const { return params.at(trait); }
+	void fluctuate();
 
 private:
 	map<string, float> params;

@@ -14,7 +14,7 @@ public:
 	const float getInteractionRating() const { return avg_interaction_rating.getAverage(); }
 	const float getInstanceRating() const { return avg_instance_rating.getAverage(); }
 
-	void addInteraction(interaction observed, const sentibyte &self, bool isRumor);
+	void addInteraction(interaction observed, const sentibyte &self, bool isRumor, bool isMemory);
 	void addInstance(unsigned short weight);
 	const string getOwner() const { return owner_ID; }
 	const string getOther() const { return other_ID; }

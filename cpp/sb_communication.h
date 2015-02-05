@@ -25,7 +25,7 @@ public:
 	const float getPositivity() const { return positivity; }
 	const float getEnergy() const { return energy; }
 	const transmission_type getType() const { return t_type; }
-	const vector<string> getAudience() const { return audience; }
+	const vec_str getAudience() const { return audience; }
 	const pair<unsigned short, unsigned short> getFact() const { return fact; }
 	const interaction getGossip() const { return gossip; }
 
@@ -34,7 +34,7 @@ private:
 	float positivity;
 	float energy;
 	transmission_type t_type;
-	vector<string> audience;
+	vec_str audience;
 	pair<unsigned short, unsigned short> fact;
 	interaction gossip;
 };
@@ -91,23 +91,41 @@ public:
 	~session(){};
 
 	const bool hasParticipant(string sb_ID) const { return std::find(participants.begin(), participants.end(), sb_ID) == participants.end(); }
+	const vec_str getParticipants() const { return participants; }
+	const signed short getLimit() const { return participant_limit; }
+	const vec_str getAllOthers(string sb_ID) const;
+	void distributeTransmissions(const vector<transmission> &transmissions) const;
+	const vec_str getNewMembers() const { return new_members; }
+	void addLeaving(string sb_ID);
 
 private:
-	vector<string> participants;
+	vec_str participants;
+	signed short participant_limit;
+	vec_str new_members;
 };
 
-class community
+class population
 {
 public:
-	community(){};
-	~community(){};
+	population(){};
+	~population(){};
 
-	const vector<string> getMembers() const { return members; }
-	const bool isChild(string sb_ID) const;
+	const vec_str getMembers() const { return members; }
+	const bool isChild(string sb_ID) const { return stringInVector(sb_ID, children); }
+	unsigned short getTruth() const { return the_truth; }
+	sentibyte* getMember(string sb_ID);
+	void deactivateMember(string sb_ID);
+	void addMember(string sb_ID) { members.push_back(sb_ID); children.push_back(sb_ID); }
+	void addMaxChildren(string sb_ID) { max_children.push_back(sb_ID); }
+	void removeChild(string sb_ID);
+	void removeMember(string sb_ID);
 
 private:
-	vector<string> members;
-	vector<string> children;
+	vec_str members;
+	vec_str children;
+	vec_str max_children;
+	vec_str in_session;
+	unsigned short the_truth;
 };
 
 #endif
