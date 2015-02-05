@@ -1,3 +1,12 @@
+MAJOR:
+Revise C++ files to eliminate passing functions through multiple nested objects,
+and return pointers instead. getContacts(), getPerceptions(), and so on should
+return a pointer to an object on the heap.
+
+
+
+
+FEATURES:
 bragging system:
     Currently transmissions with bragged data has no effect on perception.
     
