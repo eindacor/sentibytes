@@ -67,3 +67,19 @@ const bool stringInVector(string s, const vec_str &vec)
 {
 	return std::find(vec.begin(), vec.end(), s) != vec.end();
 }
+
+template<typename t>
+void removeFromVector(vector<t> &vec, t target)
+{
+	vector<t>::iterator it = std::find(vec.begin(), vec.end(), target);
+	if (it != vec.end())
+		vec.erase(it);
+}
+
+template<typename t1, typename t2>
+void removeFromMap(map<t1, t2> &m, t1 target)
+{
+	map<t1, t2>::iterator it = std::find(m.begin(), m.end(), target);
+	if (it != m.end())
+		m.erase(it);
+}

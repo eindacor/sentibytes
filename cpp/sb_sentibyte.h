@@ -23,9 +23,12 @@ public:
 	void setFriends(vec_str f_list) { friends = f_list; }
 	void addFamily(string other_ID) { family.push_back(other_ID); }
 	void addChild(string other_ID) { children.push_back(other_ID); }
+	void addMemory(const interaction &toAdd);
 	void incrementBond(string other_ID);
 	void decrementBond(string other_ID);
 	void departContact(string other_ID);
+	void update(population &community, sentibyte &sb);
+	void addInteraction(const interaction &observed, sentibyte &sb);
 
 	const vec_str getFamily() const { return family; }
 	const vec_str getChildren() const { return children; }
@@ -33,6 +36,10 @@ public:
 	const vec_str getContacts() const { return contacts; }
 	const vec_str getFriends() const { return friends; }
 	const vec_str getDeparted() const { return friends; }
+
+	const float getRating(string other_ID) const { return perceptions.at(other_ID).getOverallRating(); }
+	perception_iterator verifyPerception(string other_ID, sentibyte &sb);
+	const string wantsToBond(string other_ID);
 
 private:
 	vec_str family;
@@ -42,6 +49,8 @@ private:
 	vec_str contacts;
 	vec_str friends;
 	vec_str departed;
+	perception_map perceptions;
+	memory_map memory;
 };
 
 class sentibyte
@@ -54,14 +63,14 @@ public:
 	const bool operator == (const sentibyte &other) const { return sentibyte_ID == other.getID(); }
 	const bool operator != (const sentibyte &other) const { return sentibyte_ID != other.getID(); }
 
+	const float getDeathCoefficient() const { return death_coefficient; }
+	const signed short getAge() const { return age; }
 	const string getID() const { return sentibyte_ID; }
 	operator string() const { return sentibyte_ID; }
 	const bool proc(string trait) const { return (*this)[trait].proc(); }
-	const float getRating(string other_ID) const { return perceptions.at(other_ID).getOverallRating(); }
 	const vec_str getStrangers() const;
 	transmission broadcast(const vec_str &target_list) const;
 	void interpretTransmission(const transmission &sent);
-	const string wantsToBond(string other_ID) const;
 	const bool proposeBond(string other_ID);
 	const bool checkHealth();
 	const bool inviteOthers();
@@ -69,7 +78,7 @@ public:
 	void reflect();
 	void learn();
 	void fluctuateTraits();
-	void updateSelf();
+	void updateCycle();
 	void sessionCycle();
 	void aloneCycle();
 
@@ -80,20 +89,16 @@ public:
 	void updateContacts();
 	void newInteraction(string other_ID);
 	void endInteraction(string other_ID);
-	void addMemory(const interaction &toAdd);
-	perception_iterator verifyPerception(string other_ID);
 
 	const bool hasInFamily(string other_ID) const { return contacts.inFamily(other_ID); }
 	const bool hasInContacts(string other_ID) const { return contacts.inContacts(other_ID); }
 	const bool hasInChildren(string other_ID) const { return contacts.inChildren(other_ID); }
 
 private:
-	int age;
+	signed short age;
 	string name;
 	string sentibyte_ID;
-	signed int location;
-	memory_map memory;
-	perception_map perceptions;
+	signed short location;
 	string current_session_ID;
 	session* current_session;
 	population* community;

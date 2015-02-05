@@ -13,6 +13,12 @@ const vector<t>::const_iterator randomVectorIterator(const vector<t> &vec);
 template <typename t1, typename t2>
 const map<t1, t2>::const_iterator randomMapIterator(const map<t1, t2> &m);
 
+template <typename t>
+void removeFromVector(vector<t> &vec, t target);
+
+template <typename t1, typename t2>
+void removeFromMap(map<t1, t2> &m, t1 target);
+
 class valueState
 {
 public:
