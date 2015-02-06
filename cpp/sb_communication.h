@@ -113,12 +113,12 @@ public:
 	const vec_str getMembers() const { return members; }
 	const bool isChild(string sb_ID) const { return stringInVector(sb_ID, children); }
 	unsigned short getTruth() const { return the_truth; }
-	sentibyte* getMember(string sb_ID);
 	void deactivateMember(string sb_ID);
 	void addMember(string sb_ID) { members.push_back(sb_ID); children.push_back(sb_ID); }
 	void addMaxChildren(string sb_ID) { max_children.push_back(sb_ID); }
 	void removeChild(string sb_ID);
 	void removeMember(string sb_ID);
+	sb_ptr getMember(string sb_ID);
 
 private:
 	vec_str members;

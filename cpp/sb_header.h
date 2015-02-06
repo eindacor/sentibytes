@@ -8,6 +8,8 @@
 #include <time.h>
 #include <map>
 #include <algorithm>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include "jeploot.h"
 
 class perception;
 class interaction;
@@ -36,5 +38,9 @@ typedef map<string, vector<interaction>> memory_map;
 typedef memory_map::const_iterator memory_iterator;
 typedef vector<string> vec_str;
 typedef vector<string>::const_iterator vec_str_it;
+typedef boost::shared_ptr<session> session_ptr;
+typedef boost::shared_ptr<population> population_ptr;
+typedef boost::shared_ptr<contactManager> contacts_ptr;
+typedef boost::shared_ptr<sentibyte> sb_ptr;
 
 #endif

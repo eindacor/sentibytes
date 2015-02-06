@@ -81,6 +81,8 @@ public:
 	void updateCycle();
 	void sessionCycle();
 	void aloneCycle();
+	const contacts_ptr readContacts() const { return contacts; }
+	contacts_ptr getContacts() { return contacts; }
 
 	// transmission functions cannot be const, because the trait guesses of 
 	// each are determined only when 
@@ -90,9 +92,9 @@ public:
 	void newInteraction(string other_ID);
 	void endInteraction(string other_ID);
 
-	const bool hasInFamily(string other_ID) const { return contacts.inFamily(other_ID); }
-	const bool hasInContacts(string other_ID) const { return contacts.inContacts(other_ID); }
-	const bool hasInChildren(string other_ID) const { return contacts.inChildren(other_ID); }
+	const bool hasInFamily(string other_ID) const { return contacts->inFamily(other_ID); }
+	const bool hasInContacts(string other_ID) const { return contacts->inContacts(other_ID); }
+	const bool hasInChildren(string other_ID) const { return contacts->inChildren(other_ID); }
 
 private:
 	signed short age;
@@ -100,8 +102,11 @@ private:
 	string sentibyte_ID;
 	signed short location;
 	string current_session_ID;
-	session* current_session;
-	population* community;
+
+	session_ptr current_session;
+	population_ptr community;
+	contacts_ptr contacts;
+
 	signed short cycles_in_current_session;
 	signed short cycles_in_session;
 	signed short cycles_alone;
@@ -110,7 +115,6 @@ private:
 	//if the error index is -1, that knowledge is accurate
 	map<unsigned short, unsigned short> knowledge;
 	int social_cooldown;
-	contactManager contacts;
 	float death_coefficient;
 
 	map<string, valueState> p_traits;

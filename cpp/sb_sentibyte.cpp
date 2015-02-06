@@ -21,7 +21,6 @@ const bool contactManager::wouldBond(string other_ID) const
 }
 
 void contactManager::departContact(string other_ID)
-{
 	departed.push_back(other_ID);
 	removeFromVector<string>(contacts, other_ID);
 	removeFromVector<string>(friends, other_ID);
@@ -174,8 +173,8 @@ void sentibyte::receiveTransmission(const transmission &received)
 		if (received.hasGossip())
 		{
 			string other_ID = received.getGossip().getOther();
-			contacts.verifyPerception(other_ID, *this);
-			contacts.addInteraction(received.getGossip(), *this);
+			contacts->verifyPerception(other_ID, *this);
+			contacts->addInteraction(received.getGossip(), *this);
 			updateContacts();
 		}
 	}
@@ -195,7 +194,7 @@ void sentibyte::observeTransmission(const transmission &sent)
 
 void sentibyte::newInteraction(string other_ID)
 {
-	contacts.verifyPerception(other_ID, *this);
+	contacts->verifyPerception(other_ID, *this);
 	interaction toAdd(sentibyte_ID, other_ID, cycles_in_current_session);
 	current_interactions[other_ID] = toAdd;
 	updateContacts();
@@ -207,9 +206,9 @@ void sentibyte::endInteraction(string other_ID)
 	if (cycles_in_current_session > 0)
 	{
 		interaction_p->guessTraits(cycles_in_current_session, COMMUNICATIONS_PER_CYCLE);
-		contacts.addInteraction(*interaction_p, *this);
+		contacts->addInteraction(*interaction_p, *this);
 		updateContacts();
-		contacts.addMemory(*interaction_p);
+		contacts->addMemory(*interaction_p);
 	}
 
 	current_interactions.erase(other_ID);
@@ -222,7 +221,7 @@ const vec_str sentibyte::getStrangers() const
 	for (vec_str::iterator it = members.begin(); it != members.end(); it++)
 	{
 		string other_ID = *it;
-		if (contacts.inContacts(other_ID) || contacts.inFamily(other_ID)
+		if (contacts->inContacts(other_ID) || contacts->inFamily(other_ID)
 			|| other_ID == sentibyte_ID || community->isChild(other_ID))
 			continue;
 
@@ -265,7 +264,7 @@ transmission sentibyte::broadcast(const vec_str &target_list) const
 		if (proc("gossipy"))
 		{
 			vec_str gossip_targets;
-			for (memory_iterator it = contacts.getMemory().begin(); it != contacts.getMemory().end(); it++)
+			for (memory_iterator it = contacts->getMemory().begin(); it != contacts->getMemory().end(); it++)
 			{
 				string other_ID = it->first;
 				if (!current_session->hasParticipant(other_ID))
@@ -279,7 +278,7 @@ transmission sentibyte::broadcast(const vec_str &target_list) const
 
 				// selects a random index between 0 and # of interactions for that ID
 				vector<interaction>::const_iterator interaction_it = 
-					randomVectorIterator<interaction>(contacts.getMemory().at(target_ID));
+					randomVectorIterator<interaction>(contacts->getMemory().at(target_ID));
 				temp_transmission.setGossip(*interaction_it);
 			}
 		}
@@ -318,12 +317,12 @@ void sentibyte::interpretTransmission(const transmission &sent)
 
 void sentibyte::reflect()
 {
-	if (contacts.getMemory().size() > 0)
+	if (contacts->getMemory().size() > 0)
 	{
-		memory_iterator memory_it = randomMapIterator<string, vector<interaction>>(contacts.getMemory());
+		memory_iterator memory_it = randomMapIterator<string, vector<interaction>>(contacts->getMemory());
 		vector<interaction>::const_iterator interaction_it = randomVectorIterator<interaction>(*memory_it);
 		string other_ID = interaction_it->getOther();
-		contacts.addInteraction(*interaction_it, *this);
+		contacts->addInteraction(*interaction_it, *this);
 		//updateContacts();
 	}
 }
@@ -367,24 +366,23 @@ void sentibyte::fluctuateTraits()
 
 const bool sentibyte::proposeBond(string other_ID)
 {
-	sentibyte *other_p = community->getMember(other_ID);
-	sentibyte other = *other_p;
+	sb_ptr other_p = community->getMember(other_ID);
 
-	string other_response = other.wantsToBond(sentibyte_ID);
+	string other_response = other_p->getContacts()->wantsToBond(sentibyte_ID);
 	bool child_made = false;
 
 	if (other_response == "no")
-		contacts.addInstance(other_ID, -10);
+		contacts->addInstance(other_ID, -10);
 
 	else if (other_response == "not now")
-		contacts.addInstance(other_ID, 10);
+		contacts->addInstance(other_ID, 10);
 
 	else if (other_response == "yes")
 	{
-		contacts.addInstance(other_ID, 10);
-		if (other.proc("concupiscent"))
+		contacts->addInstance(other_ID, 10);
+		if (other_p->proc("concupiscent"))
 		{
-			community->addMember(createChild(*this, other));
+			community->addMember(createChild(*this, *other_p));
 			child_made = true;
 		}
 	}
