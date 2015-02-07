@@ -54,6 +54,7 @@ public:
 	const bool inFriends(string other_ID) const { return stringInVector(other_ID, friends); }
 	const bool inBonds(string other_ID) const { return std::find(bonds.begin(), bonds.end(), other_ID) == bonds.end(); }
 	const bool wouldBond(string other_ID) const;
+	vector<string> getBondIDs() const;
 	const bool inDeparted(string other_ID) const { return stringInVector(other_ID, departed); }
 
 	void addContact(string other_ID);
@@ -79,6 +80,10 @@ public:
 	const vec_str getContacts() const { return contacts; }
 	const vec_str getFriends() const { return friends; }
 	const vec_str getDeparted() const { return friends; }
+	const signed short getContactCount() const { return contacts.size(); }
+	const signed short getFriendCount() const { return friends.size(); }
+	const signed short getFamilyCount() const { return family.size(); }
+	const signed short getChildrenCount() const { return children.size(); }
 
 	const float getRating(string other_ID) const { return perceptions.at(other_ID)->getOverallRating(); }
 	perception_iterator verifyPerception(string other_ID, sentibyte &sb);

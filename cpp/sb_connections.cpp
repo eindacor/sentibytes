@@ -46,6 +46,15 @@ const bool contactManager::wouldBond(string other_ID) const
 	else return (bonds.at(other_ID) >= BOND_POINT ? true : false);
 }
 
+vector<string> contactManager::getBondIDs() const
+{
+	vector<string> id_vec;
+	for (map<string, int>::const_iterator it = bonds.begin(); it != bonds.end(); it++)
+		id_vec.push_back(it->first);
+
+	return id_vec;
+}
+
 const interaction_ptr contactManager::getRandomMemory() const
 {
 	if (memory.size() == 0)

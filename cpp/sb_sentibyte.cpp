@@ -322,18 +322,85 @@ void sentibyte::aloneCycle()
 	if (proc("intellectual"))
 		learn();
 
-	if (proc("reflective"))
-		reflect();
-
 	if (age > CHILD_AGE)
 	{
-		vector<string> attempted_bonds;
-		map<string, int>::const_iterator it = randomMapIterator<string, int>(contacts->getBonds());
-		while (stringInVector(it->first, contacts->getBonds()) && proc("concupiscent"))
-		{
-			randomMapIterator<
-		}
+		if (proc("reflective"))
+			reflect();
+
+		vector<string> potential_bonds(contacts->getBondIDs());
+		if (potential_bonds.size() == 0)
+			return;
+
+		shuffle(potential_bonds.begin(), potential_bonds.end(), rand());
+		for (vector<string>::const_iterator it = potential_bonds.begin(); it != potential_bonds.end(); it++)
+			if (proposeBond(*it))
+				return;
+
+		if (proc("sociable"))
+			inviteOthers();
 	}
+}
+
+const bool sentibyte::inviteOthers()
+{
+	updateContacts();
+	if (contacts->getContactCount() > 0)
+
+	/*
+	self.updateContacts()
+        # generate list of targets (strangers, contacts, or friends)
+        if len(self.contacts) == 0:
+            selected_type = 'strangers'
+            target_list = self.getStrangers()
+            
+        elif self.proc('adventurous') and len(self.getStrangers()) != 0:
+            selected_type = 'strangers'
+            target_list = self.getStrangers()
+            self.invitations_to_strangers += 1
+            
+        elif self.proc('pickiness') and len(self.friend_list) != 0:
+            selected_type = 'friends'
+            target_list = self.friend_list[:]
+            self.invitations_to_friends += 1
+        
+        else:
+            selected_type = 'contacts'
+            target_list = self.contacts[:]
+            self.invitations_to_contacts += 1
+        
+        # if self in session, invite someone sb that is alone
+        # update to give sb's opportunity to switch session
+        if self.current_session:
+            target_list = [sb_ID for sb_ID in target_list if self.community.getAvailability(sb_ID) == 'alone']
+        else:
+            target_list = [sb_ID for sb_ID in target_list if self.community.getAvailability(sb_ID) == 'in open session' \
+                            or self.community.getAvailability(sb_ID) == 'alone']
+            
+        target_list = [sb_ID for sb_ID in target_list if self.wantsToConnect(sb_ID)]
+        
+        weighed_options = {}
+        for other_ID in target_list:
+            if other_ID in self.perceptions:
+                weighed_options[other_ID] = self.getRating(other_ID)
+            else:
+                weighed_options[other_ID] = self['regard']['current']
+            
+        if len(weighed_options) == 0:
+            return self.logConnection(False, selected_type)
+            
+        selected_ID = catRoll(weighed_options)
+        
+        # keep contacting until there are no targets left or a connection is made
+        while self.connect(selected_ID) == False:
+            del weighed_options[selected_ID]
+            
+            if len(weighed_options) == 0:
+                return self.logConnection(False, selected_type)
+         
+            selected_ID = catRoll(weighed_options)
+            
+        return self.logConnection(True, selected_type)
+		*/
 }
 
 const bool sentibyte::wantsToConnect(string other_ID) const
