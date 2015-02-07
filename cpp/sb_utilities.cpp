@@ -63,11 +63,6 @@ const map<t1, t2>::const_iterator randomMapIterator(const map<t1, t2> &m)
 	return it;
 }
 
-const bool stringInVector(string s, const vec_str &vec)
-{
-	return std::find(vec.begin(), vec.end(), s) != vec.end();
-}
-
 template<typename t>
 void removeFromVector(vector<t> &vec, t target)
 {
@@ -82,4 +77,9 @@ void removeFromMap(map<t1, t2> &m, t1 target)
 	map<t1, t2>::iterator it = std::find(m.begin(), m.end(), target);
 	if (it != m.end())
 		m.erase(it);
+}
+
+const bool stringInVector(string s, const vec_str &vec)
+{
+	return std::find(vec.begin(), vec.end(), s) != vec.end();
 }

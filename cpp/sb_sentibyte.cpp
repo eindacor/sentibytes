@@ -1,134 +1,6 @@
 #include "sb_sentibyte.h"
 #include "sb_utilities.h"
 
-void contactManager::decrementBond(string other_ID)
-{
-	if (bonds.find(other_ID) == bonds.end())
-		return;
-
-	else if (bonds[other_ID] == 0)
-		bonds.erase[other_ID];
-
-	else bonds[other_ID]--;
-}
-
-const bool contactManager::wouldBond(string other_ID) const
-{
-	if (!inBonds(other_ID))
-		return false;
-
-	else return (bonds.at(other_ID) >= BOND_POINT ? true : false);
-}
-
-void contactManager::departContact(string other_ID)
-	departed.push_back(other_ID);
-	removeFromVector<string>(contacts, other_ID);
-	removeFromVector<string>(friends, other_ID);
-	//removeFromVector<string>(family, other_ID);
-	//removeFromVector<string>(children, other_ID);
-	removeFromMap<string, int>(bonds, other_ID);
-}
-
-perception_iterator contactManager::verifyPerception(string other_ID, sentibyte &sb)
-{
-	perception_iterator perception_it = perceptions.find(other_ID);
-	bool new_perception = (perception_it == perceptions.end());
-
-	if (new_perception)
-	{
-		perception default_perception(other_ID, sb);
-		perceptions.insert(pair<string, perception>(other_ID, default_perception));
-	}
-
-	perception_it = perceptions.find(other_ID);
-	return perception_it;
-}
-
-void contactManager::addMemory(const interaction &toAdd)
-{
-	string other_ID = toAdd.getOther();
-	memory[other_ID].push_back(toAdd);
-
-	if (memory[other_ID].size() > MAX_MEMORIES)
-	{
-		std::sort(memory[other_ID].begin(), memory[other_ID].end());
-		memory[other_ID].erase(memory[other_ID].begin());
-	}
-}
-
-void contactManager::addInteraction(const interaction &observed, sentibyte &sb)
-{
-	string other_ID = observed.getOther();
-	verifyPerception(other_ID, sb);
-	perceptions[other_ID].addInteraction(observed, sb, false, false);
-}
-
-const string contactManager::wantsToBond(string other_ID)
-{
-	if (inBonds(other_ID))
-	{
-		if (wouldBond(other_ID))
-			return "yes";
-
-		else return "not now";
-	}
-	else return "no";
-}
-
-void contactManager::update(population &community, sentibyte &sb)
-{
-	vec_str deceased_others;
-	// find others that are in contacts but not in members
-	for (vec_str::const_iterator it = contacts.begin();
-		it != contacts.end(); it++)
-	{
-		if (!stringInVector(community.getMembers(), *it))
-			deceased_others.push_back(*it);
-	}
-
-	for (vec_str::const_iterator it = deceased_others.begin(); it != deceased_others.end(); it++)
-		departContact(*it);
-
-	vector<perception> perception_list;
-
-	// perception_list in this function is the basis for forming friend list and 
-	// potential bonds, so it doesn't include family members
-	for (vec_str::iterator it = contacts.begin(); it != contacts.end(); it++)
-	{
-		if (!inFamily(*it))
-			perception_list.push_back(perceptions[*it]);
-	}
-
-	std::sort(perception_list.begin(), perception_list.end());
-
-	signed short friend_overflow = perception_list.size() - MAX_FRIENDS;
-
-	if (friend_overflow < 0)
-		friend_overflow = 0;
-
-	friends.clear();
-	bool addToFriends = false;
-	float age_factor = 1.0 - (sb.getDeathCoefficient() * sb.getAge() * 100);
-	float bond_threshold = age_factor * sb["selective"]["current"];
-	for (vector<perception>::iterator it = perception_list.begin(); it != perception_list.end(); it++)
-	{
-		string other_ID = (*it).getOther();
-		if (it == perception_list.begin() + friend_overflow)
-			addToFriends = true;
-
-		if (addToFriends)
-			friends.push_back(other_ID);
-
-		if (sb.getAge() > int(CHILD_AGE))
-		{
-			if (getRating(other_ID) > bond_threshold)
-				incrementBond(other_ID);
-
-			else decrementBond(other_ID);
-		}
-	}
-}
-
 sentibyte::sentibyte(string &name, const map<string, valueState> &p_traits, 
 	const map<string, valueState> &i_traits, const map<string, valueState> &d_traits)
 {
@@ -174,7 +46,7 @@ void sentibyte::receiveTransmission(const transmission &received)
 		{
 			string other_ID = received.getGossip().getOther();
 			contacts->verifyPerception(other_ID, *this);
-			contacts->addInteraction(received.getGossip(), *this);
+			contacts->getPerception(other_ID)->addInteraction(received.getGossip(), *this, true, false);
 			updateContacts();
 		}
 	}
@@ -206,7 +78,7 @@ void sentibyte::endInteraction(string other_ID)
 	if (cycles_in_current_session > 0)
 	{
 		interaction_p->guessTraits(cycles_in_current_session, COMMUNICATIONS_PER_CYCLE);
-		contacts->addInteraction(*interaction_p, *this);
+		contacts->getPerception(other_ID)->addInteraction(*interaction_p, *this, false, false);
 		updateContacts();
 		contacts->addMemory(*interaction_p);
 	}
@@ -263,23 +135,15 @@ transmission sentibyte::broadcast(const vec_str &target_list) const
 
 		if (proc("gossipy"))
 		{
-			vec_str gossip_targets;
-			for (memory_iterator it = contacts->getMemory().begin(); it != contacts->getMemory().end(); it++)
-			{
-				string other_ID = it->first;
-				if (!current_session->hasParticipant(other_ID))
-					gossip_targets.push_back(other_ID);
-			}
-
+			vec_str gossip_targets = contacts->getContactsNotInSession(*current_session);
+		
 			if (gossip_targets.size() > 0)
 			{
 				vec_str::const_iterator vector_it = randomVectorIterator<string>(gossip_targets);
 				string target_ID = *vector_it;
 
-				// selects a random index between 0 and # of interactions for that ID
-				vector<interaction>::const_iterator interaction_it = 
-					randomVectorIterator<interaction>(contacts->getMemory().at(target_ID));
-				temp_transmission.setGossip(*interaction_it);
+				interaction_ptr random_interaction = contacts->getRandomMemory(target_ID);
+				temp_transmission.setGossip(*random_interaction);
 			}
 		}
 	}
@@ -317,13 +181,11 @@ void sentibyte::interpretTransmission(const transmission &sent)
 
 void sentibyte::reflect()
 {
-	if (contacts->getMemory().size() > 0)
+	interaction_ptr random_memory = contacts->getRandomMemory();
+	if (random_memory)
 	{
-		memory_iterator memory_it = randomMapIterator<string, vector<interaction>>(contacts->getMemory());
-		vector<interaction>::const_iterator interaction_it = randomVectorIterator<interaction>(*memory_it);
-		string other_ID = interaction_it->getOther();
-		contacts->addInteraction(*interaction_it, *this);
-		//updateContacts();
+		string other_ID = random_memory->getOther();
+		contacts->getPerception(other_ID)->addInteraction(*random_memory, *this, false, true);
 	}
 }
 
@@ -372,14 +234,14 @@ const bool sentibyte::proposeBond(string other_ID)
 	bool child_made = false;
 
 	if (other_response == "no")
-		contacts->addInstance(other_ID, -10);
+		contacts->getPerception(other_ID)->addInstance(-10);
 
 	else if (other_response == "not now")
-		contacts->addInstance(other_ID, 10);
+		contacts->getPerception(other_ID)->addInstance(10);
 
 	else if (other_response == "yes")
 	{
-		contacts->addInstance(other_ID, 10);
+		contacts->getPerception(other_ID)->addInstance(10);
 		if (other_p->proc("concupiscent"))
 		{
 			community->addMember(createChild(*this, *other_p));
@@ -465,9 +327,11 @@ void sentibyte::aloneCycle()
 
 	if (age > CHILD_AGE)
 	{
-		if (proc("concupiscent"))
+		vector<string> attempted_bonds;
+		map<string, int>::const_iterator it = randomMapIterator<string, int>(contacts->getBonds());
+		while (stringInVector(it->first, contacts->getBonds()) && proc("concupiscent"))
 		{
-
+			randomMapIterator<
 		}
 	}
 }

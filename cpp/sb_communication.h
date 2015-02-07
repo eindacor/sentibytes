@@ -125,6 +125,7 @@ private:
 	vec_str children;
 	vec_str max_children;
 	vec_str in_session;
+	vector<sb_ptr> active_members;
 	unsigned short the_truth;
 };
 
