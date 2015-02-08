@@ -344,29 +344,27 @@ void sentibyte::aloneCycle()
 const bool sentibyte::inviteOthers()
 {
 	updateContacts();
-	if (contacts->getContactCount() > 0)
+	vector<string> target_list;
+	if (contacts->getContactCount() == 0)
+		target_list = getStrangers();
+
+	else if (proc("adventurous"))
+	{
+		//these if statements are separated to prevent calling getStrangers() more than needed
+		vector<string> strangers = getStrangers();
+		if (strangers.size > 0)
+			target_list = strangers;
+	}
+
+	else if (proc("pickiness") && contacts->getFriendCount())
+		target_list = contacts->getFriends();
+
+	else target_list = contacts->getContacts();
+
+	if (current_session != NULL)
 
 	/*
-	self.updateContacts()
-        # generate list of targets (strangers, contacts, or friends)
-        if len(self.contacts) == 0:
-            selected_type = 'strangers'
-            target_list = self.getStrangers()
-            
-        elif self.proc('adventurous') and len(self.getStrangers()) != 0:
-            selected_type = 'strangers'
-            target_list = self.getStrangers()
-            self.invitations_to_strangers += 1
-            
-        elif self.proc('pickiness') and len(self.friend_list) != 0:
-            selected_type = 'friends'
-            target_list = self.friend_list[:]
-            self.invitations_to_friends += 1
-        
-        else:
-            selected_type = 'contacts'
-            target_list = self.contacts[:]
-            self.invitations_to_contacts += 1
+
         
         # if self in session, invite someone sb that is alone
         # update to give sb's opportunity to switch session

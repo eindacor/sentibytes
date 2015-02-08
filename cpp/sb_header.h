@@ -36,6 +36,8 @@ using std::end;
 enum transmission_type { STATEMENT, SIGNAL, NO_T_TYPE };
 enum definition {COMMUNICATIONS_PER_CYCLE=20, MAX_FRIENDS=12, CHILD_AGE=40, MAX_MEMORIES=8,
 					BOND_POINT=50, MAX_CHILDREN=3};
+enum sb_status {ALONE, IN_OPEN_SESSION, IN_CLOSED_SESSION};
+enum invitation_type {STRANGERS, FRIENDS, CONTACTS, FAMILY};
 
 typedef boost::shared_ptr<session> session_ptr;
 typedef boost::shared_ptr<population> population_ptr;
