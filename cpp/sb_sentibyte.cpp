@@ -362,18 +362,11 @@ const bool sentibyte::inviteOthers()
 	else target_list = contacts->getContacts();
 
 	if (current_session != NULL)
+		community->removeIDByAvailability(target_list, IN_OPEN_SESSION, IN_FULL_SESSION);
 
-	/*
+	else community->removeIDByAvailability(target_list, IN_FULL_SESSION);
 
-        
-        # if self in session, invite someone sb that is alone
-        # update to give sb's opportunity to switch session
-        if self.current_session:
-            target_list = [sb_ID for sb_ID in target_list if self.community.getAvailability(sb_ID) == 'alone']
-        else:
-            target_list = [sb_ID for sb_ID in target_list if self.community.getAvailability(sb_ID) == 'in open session' \
-                            or self.community.getAvailability(sb_ID) == 'alone']
-            
+	/*  
         target_list = [sb_ID for sb_ID in target_list if self.wantsToConnect(sb_ID)]
         
         weighed_options = {}

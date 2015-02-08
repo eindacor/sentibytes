@@ -119,6 +119,8 @@ public:
 	void removeChild(string sb_ID);
 	void removeMember(string sb_ID);
 	sb_ptr getMember(string sb_ID);
+	const sb_status getAvailability(string sb_ID) const;
+	void removeIDByAvailability(vector<string> &vec, sb_status status, ...);
 
 private:
 	vec_str members;
