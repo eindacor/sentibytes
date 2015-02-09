@@ -107,6 +107,9 @@ transmission sentibyte::broadcast(const vec_str &target_list) const
 {
 	transmission temp_transmission(sentibyte_ID);
 
+	if (current_session == NULL)
+		return temp_transmission;
+
 	float positivity_current = (*this)["positivity"]["current"];
 	float positivity_coefficient = (*this)["positivity"]["coefficient"];
 	float positivity = calcAccuracy(positivity_current, positivity_coefficient);
@@ -166,16 +169,19 @@ transmission sentibyte::broadcast(const vec_str &target_list) const
 	return temp_transmission;
 }
 
-void sentibyte::interpretTransmission(const transmission &sent)
+void sentibyte::interpretTransmissions(const vector<transmission> &transmission_list)
 {
-	string source_ID = sent.getSource();
-	
-	if (sent.getType() == STATEMENT || proc("observant"))
+	for (vector<transmission>::const_iterator it = transmission_list.begin(); it != transmission_list.end(); it++)
 	{
-		current_interactions[source_ID].addTransmission(sent);
+		string source_ID = it->getSource();
 
-		if (stringInVector(sentibyte_ID, sent.getAudience()))
-			receiveTransmission(sent);
+		if (it->getType() == STATEMENT || proc("observant"))
+		{
+			current_interactions[source_ID].addTransmission(*it);
+
+			if (stringInVector(sentibyte_ID, it->getAudience()))
+				receiveTransmission(*it);
+		}
 	}
 }
 
@@ -255,36 +261,15 @@ const bool sentibyte::proposeBond(string other_ID)
 	return child_made;
 }
 
-const bool sentibyte::checkHealth()
+void sentibyte::updateAge()
 {
+	age++;
 	signed int death_chance = 10000;
 	if (rand() % death_chance == rand() % death_chance)
 	{
-		community->removeMember(sentibyte_ID);
-		return false;
+		if (community != NULL)
+			community->removeMember(sentibyte_ID);
 	}
-
-	else return true;
-}
-
-void sentibyte::updateCycle()
-{
-	updateContacts();
-
-	age++;
-	if (current_session != NULL)
-	{
-		cycles_in_current_session++;
-		cycles_in_session++;
-	}
-
-	else cycles_alone++;
-
-	if (age == CHILD_AGE)
-		community->removeChild(sentibyte_ID);
-
-	if (proc("volatility"))
-		fluctuateTraits();
 }
 
 void sentibyte::sessionCycle()

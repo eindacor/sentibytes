@@ -18,22 +18,34 @@ public:
 	const float getDeathCoefficient() const { return death_coefficient; }
 	const signed short getAge() const { return age; }
 	const string getID() const { return sentibyte_ID; }
-	operator string() const { return sentibyte_ID; }
-	const bool proc(string trait) const { return (*this)[trait].proc(); }
 	const vec_str getStrangers() const;
+	contacts_ptr getContacts() { return contacts; }
+
+	operator string() const { return sentibyte_ID; }
+
+	const bool hasInFamily(string other_ID) const { return contacts->inFamily(other_ID); }
+	const bool hasInContacts(string other_ID) const { return contacts->inContacts(other_ID); }
+	const bool hasInChildren(string other_ID) const { return contacts->inChildren(other_ID); }
+
+	const bool proc(string trait) const { return (*this)[trait].proc(); }	
+
+	void interpretTransmissions(const vector<transmission> &transmission_list);
+	void seekBond();
+	void reflect();
+	void learn();
+	void fluctuateTraits();
+	void updateAge();
+	void getTransmissions();
 	transmission broadcast(const vec_str &target_list) const;
-	void interpretTransmission(const transmission &sent);
+
 	const bool proposeBond(string other_ID);
 	const bool checkHealth();
 	const bool inviteOthers();
 	const bool wantsToConnect(string other_ID) const;
-	void reflect();
-	void learn();
-	void fluctuateTraits();
+	
 	void updateCycle();
 	void sessionCycle();
 	void aloneCycle();
-	contacts_ptr getContacts() { return contacts; }
 
 	// transmission functions cannot be const, because the trait guesses of 
 	// each are determined only when 
@@ -42,10 +54,6 @@ public:
 	void updateContacts();
 	void newInteraction(string other_ID);
 	void endInteraction(string other_ID);
-
-	const bool hasInFamily(string other_ID) const { return contacts->inFamily(other_ID); }
-	const bool hasInContacts(string other_ID) const { return contacts->inContacts(other_ID); }
-	const bool hasInChildren(string other_ID) const { return contacts->inChildren(other_ID); }
 
 private:
 	signed short age;
