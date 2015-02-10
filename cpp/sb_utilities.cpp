@@ -1,6 +1,6 @@
 #include "sb_utilities.h"
 
-const float avgContainer::combineAverages
+const float avg_container::combineAverages
 (float previous_avg, int previous_count, float added_avg, int added_count) const
 {
 	if (added_count < 1){
@@ -12,7 +12,7 @@ const float avgContainer::combineAverages
 	return float(new_total / float(new_count));
 }
 
-void valueState::fluctuate()
+void value_state::fluctuate()
 {
 
 }

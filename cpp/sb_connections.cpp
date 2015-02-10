@@ -12,7 +12,7 @@ perception::perception(string other, const sentibyte &owner_sb)
 	rumors_heard = 0;
 	memories_counted = 0;
 
-	avgContainer overall_rating(owner_sb["regard"]["current"], 0);
+	avg_container overall_rating(owner_sb["regard"]["current"], 0);
 }
 
 void perception::addInteraction(interaction observed, sentibyte &sb, bool isRumor, bool isMemory)

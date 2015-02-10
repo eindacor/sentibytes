@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <list>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <random>
@@ -33,6 +34,7 @@ using std::sort;
 using std::shuffle;
 using std::begin;
 using std::end;
+using std::list;
 
 enum transmission_type { STATEMENT, SIGNAL, NO_T_TYPE };
 enum definition {COMMUNICATIONS_PER_CYCLE=20, MAX_FRIENDS=12, CHILD_AGE=40, MAX_MEMORIES=8,

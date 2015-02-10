@@ -76,10 +76,10 @@ private:
 	map<string, float> trait_guesses;
 	signed short start_cycle;
 	signed short cycles_present;
-	avgContainer avg_positivity;
-	avgContainer avg_energy;
-	avgContainer avg_facts;
-	avgContainer avg_gossip;
+	avg_container avg_positivity;
+	avg_container avg_energy;
+	avg_container avg_facts;
+	avg_container avg_gossip;
 	signed int transmission_count;
 	signed int statement_count;
 };

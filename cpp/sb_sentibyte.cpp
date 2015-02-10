@@ -1,15 +1,15 @@
 #include "sb_sentibyte.h"
 #include "sb_utilities.h"
 
-sentibyte::sentibyte(string &name, const map<string, valueState> &p_traits, 
-	const map<string, valueState> &i_traits, const map<string, valueState> &d_traits)
+sentibyte::sentibyte(string &name, const map<string, value_state> &p_traits, 
+	const map<string, value_state> &i_traits, const map<string, value_state> &d_traits)
 {
 
 }
 
-const valueState sentibyte::operator [] (string trait) const
+const value_state sentibyte::operator [] (string trait) const
 {
-	map<string, valueState>::const_iterator target = p_traits.find(trait);
+	map<string, value_state>::const_iterator target = p_traits.find(trait);
 	if (target != p_traits.end())
 		return p_traits.at(trait);
 
@@ -219,15 +219,15 @@ void sentibyte::learn()
 
 void sentibyte::fluctuateTraits()
 {
-	for (map<string, valueState>::iterator it = p_traits.begin();
+	for (map<string, value_state>::iterator it = p_traits.begin();
 		it != p_traits.end(); it++)
 		it->second.fluctuate();
 
-	for (map<string, valueState>::iterator it = i_traits.begin();
+	for (map<string, value_state>::iterator it = i_traits.begin();
 		it != i_traits.end(); it++)
 		it->second.fluctuate();
 
-	for (map<string, valueState>::iterator it = d_traits.begin();
+	for (map<string, value_state>::iterator it = d_traits.begin();
 		it != d_traits.end(); it++)
 		it->second.fluctuate();
 }

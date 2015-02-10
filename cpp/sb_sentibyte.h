@@ -8,10 +8,10 @@
 class sentibyte
 {
 public:
-	sentibyte(string &name, const map<string, valueState> &p_traits, const map<string, valueState> &i_traits, const map<string, valueState> &d_traits);
+	sentibyte(string &name, const map<string, value_state> &p_traits, const map<string, value_state> &i_traits, const map<string, value_state> &d_traits);
 	~sentibyte(){};
 
-	const valueState operator [] (string trait) const;
+	const value_state operator [] (string trait) const;
 	const bool operator == (const sentibyte &other) const { return sentibyte_ID == other.getID(); }
 	const bool operator != (const sentibyte &other) const { return sentibyte_ID != other.getID(); }
 
@@ -30,6 +30,7 @@ public:
 	const bool proc(string trait) const { return (*this)[trait].proc(); }	
 
 	void interpretTransmissions(const vector<transmission> &transmission_list);
+	void interpretTransmissions(transmission t, ...);
 	void seekBond();
 	void reflect();
 	void learn();
@@ -76,9 +77,9 @@ private:
 	int social_cooldown;
 	float death_coefficient;
 
-	map<string, valueState> p_traits;
-	map<string, valueState> d_traits;
-	map<string, valueState> i_traits;
+	map<string, value_state> p_traits;
+	map<string, value_state> d_traits;
+	map<string, value_state> i_traits;
 	//string is trait, int is multiplier
 	map<string, int> desire_priorities;
 };

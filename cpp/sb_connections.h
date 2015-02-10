@@ -36,10 +36,10 @@ private:
 	signed short rumors_heard;
 	signed short memories_counted;
 
-	avgContainer overall_rating;
-	avgContainer avg_desired_offset;
-	avgContainer avg_interaction_rating;
-	avgContainer avg_instance_rating;
+	avg_container overall_rating;
+	avg_container avg_desired_offset;
+	avg_container avg_interaction_rating;
+	avg_container avg_instance_rating;
 };
 
 class contactManager

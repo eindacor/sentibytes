@@ -19,11 +19,11 @@ void removeFromVector(vector<t> &vec, t target);
 template <typename t1, typename t2>
 void removeFromMap(map<t1, t2> &m, t1 target);
 
-class valueState
+class value_state
 {
 public:
-	valueState(float lower_min, float upper_max);
-	~valueState(){};
+	value_state(float lower_min, float upper_max);
+	~value_state(){};
 
 	const bool proc() const;
 	const float operator [] (string trait) const { return params.at(trait); }
@@ -34,18 +34,18 @@ private:
 
 };
 
-class avgContainer
+class avg_container
 {
 public:
-	avgContainer() : average(0.0), count(0) {};
-	avgContainer(float avg, int c) : average(avg), count(c) {};
-	~avgContainer(){};
+	avg_container() : average(0.0), count(0) {};
+	avg_container(float avg, int c) : average(avg), count(c) {};
+	~avg_container(){};
 
 	const float combineAverages(float previous_avg, int previous_count, float new_avg, int new_count) const;
 	void addValue(float value) { average = combineAverages(average, count, value, 1); count++; }
 	void addAverage(float added_avg, int added_count) { 
 		average = combineAverages(average, count, added_avg, added_count); count += added_count; }
-	void operator = (const avgContainer &other) {
+	void operator = (const avg_container &other) {
 		average = other.getAverage(); count = other.getCount();}
 
 	const float getAverage() const { return average; }
@@ -54,6 +54,15 @@ public:
 private:
 	float average;
 	signed long count;
+};
+
+template <typename T>
+class list_manager
+{
+public:
+	list
+private:
+
 };
 
 #endif
