@@ -56,13 +56,23 @@ private:
 	signed long count;
 };
 
-template <typename T>
+template<typename T>
 class list_manager
 {
 public:
-	list
-private:
+	list_manager(){};
+	~list_manager(){};
 
+	void addList(string list_name);
+	void removeList(string list_name);
+	void addToList(T to_add, string list_name) { lists.at(list_name).push_back(to_add); }
+	void removeFromList(T to_add, string list_name) { lists.at(list_name).remove(to_add); }
+	const bool isInList(T to_add, string list_name) const;
+	const list<string> getList(string list_name) const { return lists.at(list_name); }
+	const signed int getListSize(string list_name) const { return lists.at(list_name).size(); }
+
+private:
+	map<string, list<T> > lists;
 };
 
 #endif

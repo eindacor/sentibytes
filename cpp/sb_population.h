@@ -15,16 +15,12 @@ public:
 	void addMember(string sb_ID) { members.push_back(sb_ID); }
 	void removeMember(string sb_ID);
 
-	void addList(string list_name);
-	void removeList(string list_name);
-	void addToList(string sb_ID, string list_name);
-	void removeFromList(string sb_ID, string list_name);
-	const bool isInList(string sb_ID, string list_name) const;
+	string_listman_ptr getPopulationLists() { return population_lists; }
 
 private:
 	list<string> members;
 	vector<sb_ptr> active_members;
-	map<string, list<string>> population_lists;
+	string_listman_ptr population_lists;
 };
 
 #endif

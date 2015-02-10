@@ -83,3 +83,26 @@ const bool stringInVector(string s, const vec_str &vec)
 {
 	return std::find(vec.begin(), vec.end(), s) != vec.end();
 }
+
+template <typename T>
+void list_manager<T>::addList(string list_name)
+{
+	if (lists.find(list_name) == lists.end())
+		lists[list_name] = list<string>();
+}
+
+template <typename T>
+void list_manager<T>::removeList(string list_name)
+{
+	lists.at(list_name);
+	lists.erase(list_name);
+}
+
+template <typename T>
+const bool list_manager<T>::isInList(T to_add, string list_name) const
+{
+	list<T>::const_iterator it =
+		std::find(lists.at(list_name).begin(), lists.at(list_name).end(), to_add);
+
+	return it != lists.at(list_name).end();
+}

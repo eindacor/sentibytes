@@ -48,6 +48,8 @@ typedef boost::shared_ptr<contactManager> contacts_ptr;
 typedef boost::shared_ptr<sentibyte> sb_ptr;
 typedef boost::shared_ptr<perception> perception_ptr;
 typedef boost::shared_ptr<interaction> interaction_ptr;
+typedef boost::shared_ptr< list_manager<string> > string_listman_ptr;
+
 typedef map<string, perception_ptr> perception_map;
 typedef perception_map::const_iterator perception_iterator;
 typedef map<string, vector<interaction_ptr>> memory_map;
