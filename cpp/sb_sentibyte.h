@@ -22,7 +22,7 @@ public:
 	const vector<string> getTopContacts() { return contacts->getTop(MAX_FRIENDS); }
 
 	const bool traitExists(string trait_name) const { return std::find(traits.begin(), traits.end(), trait_name) == traits.end(); }
-	const bool proc(string trait) const { return (*this)[trait].proc(); }
+	const bool proc(string trait) const { return traits.at(trait).proc(); }
 
 	void fluctuateTraits();
 	void setID(string id) { sentibyte_ID = id; }
@@ -30,8 +30,6 @@ public:
 	const vector<string> getFavorite(int n) { return contacts->getTop(n); }
 
 	void addTrait(string trait_name, const value_state &vs);
-
-	void updateContacts() { contacts->update(); }
 
 private:
 	string sentibyte_ID;

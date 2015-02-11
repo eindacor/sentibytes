@@ -1,17 +1,19 @@
 #include "sb_utilities.h"
 
-const float getCoefficient(float min, float max, int precision)
+const float randomFloat(float min, float max, int precision)
 {
-	if (min < 0 || max < 0 || max <= min)
-		throw;
 	double precision_multiplier = pow(10, precision);
 	signed int min_int = int(min * precision_multiplier);
 	signed int max_int = int(max * precision_multiplier);
+
+	if (max_int <= min_int)
+		throw;
+
 	int range = max_int - min_int;
 	int random_number = rand() % (range + 1);
 	random_number += min_int;
-	float coefficient = float(random_number) / precision_multiplier;
-	return coefficient;
+	float random_float = float(random_number) / precision_multiplier;
+	return random_float;
 }
 
 value_state::value_state()
@@ -19,9 +21,82 @@ value_state::value_state()
 	setBounds(0.0f, 100.0f);
 	setBase();
 	params[VS_CURRENT] = params[VS_BASE];
-	fluctuation_coefficient = getCoefficient(.02, .05, 4);
-	fluctuation_sensitivity = getCoefficient(.02, .2, 4);
+	fluctuation_coefficient = randomFloat(.02, .05, 4);
+	fluctuation_sensitivity = randomFloat(.02, .2, 4);
 	update();
+}
+
+value_state::value_state(float lower_bound, float base, float upper_bound)
+{
+	params[VS_LOWER] = lower_bound;
+	params[VS_BASE] = base;
+	params[VS_CURRENT] = base;
+	params[VS_UPPER] = upper_bound;
+	fluctuation_coefficient = randomFloat(.02, .05, 4);
+	fluctuation_sensitivity = randomFloat(.02, .2, 4);
+	update();
+}
+
+value_state::value_state(float lower_min, float upper_max)
+{
+	setBounds(lower_min, upper_max);
+	setBase();
+	params[VS_CURRENT] = params[VS_BASE];
+	fluctuation_coefficient = randomFloat(.02, .05, 4);
+	fluctuation_sensitivity = randomFloat(.02, .2, 4);
+	update();
+}
+
+const bool value_state::proc() const
+{
+	float random_float = randomFloat(0.0f, 100.0f, 2);
+	if (random_float < params.at(VS_CURRENT))
+		return true;
+
+	else return false;
+}
+
+void value_state::setBounds(float lower_min, float upper_max)
+{
+	float span = upper_max - lower_min;
+	signed short probability_array[] = { 18, 20, 24, 20, 18 };
+
+	map< floatpair, signed short> lower_quadrants;
+	for (int i = 0; i < 5; i++)
+	{
+		float quadrant_range_lower = lower_min + ((.1 * i) * span);
+		float quadrant_range_upper = lower_min + ((.1 * (i + 1)) * span);
+		lower_quadrants[floatpair(quadrant_range_lower, quadrant_range_upper)] = probability_array[i];
+	}
+	floatpair selected_lower_quadrant = jep::catRoll<floatpair>(lower_quadrants);
+	params[VS_LOWER] = randomFloat(selected_lower_quadrant.first, selected_lower_quadrant.second, 2);
+
+	map< floatpair, signed short> upper_quadrants;
+	for (int i = 0; i < 5; i++)
+	{
+		float quadrant_range_lower = lower_min + ((.1 * (i + 5)) * span);
+		float quadrant_range_upper = lower_min + ((.1 * (i + 6)) * span);
+		upper_quadrants[floatpair(quadrant_range_lower, quadrant_range_upper)] = probability_array[i];
+	}
+	floatpair selected_upper_quadrant = jep::catRoll<floatpair>(upper_quadrants);
+	params[VS_UPPER] = randomFloat(selected_upper_quadrant.first, selected_upper_quadrant.second, 2);
+}
+
+void value_state::setBase()
+{
+	float lowest = params.at(VS_LOWER);
+	float span = params.at(VS_UPPER) - params.at(VS_LOWER);
+	signed short probability_array[] = { 18, 20, 24, 20, 18 };
+
+	map< floatpair, signed short> base_quadrants;
+	for (int i = 0; i < 5; i++)
+	{
+		float quadrant_range_lower = lowest + ((.1 * i) * span);
+		float quadrant_range_upper = lowest + ((.1 * (i + 1)) * span);
+		base_quadrants[floatpair(quadrant_range_lower, quadrant_range_upper)] = probability_array[i];
+	}
+	floatpair selected_base_quadrant = jep::catRoll<floatpair>(base_quadrants);
+	params[VS_BASE] = randomFloat(selected_base_quadrant.first, selected_base_quadrant.second, 2);
 }
 
 const float avg_container::combineAverages

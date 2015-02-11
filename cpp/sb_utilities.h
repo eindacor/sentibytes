@@ -20,6 +20,8 @@ void removeFromVector(vector<t> &vec, t target);
 template <typename t1, typename t2>
 void removeFromMap(map<t1, t2> &m, t1 target);
 
+typedef pair<float, float> floatpair;
+
 class value_state
 {
 public:
@@ -34,12 +36,11 @@ public:
 	void update();
 
 private:
-	void setBounds(float lower_min, float span);
+	void setBounds(float lower_min, float upper_max);
 	void setBase();
 	map<value_state_data_type, float> params;
 	float fluctuation_coefficient;
 	float fluctuation_sensitivity;
-
 };
 
 class avg_container
