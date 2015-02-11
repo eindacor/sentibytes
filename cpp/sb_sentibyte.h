@@ -8,7 +8,7 @@
 class sentibyte
 {
 public:
-	sentibyte(string name);
+	sentibyte(string name, population* pop);
 	~sentibyte(){};
 
 	operator string() const { return sentibyte_ID; }
@@ -19,9 +19,11 @@ public:
 	const string getID() const { return sentibyte_ID; }
 	const list<string> getStrangers() const;
 	contacts_ptr getContacts() { return contacts; }
+	string_listman_ptr getContactLists() { return contacts->getContactLists(); }
+
 	const vector<string> getTopContacts() { return contacts->getTop(MAX_FRIENDS); }
 
-	const bool traitExists(string trait_name) const { return std::find(traits.begin(), traits.end(), trait_name) == traits.end(); }
+	const bool traitExists(string trait_name) const { return traits.find(trait_name) == traits.end(); }
 	const bool proc(string trait) const { return traits.at(trait).proc(); }
 
 	void fluctuateTraits();

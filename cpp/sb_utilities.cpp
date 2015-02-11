@@ -16,6 +16,52 @@ const float randomFloat(float min, float max, int precision)
 	return random_float;
 }
 
+/*
+template <typename t>
+const vector<t>::const_iterator randomVectorIterator(const vector<t> &vec)
+{
+	if (vec.size() == 0)
+		return vec.end();
+
+	int random_index = rand() % vec.size();
+	vector<t>::const_iterator it = vec.begin() + random_interaction_index;
+	return it;
+}
+
+template <typename t1, typename t2>
+const map<t1, t2>::const_iterator randomMapIterator(const map<t1, t2> &m)
+{
+	if (m.size() == 0)
+		return m.end();
+
+	int random_index = rand() % m.size();
+	map<t1, t2>::const_iterator it = m.cbegin();
+	for (int i = 0; i < random_index; i++)
+		it++;
+
+	return it;
+}
+*/
+
+template<typename t>
+void removeFromVector(vector<t> &vec, t target)
+{
+	vector<t>::iterator it = std::find(vec.begin(), vec.end(), target);
+	if (it != vec.end())
+		vec.erase(it);
+}
+
+template<typename t1, typename t2>
+void removeFromMap(map<t1, t2> &m, t1 target)
+{
+	m.erase(it);
+}
+
+const bool stringInVector(string s, const vec_str &vec)
+{
+	return std::find(vec.begin(), vec.end(), s) != vec.end();
+}
+
 value_state::value_state()
 {
 	setBounds(0.0f, 100.0f);
@@ -99,6 +145,67 @@ void value_state::setBase()
 	params[VS_BASE] = randomFloat(selected_base_quadrant.first, selected_base_quadrant.second, 2);
 }
 
+void value_state::fluctuate()
+{
+	float positive_chance;
+
+	//When current level is the base level, there's a 50/50 chance for the trait to fluctuate positively.
+	//The closer the current level is to upper bound, the less likely it is to change in the positive. Same
+	//mechanic when current is close to lower bound.
+
+	if (params.at(VS_CURRENT) >= params.at(VS_BASE))
+	{
+		float distance_from_upper = params.at(VS_UPPER) - params.at(VS_CURRENT);
+		float upper_range = params.at(VS_UPPER) - params.at(VS_BASE);
+		positive_chance = (distance_from_upper / upper_range) * .5f;
+	}
+
+	else
+	{
+		float distance_from_lower = params.at(VS_CURRENT) - params.at(VS_LOWER);
+		float lower_range = params.at(VS_BASE) - params.at(VS_LOWER);
+		positive_chance = 1 - ((distance_from_lower / lower_range) * .5f);
+	}
+
+	float value_change = randomFloat(0.0f, fluctuation_coefficient, 3) * (params.at(VS_UPPER) - params.at(VS_LOWER));
+
+	if (!jep::booRoll(positive_chance))
+		value_change *= -1.0f;
+
+	params[VS_CURRENT] = params[VS_CURRENT] += value_change;
+
+	update();
+}
+
+void value_state::update()
+{
+	VSBoundsCheck();
+	float distance_from_lower = params.at(VS_CURRENT) - params.at(VS_LOWER);
+	float range = params.at(VS_UPPER) - params.at(VS_LOWER);
+	params[VS_RELATIVE] = distance_from_lower / range;
+	params[VS_COEF] = params[VS_CURRENT] / 100.0f;
+}
+
+void value_state::influence(float value, float coefficient = -1.0f)
+{
+	if (coefficient < 0)
+		coefficient = fluctuation_sensitivity;
+
+	float distance_from_current = params.at(VS_CURRENT) - value;
+	float value_change = distance_from_current * coefficient;
+	params[VS_CURRENT] += value_change;
+	VSBoundsCheck();
+}
+
+void value_state::VSBoundsCheck()
+{
+	if (params.at(VS_CURRENT) > params.at(VS_UPPER))
+		params[VS_CURRENT] = params[VS_UPPER];
+
+	else if (params.at(VS_CURRENT) < params.at(VS_LOWER))
+		params[VS_CURRENT] = params[VS_LOWER];
+}
+
 const float avg_container::combineAverages
 (float previous_avg, int previous_count, float added_avg, int added_count) const
 {
@@ -130,52 +237,6 @@ float calcAccuracy(float target_value, float range_coefficient, float max_offset
 		margain *= -1;
 	float new_value = boundsCheck(target_value + margain);
 	return new_value;
-}
-
-template <typename t>
-const vector<t>::const_iterator randomVectorIterator(const vector<t> &vec)
-{
-	if (vec.size() == 0)
-		return vec.end();
-
-	int random_index = rand() % vec.size();
-	vector<t>::const_iterator it = vec.begin() + random_interaction_index;
-	return it;
-}
-
-template <typename t1, typename t2>
-const map<t1, t2>::const_iterator randomMapIterator(const map<t1, t2> &m)
-{
-	if (m.size() == 0)
-		return m.end();
-
-	int random_index = rand() % m.size();
-	map<t1, t2>::const_iterator it = m.cbegin();
-	for (int i = 0; i < random_index; i++)
-		it++;
-
-	return it;
-}
-
-template<typename t>
-void removeFromVector(vector<t> &vec, t target)
-{
-	vector<t>::iterator it = std::find(vec.begin(), vec.end(), target);
-	if (it != vec.end())
-		vec.erase(it);
-}
-
-template<typename t1, typename t2>
-void removeFromMap(map<t1, t2> &m, t1 target)
-{
-	map<t1, t2>::iterator it = std::find(m.begin(), m.end(), target);
-	if (it != m.end())
-		m.erase(it);
-}
-
-const bool stringInVector(string s, const vec_str &vec)
-{
-	return std::find(vec.begin(), vec.end(), s) != vec.end();
 }
 
 template <typename T>

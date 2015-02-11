@@ -4,21 +4,9 @@
 #include "sb_header.h"
 
 float boundsCheck(float f);
-float calcAccuracy(float target_value, float range_coefficient, float max_offset = 10.0);
+float calcAccuracy(float target_value, float range_coefficient, float max_offset);
 const bool stringInVector(string s, const vec_str &vec);
 const float getCoefficient(float min, float max);
-
-template <typename t>
-const vector<t>::const_iterator randomVectorIterator(const vector<t> &vec);
-
-template <typename t1, typename t2>
-const map<t1, t2>::const_iterator randomMapIterator(const map<t1, t2> &m);
-
-template <typename t>
-void removeFromVector(vector<t> &vec, t target);
-
-template <typename t1, typename t2>
-void removeFromMap(map<t1, t2> &m, t1 target);
 
 typedef pair<float, float> floatpair;
 
@@ -31,13 +19,17 @@ public:
 	~value_state(){};
 
 	const bool proc() const;
-	const float operator [] (string trait) const { return params.at(trait); }
+	const float operator [] (value_state_data_type type) const { return params.at(type); }
 	void fluctuate();
 	void update();
+	void influence(float value, float coefficient);
+	void setFlucCoefficient(float f) { fluctuation_coefficient = f; }
+	void setFlucSensitivity(float f) { fluctuation_sensitivity = f; }
 
 private:
 	void setBounds(float lower_min, float upper_max);
 	void setBase();
+	void VSBoundsCheck();
 	map<value_state_data_type, float> params;
 	float fluctuation_coefficient;
 	float fluctuation_sensitivity;
