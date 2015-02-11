@@ -40,13 +40,13 @@ public:
 
 	void addMemory(const interaction &toAdd);
 
-	const interaction_ptr getRandomMemory() const;
-	const interaction_ptr getRandomMemory(string other_ID) const;
+	const pair<string, float> getRandomMemory() const;
+	const float getRandomMemory(string other_ID) const;
 	const vector<float> readMemory(string other_ID) const { return memory.at(other_ID); }
 	perception_ptr getPerception(string other_ID) { return perceptions.at(other_ID); }
+	const vector<string> getTop(int n) const;
 
 	void departContact(string other_ID);
-	void update(population &community, sentibyte &sb);
 
 	const vec_str getContacts() const { return contacts; }
 	const signed short getContactCount() const { return contacts.size(); }

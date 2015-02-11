@@ -6,6 +6,7 @@
 float boundsCheck(float f);
 float calcAccuracy(float target_value, float range_coefficient, float max_offset = 10.0);
 const bool stringInVector(string s, const vec_str &vec);
+const float getCoefficient(float min, float max);
 
 template <typename t>
 const vector<t>::const_iterator randomVectorIterator(const vector<t> &vec);
@@ -22,15 +23,22 @@ void removeFromMap(map<t1, t2> &m, t1 target);
 class value_state
 {
 public:
+	value_state();
+	value_state(float lower_bound, float base, float upper_bound);
 	value_state(float lower_min, float upper_max);
 	~value_state(){};
 
 	const bool proc() const;
 	const float operator [] (string trait) const { return params.at(trait); }
 	void fluctuate();
+	void update();
 
 private:
-	map<string, float> params;
+	void setBounds(float lower_min, float span);
+	void setBase();
+	map<value_state_data_type, float> params;
+	float fluctuation_coefficient;
+	float fluctuation_sensitivity;
 
 };
 

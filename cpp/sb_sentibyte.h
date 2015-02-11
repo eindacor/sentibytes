@@ -3,38 +3,35 @@
 
 #include "sb_header.h"
 #include "sb_connections.h"
+#include "sb_population.h"
 
 class sentibyte
 {
 public:
-	sentibyte(string name, const map<string, value_state> &added_traits);
 	sentibyte(string name);
 	~sentibyte(){};
 
 	operator string() const { return sentibyte_ID; }
-	const value_state operator [] (string trait) const;
+	const value_state operator [] (string trait) const { return traits.at(trait); }
 	const bool operator == (const sentibyte &other) const { return sentibyte_ID == other.getID(); }
 	const bool operator != (const sentibyte &other) const { return sentibyte_ID != other.getID(); }
 
 	const string getID() const { return sentibyte_ID; }
-	const vec_str getStrangers() const;
+	const list<string> getStrangers() const;
 	contacts_ptr getContacts() { return contacts; }
+	const vector<string> getTopContacts() { return contacts->getTop(MAX_FRIENDS); }
 
 	const bool traitExists(string trait_name) const { return std::find(traits.begin(), traits.end(), trait_name) == traits.end(); }
 	const bool proc(string trait) const { return (*this)[trait].proc(); }
 
-	void reflect();
-	void learn();
 	void fluctuateTraits();
 	void setID(string id) { sentibyte_ID = id; }
 
-	const vector<string> getFavorite(int n);
+	const vector<string> getFavorite(int n) { return contacts->getTop(n); }
 
 	void addTrait(string trait_name, const value_state &vs);
 
-	// transmission functions cannot be const, because the trait guesses of 
-	// each are determined only when 
-	void updateContacts();
+	void updateContacts() { contacts->update(); }
 
 private:
 	string sentibyte_ID;
@@ -45,5 +42,7 @@ private:
 
 	map<string, value_state> traits;
 };
+
+sentibyte createChild(const sentibyte &mother, const sentibyte &father);
 
 #endif

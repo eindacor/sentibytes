@@ -1,5 +1,29 @@
 #include "sb_utilities.h"
 
+const float getCoefficient(float min, float max, int precision)
+{
+	if (min < 0 || max < 0 || max <= min)
+		throw;
+	double precision_multiplier = pow(10, precision);
+	signed int min_int = int(min * precision_multiplier);
+	signed int max_int = int(max * precision_multiplier);
+	int range = max_int - min_int;
+	int random_number = rand() % (range + 1);
+	random_number += min_int;
+	float coefficient = float(random_number) / precision_multiplier;
+	return coefficient;
+}
+
+value_state::value_state()
+{
+	setBounds(0.0f, 100.0f);
+	setBase();
+	params[VS_CURRENT] = params[VS_BASE];
+	fluctuation_coefficient = getCoefficient(.02, .05, 4);
+	fluctuation_sensitivity = getCoefficient(.02, .2, 4);
+	update();
+}
+
 const float avg_container::combineAverages
 (float previous_avg, int previous_count, float added_avg, int added_count) const
 {
@@ -10,11 +34,6 @@ const float avg_container::combineAverages
 	int new_count = previous_count + added_count;
 	float new_total = (previous_avg * float(previous_count)) + (added_avg * float(added_count));
 	return float(new_total / float(new_count));
-}
-
-void value_state::fluctuate()
-{
-
 }
 
 float boundsCheck(float f)
