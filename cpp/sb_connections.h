@@ -33,12 +33,12 @@ private:
 class contact_manager
 {
 public:
-	contact_manager(){};
+	contact_manager() : contact_lists(new list_manager<string>) {};
 	~contact_manager(){};
 
 	const bool inContacts(string other_ID) const { return stringInVector(other_ID, contacts); }
 
-	void addMemory(const interaction &toAdd);
+	void addMemory(string other_ID, float toAdd);
 
 	const pair<string, float> getRandomMemory() const;
 	const float getRandomMemory(string other_ID) const;

@@ -169,7 +169,7 @@ void value_state::fluctuate()
 
 	float value_change = randomFloat(0.0f, fluctuation_coefficient, 3) * (params.at(VS_UPPER) - params.at(VS_LOWER));
 
-	if (!jep::booRoll(positive_chance))
+	if (!booRoll(positive_chance))
 		value_change *= -1.0f;
 
 	params[VS_CURRENT] = params[VS_CURRENT] += value_change;
@@ -229,6 +229,20 @@ float boundsCheck(float f)
 	else return f;
 }
 
+const string generateID(string name)
+{
+	string ID = name;
+
+	for (int i = 0; i < 12; i++)
+	{
+		char c = '0';
+		c += rand() % 10;
+		ID += c;
+	}
+
+	return ID;
+}
+
 float calcAccuracy(float target_value, float range_coefficient, float max_offset=10.0)
 {
 	float random_float = float(rand() % 101) / 100.0f;
@@ -237,27 +251,4 @@ float calcAccuracy(float target_value, float range_coefficient, float max_offset
 		margain *= -1;
 	float new_value = boundsCheck(target_value + margain);
 	return new_value;
-}
-
-template <typename T>
-void list_manager<T>::addList(string list_name)
-{
-	if (lists.find(list_name) == lists.end())
-		lists[list_name] = list<string>();
-}
-
-template <typename T>
-void list_manager<T>::removeList(string list_name)
-{
-	lists.at(list_name);
-	lists.erase(list_name);
-}
-
-template <typename T>
-const bool list_manager<T>::isInList(T to_add, string list_name) const
-{
-	list<T>::const_iterator it =
-		std::find(lists.at(list_name).begin(), lists.at(list_name).end(), to_add);
-
-	return it != lists.at(list_name).end();
 }

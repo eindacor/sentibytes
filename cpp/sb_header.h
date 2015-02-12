@@ -33,6 +33,8 @@ using std::cin;
 using std::pair;
 using std::sort;
 using std::list;
+using jep::booRoll;
+using jep::catRoll;
 
 typedef boost::shared_ptr<population> population_ptr;
 typedef boost::shared_ptr<contact_manager> contacts_ptr;

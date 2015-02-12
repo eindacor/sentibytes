@@ -1,25 +1,5 @@
 #include "sb_sentibyte.h"
 
-sentibyte::sentibyte(string name, population* pop)
-{
-	string ID;
-
-	for (int i = 0; i < 12; i++)
-	{
-		char c = 'a';
-		c += rand() % 26;
-		ID += c;
-	}
-
-	sentibyte_ID = ID;
-	location = rand() % 12;
-
-	community = population_ptr(pop);	
-	contacts = contacts_ptr(new contact_manager);
-
-	community->addMember(sentibyte_ID);
-}
-
 const list<string> sentibyte::getStrangers() const
 {
 	list<string> strangers;

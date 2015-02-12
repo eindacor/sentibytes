@@ -7,6 +7,7 @@ float boundsCheck(float f);
 float calcAccuracy(float target_value, float range_coefficient, float max_offset);
 const bool stringInVector(string s, const vec_str &vec);
 const float getCoefficient(float min, float max);
+const string generateID(string name);
 
 typedef pair<float, float> floatpair;
 
@@ -64,16 +65,64 @@ public:
 	list_manager(){};
 	~list_manager(){};
 
-	void addList(string list_name);
-	void removeList(string list_name);
+	inline void addList(string list_name);
+	inline void removeList(string list_name);
 	void addToList(T to_add, string list_name) { lists.at(list_name).push_back(to_add); }
 	void removeFromList(T to_add, string list_name) { lists.at(list_name).remove(to_add); }
-	const bool isInList(T to_add, string list_name) const;
+	inline const bool isInList(T to_find, string list_name) const;
 	const list<string> getList(string list_name) const { return lists.at(list_name); }
 	const signed int getListSize(string list_name) const { return lists.at(list_name).size(); }
 
 private:
 	map<string, list<T> > lists;
 };
+
+template <typename T>
+void list_manager<T>::addList(string list_name)
+{
+	if (lists.find(list_name) == lists.end())
+		lists[list_name] = list<string>();
+}
+
+template <typename T>
+void list_manager<T>::removeList(string list_name)
+{
+	lists.at(list_name);
+	lists.erase(list_name);
+}
+
+template <typename T>
+const bool list_manager<T>::isInList(T to_find, string list_name) const
+{
+	list<T>::const_iterator it =
+		std::find(lists.at(list_name).begin(), lists.at(list_name).end(), to_find);
+
+	return it != lists.at(list_name).end();
+}
+
+template <typename T>
+const T randomVectorElement(const vector<T> &vec)
+{
+	if (vec.size() == 0)
+		throw;
+
+	int random_index = rand() % vec.size();
+	vector<T>::const_iterator it = vec.begin() + random_index;
+	return T(*it);
+}
+
+template <typename T1, typename T2>
+const pair<T1, T2> randomMapElement(const map<T1, T2> &m)
+{
+	if (m.size() == 0)
+		throw;
+
+	int random_index = rand() % m.size();
+	map<T1, T2>::const_iterator it = m.cbegin();
+	for (int i = 0; i < random_index; i++)
+		it++;
+
+	return pair<T1, T2>(it->first, it->second);
+}
 
 #endif

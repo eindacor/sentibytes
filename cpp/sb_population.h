@@ -6,7 +6,7 @@
 class population
 {
 public:
-	population(){};
+	population() : population_lists(new string_list_manager) {};
 	~population(){};
 
 	const list<string> getMembers() const { return members; }
