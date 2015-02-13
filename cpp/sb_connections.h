@@ -36,7 +36,7 @@ public:
 	contact_manager() : contact_lists(new list_manager<string>) {};
 	~contact_manager(){};
 
-	const bool inContacts(string other_ID) const { return stringInVector(other_ID, contacts); }
+	const bool inContacts(string other_ID) const { return stringInList(other_ID, contacts); }
 
 	void addMemory(string other_ID, float toAdd);
 
@@ -46,10 +46,12 @@ public:
 	perception_ptr getPerception(string other_ID) { return perceptions.at(other_ID); }
 	const vector<string> getTop(int n) const;
 
-	void departContact(string other_ID);
+	void addContact(string other_ID);
+	void removeContact(string other_ID);
 
-	const vec_str getContacts() const { return contacts; }
+	const list<string> getContacts() const { return contacts; }
 	const signed short getContactCount() const { return contacts.size(); }
+	const vector<string> getContactListNames() const { return contact_lists->getListNames(); }
 
 	const string_listman_ptr getContactLists() const { return contact_lists; }
 
@@ -57,7 +59,7 @@ public:
 	perception_iterator verifyPerception(string other_ID, sentibyte &sb);
 
 private:
-	vec_str contacts;
+	list<string> contacts;
 	perception_map perceptions;
 	map<string, vector<float> > memory;
 	string_listman_ptr contact_lists;

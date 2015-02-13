@@ -21,11 +21,13 @@ public:
 	void addContactList(string list_name) { contacts->getContactLists()->addList(list_name); }
 	void removeContactList(string list_name) { contacts->getContactLists()->removeList(list_name); }
 	//modify addToContactList so that contact_manager adds string to general contacts as well
-	void addToContactList(string to_add, string list_name) { contacts->getContactLists()->addToList(to_add, list_name); }
-	void removeFromContactList(string to_remove, string list_name) { contacts->getContactLists()->removeFromList(to_remove, list_name); }
+	void addToContactList(string to_add, string list_name);
+	void removeFromContactList(string to_remove, string list_name);
+	void removeFromContacts(string to_remove);
 	const bool isInContactList(string to_find, string list_name) const{ return contacts->getContactLists()->isInList(to_find, list_name); }
-	contacts_ptr getContacts() { return contacts; }
+	const list<string> getContacts() const { return contacts->getContacts(); }
 	const list<string> getContactList(string list_name) const { return contacts->getContactLists()->getList(list_name); }
+	const vector<string> getContactListNames() const { return contacts->getContactListNames(); }
 
 	const vector<string> getTopContacts() { return contacts->getTop(MAX_FRIENDS); }
 

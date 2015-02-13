@@ -7,11 +7,29 @@ const list<string> sentibyte::getStrangers() const
 	if (community == NULL)
 		return strangers;
 
-	for (list<string>::const_iterator it = community->getMembers().begin(); it != community->getMembers().end(); it++)
-		if (!contacts->inContacts(*it))
+	list<string> members = community->getMembers();
+	for (list<string>::const_iterator it = members.begin(); it != members.end(); it++)
+		if (!contacts->inContacts(*it) && *it != sentibyte_ID)
 			strangers.push_back(*it);
 
 	return strangers;
+}
+
+void sentibyte::addToContactList(string to_add, string list_name)
+{
+	if (!contacts->inContacts(to_add))
+		contacts->addContact(to_add);
+	contacts->getContactLists()->addToList(to_add, list_name);
+}
+
+void sentibyte::removeFromContactList(string to_remove, string list_name)
+{
+	contacts->getContactLists()->removeFromList(to_remove, list_name);
+}
+
+void sentibyte::removeFromContacts(string to_remove)
+{
+	contacts->removeContact(to_remove);
 }
 
 void sentibyte::fluctuateTraits()

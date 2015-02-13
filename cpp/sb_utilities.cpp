@@ -16,33 +16,6 @@ const float randomFloat(float min, float max, int precision)
 	return random_float;
 }
 
-/*
-template <typename t>
-const vector<t>::const_iterator randomVectorIterator(const vector<t> &vec)
-{
-	if (vec.size() == 0)
-		return vec.end();
-
-	int random_index = rand() % vec.size();
-	vector<t>::const_iterator it = vec.begin() + random_interaction_index;
-	return it;
-}
-
-template <typename t1, typename t2>
-const map<t1, t2>::const_iterator randomMapIterator(const map<t1, t2> &m)
-{
-	if (m.size() == 0)
-		return m.end();
-
-	int random_index = rand() % m.size();
-	map<t1, t2>::const_iterator it = m.cbegin();
-	for (int i = 0; i < random_index; i++)
-		it++;
-
-	return it;
-}
-*/
-
 template<typename t>
 void removeFromVector(vector<t> &vec, t target)
 {
@@ -60,6 +33,11 @@ void removeFromMap(map<t1, t2> &m, t1 target)
 const bool stringInVector(string s, const vec_str &vec)
 {
 	return std::find(vec.begin(), vec.end(), s) != vec.end();
+}
+
+const bool stringInList(string s, const list<string> &str)
+{
+	return std::find(str.begin(), str.end(), s) != str.end();
 }
 
 value_state::value_state()
@@ -231,7 +209,7 @@ float boundsCheck(float f)
 
 const string generateID(string name)
 {
-	string ID = name;
+	string ID = name + '_';
 
 	for (int i = 0; i < 12; i++)
 	{

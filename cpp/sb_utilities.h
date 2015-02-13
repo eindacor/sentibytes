@@ -6,6 +6,7 @@
 float boundsCheck(float f);
 float calcAccuracy(float target_value, float range_coefficient, float max_offset);
 const bool stringInVector(string s, const vec_str &vec);
+const bool stringInList(string s, const list<string> &str);
 const float getCoefficient(float min, float max);
 const string generateID(string name);
 
@@ -70,8 +71,10 @@ public:
 	void addToList(T to_add, string list_name) { lists.at(list_name).push_back(to_add); }
 	void removeFromList(T to_add, string list_name) { lists.at(list_name).remove(to_add); }
 	inline const bool isInList(T to_find, string list_name) const;
-	const list<string> getList(string list_name) const { return lists.at(list_name); }
+	const list<T> getList(string list_name) const { return lists.at(list_name); }
 	const signed int getListSize(string list_name) const { return lists.at(list_name).size(); }
+	void removeFromAllLists(T to_remove);
+	const vector<string> getListNames() const;
 
 private:
 	map<string, list<T> > lists;
@@ -98,6 +101,23 @@ const bool list_manager<T>::isInList(T to_find, string list_name) const
 		std::find(lists.at(list_name).begin(), lists.at(list_name).end(), to_find);
 
 	return it != lists.at(list_name).end();
+}
+
+template <typename T>
+void list_manager<T>::removeFromAllLists(T to_remove)
+{
+	for (map<string, list<T> >::iterator it = lists.begin(); it != lists.end(); it++)
+		it->second.remove(to_remove);
+}
+
+template <typename T>
+const vector<string> list_manager<T>::getListNames() const
+{
+	vector<string> list_names;
+	for (map < string, list<T> >::const_iterator it = lists.begin(); it != lists.end(); it++)
+		list_names.push_back(it->first);
+
+	return list_names;
 }
 
 template <typename T>

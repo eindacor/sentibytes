@@ -35,3 +35,18 @@ const float contact_manager::getRandomMemory(string other_ID) const
 	float random_memory = randomVectorElement<float>(memory.at(other_ID));
 	return random_memory;
 }
+
+void contact_manager::addContact(string other_ID)
+{
+	if (!stringInList(other_ID, contacts))
+		contacts.push_back(other_ID);
+}
+
+void contact_manager::removeContact(string other_ID)
+{
+	if (stringInList(other_ID, contacts))
+	{
+		contacts.remove(other_ID);
+		contact_lists->removeFromAllLists(other_ID);
+	}
+}
