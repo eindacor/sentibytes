@@ -9,6 +9,7 @@ const bool stringInVector(string s, const vec_str &vec);
 const bool stringInList(string s, const list<string> &str);
 const float getCoefficient(float min, float max);
 const string generateID(string name);
+const float randomFloat(float min, float max, int precision);
 
 typedef pair<float, float> floatpair;
 
@@ -22,7 +23,7 @@ public:
 
 	const bool proc() const;
 	const float operator [] (value_state_data_type type) const { return params.at(type); }
-	void fluctuate();
+	const float fluctuate();
 	void update();
 	void influence(float value, float coefficient);
 	void setFlucCoefficient(float f) { fluctuation_coefficient = f; }

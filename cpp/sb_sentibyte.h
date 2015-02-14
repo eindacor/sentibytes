@@ -8,7 +8,13 @@
 class sentibyte
 {
 public:
-	sentibyte(string name, population_ptr pop) : contacts(new contact_manager), location(rand() % 13) { community = pop; sentibyte_ID = generateID(name); }
+	sentibyte(string name, population_ptr pop) : contacts(new contact_manager), location(rand() % 13)
+	{	
+		community = pop; 
+		sentibyte_ID = generateID(name); 
+		pop->addMember(sentibyte_ID);
+	}
+
 	~sentibyte(){};
 
 	operator string() const { return sentibyte_ID; }
@@ -17,6 +23,7 @@ public:
 	const bool operator != (const sentibyte &other) const { return sentibyte_ID != other.getID(); }
 
 	const string getID() const { return sentibyte_ID; }
+	const signed short getTraitCount() const { return traits.size(); }
 	const list<string> getStrangers() const;
 	void addContactList(string list_name) { contacts->getContactLists()->addList(list_name); }
 	void removeContactList(string list_name) { contacts->getContactLists()->removeList(list_name); }
@@ -25,6 +32,7 @@ public:
 	void removeFromContactList(string to_remove, string list_name);
 	void removeFromContacts(string to_remove);
 	const bool isInContactList(string to_find, string list_name) const{ return contacts->getContactLists()->isInList(to_find, list_name); }
+	const map<string, value_state> getTraits() const { return traits; }
 	const list<string> getContacts() const { return contacts->getContacts(); }
 	const list<string> getContactList(string list_name) const { return contacts->getContactLists()->getList(list_name); }
 	const vector<string> getContactListNames() const { return contacts->getContactListNames(); }

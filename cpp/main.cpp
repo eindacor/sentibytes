@@ -1,5 +1,7 @@
 #include <iostream>
 #include "sb_sentibyte.h"
+#include "sb_display.h"
+#include "sb_keys.h"
 
 void printList(const sentibyte &sb, string list_name)
 {
@@ -40,44 +42,79 @@ void printStrangers(const sentibyte &sb)
 	cout << endl;
 }
 
+void giveTraits(vector<sb_ptr> &sb_vec)
+{
+	for (vector<sb_ptr>::iterator it = sb_vec.begin(); it != sb_vec.end(); it++)
+	{
+		(*it)->addTrait("positivity", value_state(.1f, .9f));
+		(*it)->addTrait("energy", value_state(.1f, .9f));
+		(*it)->addTrait("intelligence", value_state(.1f, .9f));
+		(*it)->addTrait("stamina", value_state(.1f, .9f));
+		(*it)->addTrait("sociability", value_state(.1f, .9f));
+		(*it)->addTrait("volatility", value_state(.1f, .9f));
+	}
+}
+
 int main()
 {
 	jep::init();
 
 	population_ptr test_population(new population);
 
-	sentibyte joe("Joe Pollack", test_population);
-	sentibyte carolyn("Carolyn Pollack", test_population);
-	sentibyte alex("Alex Rost", test_population);
-	sentibyte derek("Derek Lariviere", test_population);
-	sentibyte doug("Doug Random", test_population);
-	sentibyte fred("Fred Random", test_population);
+	vector<sb_ptr> sb_vec;
 
-	test_population->addMember(derek.getID());
-	test_population->addMember(joe.getID());
-	test_population->addMember(carolyn.getID());
-	test_population->addMember(doug.getID());
-	test_population->addMember(fred.getID());
+	sb_vec.push_back(sb_ptr(new sentibyte("Joe Pollack", test_population)));
+	sb_vec.push_back(sb_ptr(new sentibyte("Carolyn Pollack", test_population)));
+	sb_vec.push_back(sb_ptr(new sentibyte("Alex Rost", test_population)));
+	sb_vec.push_back(sb_ptr(new sentibyte("Derek Lariviere", test_population)));
+	sb_vec.push_back(sb_ptr(new sentibyte("Doug Random", test_population)));
+	//sb_vec.push_back(sb_ptr(new sentibyte("Fred Random", test_population)));
 
-	joe.addTrait("positivity", value_state(.1f, .9f));
-	carolyn.addTrait("positivity", value_state(.25f, .5f, .75f));
+	giveTraits(sb_vec);
 
-	joe.addContactList("friends");
-	joe.addContactList("wife");
-	joe.addToContactList(carolyn.getID(), "friends");
-	joe.addToContactList(carolyn.getID(), "wife");
-	joe.addToContactList(derek.getID(), "friends");
-	joe.addToContactList(alex.getID(), "friends");
-	joe.addToContactList(fred.getID(), "friends");
-	joe.addToContactList(doug.getID(), "friends");
+	string frag_shader_path = "J:/GitHub/OpenGL-Calculator/fragment_shader.glsl";
+	string vertex_shader_path = "J:/GitHub/OpenGL-Calculator/vertex_shader.glsl";
 
-	printStrangers(joe);
-	printContacts(joe);
-	joe.removeFromContacts(doug.getID());
-	printContacts(joe);
-	joe.removeFromContactList(fred.getID(), "friends");
-	printContacts(joe);
-	printStrangers(joe);
+	display_handler display_context("The Window", frag_shader_path, vertex_shader_path);
+
+	if (display_context.getErrors() == true)
+	{
+		display_context.printErrors();
+		return 0;
+	}
+
+	vec4 origin(0.0f, 0.0f, 0.0f, 1.0f);
+
+	key_handler keystates;
+	sb_group geometry_group;
+
+	for (vector<sb_ptr>::iterator it = sb_vec.begin(); it != sb_vec.end(); it++)
+		geometry_group.addSBGeometry(*it);
+	
+
+	glfwSetTime(0);
+
+	std::ofstream log_file;
+
+	cout << sb_vec.size() << endl;
+
+	do
+	{
+		glfwPollEvents();
+
+		KEYRETURN returned_key = keystates.checkKeys(display_context);
+
+		display_context.render(geometry_group);
+
+		if (glfwGetTime() > .4f)
+		{
+			glfwSetTime(0);
+			for (vector<sb_ptr>::iterator it = sb_vec.begin(); it != sb_vec.end(); it++)
+				(*it)->fluctuateTraits();
+		}
+
+	} while (glfwGetKey(display_context.getWindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+		!glfwWindowShouldClose(display_context.getWindow()));
 
 	return 0;
 }

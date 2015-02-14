@@ -35,7 +35,7 @@ void sentibyte::removeFromContacts(string to_remove)
 void sentibyte::fluctuateTraits()
 {
 	for (map<string, value_state>::iterator it = traits.begin(); it != traits.end(); it++)
-		it->second.fluctuate();
+		cout << it->second.fluctuate() << endl;
 }
 
 void sentibyte::addTrait(string trait_name, const value_state &vs)

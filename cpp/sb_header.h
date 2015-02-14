@@ -1,6 +1,13 @@
 #ifndef SB_HEADER_H
 #define SB_HEADER_H
 
+//headers required for opengl
+#include <glew.h>
+#include <glfw3.h>
+#include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
+#include <fstream>
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -22,6 +29,8 @@ class population;
 class session;
 class contact_manager;
 class value_state;
+class display_handler;
+class key_handler;
 template <typename T> class list_manager;
 
 using std::string;
@@ -35,6 +44,13 @@ using std::sort;
 using std::list;
 using jep::booRoll;
 using jep::catRoll;
+
+//opengl
+using glm::mat4;
+using glm::vec4;
+using glm::vec3;
+enum opengl_defs { MARGAINS = 1, DEFAULT_SB_WIDTH = 2, VERTICAL_PADDING = 2};
+enum KEYRETURN { NULL_RETURN, ENTER, BASE, OPTIONS };
 
 typedef boost::shared_ptr<population> population_ptr;
 typedef boost::shared_ptr<contact_manager> contacts_ptr;

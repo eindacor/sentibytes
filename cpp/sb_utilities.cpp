@@ -45,8 +45,8 @@ value_state::value_state()
 	setBounds(0.0f, 100.0f);
 	setBase();
 	params[VS_CURRENT] = params[VS_BASE];
-	fluctuation_coefficient = randomFloat(.02, .05, 4);
-	fluctuation_sensitivity = randomFloat(.02, .2, 4);
+	fluctuation_coefficient = randomFloat(.1, .3, 2);
+	fluctuation_sensitivity = randomFloat(.1, .3, 2);
 	update();
 }
 
@@ -56,8 +56,8 @@ value_state::value_state(float lower_bound, float base, float upper_bound)
 	params[VS_BASE] = base;
 	params[VS_CURRENT] = base;
 	params[VS_UPPER] = upper_bound;
-	fluctuation_coefficient = randomFloat(.02, .05, 4);
-	fluctuation_sensitivity = randomFloat(.02, .2, 4);
+	fluctuation_coefficient = randomFloat(.1, .3, 2);
+	fluctuation_sensitivity = randomFloat(.1, .3, 2);
 	update();
 }
 
@@ -66,8 +66,8 @@ value_state::value_state(float lower_min, float upper_max)
 	setBounds(lower_min, upper_max);
 	setBase();
 	params[VS_CURRENT] = params[VS_BASE];
-	fluctuation_coefficient = randomFloat(.02, .05, 4);
-	fluctuation_sensitivity = randomFloat(.02, .2, 4);
+	fluctuation_coefficient = randomFloat(.1, .3, 2);
+	fluctuation_sensitivity = randomFloat(.1, .3, 2);
 	update();
 }
 
@@ -93,7 +93,7 @@ void value_state::setBounds(float lower_min, float upper_max)
 		lower_quadrants[floatpair(quadrant_range_lower, quadrant_range_upper)] = probability_array[i];
 	}
 	floatpair selected_lower_quadrant = jep::catRoll<floatpair>(lower_quadrants);
-	params[VS_LOWER] = randomFloat(selected_lower_quadrant.first, selected_lower_quadrant.second, 2);
+	params[VS_LOWER] = randomFloat(selected_lower_quadrant.first, selected_lower_quadrant.second, 2) * 100.0f;
 
 	map< floatpair, signed short> upper_quadrants;
 	for (int i = 0; i < 5; i++)
@@ -103,7 +103,7 @@ void value_state::setBounds(float lower_min, float upper_max)
 		upper_quadrants[floatpair(quadrant_range_lower, quadrant_range_upper)] = probability_array[i];
 	}
 	floatpair selected_upper_quadrant = jep::catRoll<floatpair>(upper_quadrants);
-	params[VS_UPPER] = randomFloat(selected_upper_quadrant.first, selected_upper_quadrant.second, 2);
+	params[VS_UPPER] = randomFloat(selected_upper_quadrant.first, selected_upper_quadrant.second, 2) * 100.0f;
 }
 
 void value_state::setBase()
@@ -120,10 +120,10 @@ void value_state::setBase()
 		base_quadrants[floatpair(quadrant_range_lower, quadrant_range_upper)] = probability_array[i];
 	}
 	floatpair selected_base_quadrant = jep::catRoll<floatpair>(base_quadrants);
-	params[VS_BASE] = randomFloat(selected_base_quadrant.first, selected_base_quadrant.second, 2);
+	params[VS_BASE] = randomFloat(selected_base_quadrant.first, selected_base_quadrant.second, 2) * 100.0f;
 }
 
-void value_state::fluctuate()
+const float value_state::fluctuate()
 {
 	float positive_chance;
 
@@ -153,6 +153,8 @@ void value_state::fluctuate()
 	params[VS_CURRENT] = params[VS_CURRENT] += value_change;
 
 	update();
+
+	return value_change;
 }
 
 void value_state::update()
