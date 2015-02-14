@@ -52,6 +52,8 @@ void giveTraits(vector<sb_ptr> &sb_vec)
 		(*it)->addTrait("stamina", value_state(.1f, .9f));
 		(*it)->addTrait("sociability", value_state(.1f, .9f));
 		(*it)->addTrait("volatility", value_state(.1f, .9f));
+		(*it)->addTrait("gullability", value_state(.1f, .9f));
+		(*it)->addTrait("intellectual", value_state(.1f, .9f));
 	}
 }
 
@@ -67,23 +69,26 @@ int main()
 	sb_vec.push_back(sb_ptr(new sentibyte("Carolyn Pollack", test_population)));
 	sb_vec.push_back(sb_ptr(new sentibyte("Alex Rost", test_population)));
 	sb_vec.push_back(sb_ptr(new sentibyte("Derek Lariviere", test_population)));
-	sb_vec.push_back(sb_ptr(new sentibyte("Doug Random", test_population)));
-	//sb_vec.push_back(sb_ptr(new sentibyte("Fred Random", test_population)));
 
+	int others = 8;
+	for (int i = 0; i < others; i++)
+	{
+		string random_name = generateID("random");
+		sb_vec.push_back(sb_ptr(new sentibyte(random_name, test_population)));
+	}
+		
 	giveTraits(sb_vec);
 
-	string frag_shader_path = "J:/GitHub/OpenGL-Calculator/fragment_shader.glsl";
-	string vertex_shader_path = "J:/GitHub/OpenGL-Calculator/vertex_shader.glsl";
+	string frag_shader_path = "fragment_shader.glsl";
+	string vertex_shader_path = "vertex_shader.glsl";
 
-	display_handler display_context("The Window", frag_shader_path, vertex_shader_path);
+	display_handler display_context("Sentibytes", frag_shader_path, vertex_shader_path);
 
 	if (display_context.getErrors() == true)
 	{
 		display_context.printErrors();
 		return 0;
 	}
-
-	vec4 origin(0.0f, 0.0f, 0.0f, 1.0f);
 
 	key_handler keystates;
 	sb_group geometry_group;
@@ -106,12 +111,8 @@ int main()
 
 		display_context.render(geometry_group);
 
-		if (glfwGetTime() > .4f)
-		{
-			glfwSetTime(0);
-			for (vector<sb_ptr>::iterator it = sb_vec.begin(); it != sb_vec.end(); it++)
-				(*it)->fluctuateTraits();
-		}
+		for (vector<sb_ptr>::iterator it = sb_vec.begin(); it != sb_vec.end(); it++)
+			(*it)->fluctuateTraits();
 
 	} while (glfwGetKey(display_context.getWindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&
 		!glfwWindowShouldClose(display_context.getWindow()));

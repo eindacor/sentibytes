@@ -10,6 +10,7 @@ const bool stringInList(string s, const list<string> &str);
 const float getCoefficient(float min, float max);
 const string generateID(string name);
 const float randomFloat(float min, float max, int precision);
+const vec4 combineColors(vec4 primary, vec4 secondary, float blend);
 
 typedef pair<float, float> floatpair;
 

@@ -145,7 +145,7 @@ const float value_state::fluctuate()
 		positive_chance = 1 - ((distance_from_lower / lower_range) * .5f);
 	}
 
-	float value_change = randomFloat(0.0f, fluctuation_coefficient, 3) * (params.at(VS_UPPER) - params.at(VS_LOWER));
+	float value_change = randomFloat(0.5f * fluctuation_coefficient, fluctuation_coefficient, 3) * (params.at(VS_UPPER) - params.at(VS_LOWER));
 
 	if (!booRoll(positive_chance))
 		value_change *= -1.0f;
@@ -231,4 +231,16 @@ float calcAccuracy(float target_value, float range_coefficient, float max_offset
 		margain *= -1;
 	float new_value = boundsCheck(target_value + margain);
 	return new_value;
+}
+
+const vec4 combineColors(vec4 primary, vec4 secondary, float blend)
+{
+	float primary_ratio = blend;
+	float secondary_ratio = 1.0f - blend;
+	float combined_red = (primary[0] * primary_ratio) + (secondary[0] * secondary_ratio);
+	float combined_green = (primary[1] * primary_ratio) + (secondary[1] * secondary_ratio);
+	float combined_blue = (primary[2] * primary_ratio) + (secondary[2] * secondary_ratio);
+	float combined_alpha = (primary[3] * primary_ratio) + (secondary[3] * secondary_ratio);
+
+	return vec4(combined_red, combined_green, combined_blue, combined_alpha);
 }

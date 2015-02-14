@@ -70,10 +70,10 @@ display_handler::display_handler(string title, string vert_file, string frag_fil
 		scaling_matrix_ID = glGetUniformLocation(program_ID, "scaling_matrix");
 		sb_color_ID = glGetUniformLocation(program_ID, "text_color");
 
-		text_color[0] = 1.0f;
-		text_color[1] = 1.0f;
-		text_color[2] = 1.0f;
-		text_color[3] = 1.0f;
+		sentibyte_color[0] = 1.0f;
+		sentibyte_color[1] = 1.0f;
+		sentibyte_color[2] = 1.0f;
+		sentibyte_color[3] = 1.0f;
 
 		sentibyte_color_index = 3;
 		background_color_index = 7;
@@ -214,15 +214,17 @@ void display_handler::render(sb_group &sbg)
 	glUseProgram(program_ID);
 
 	//creates a range based on desired character padding
-	int margains = MARGAINS * 2;
 	int count = sbg.getSBCount();
-	float range = ((count - 1) * DEFAULT_SB_WIDTH) + ((count - 1) * .5f);
-	range += margains;
+	float range = (float(count - 1) * 2.0f);
 
 	//default scale
-	float x_offset = float(range) / -2;
+	float x_offset = range / -2.0f;
 	float y_offset = 0.0f;
-	float scale = 2.0f / float(range);
+	//3.0f adds a small buffer on each side of array
+	float scale = 2.0f / (float(range) + 3.0f);
+
+	//x_offset = -4.0f;
+	//scale = 1.0f;
 
 	//translate/scale the world coordinates to clip space
 	glm::mat4 translation_matrix = glm::translate(mat4(1.0f), vec3(x_offset, y_offset, 0.0f));
@@ -231,40 +233,7 @@ void display_handler::render(sb_group &sbg)
 	glUniformMatrix4fv(scaling_matrix_ID, 1, GL_FALSE, &scaling_matrix[0][0]);
 
 	//draws each sentibyte in each sb_group
-	sbg.draw(vertex_buffer_object, sb_color_ID);
-
-	/* TODO use cursor color technique to draw full sentibyte overlay behind actual sentibyte
-	if (cursor_display == true)
-	{
-		//create color that is a combination of the background and text colors, and modify the uniform for the cursor
-		float cursor_red = text_color[0] + background_color[0];
-		float cursor_green = text_color[1] + background_color[1];
-		float cursor_blue = text_color[2] + background_color[2];
-		glUniform4f(text_color_ID, cursor_red / 2.0f, cursor_green / 2.0f, cursor_blue / 2.0f, 1.0f);
-
-		//get current cursor location
-		vec4 cursor = lines.getCursor();
-
-		//generate cursor triangles based on current location
-		float cursor_triangles[] = {
-			cursor.x, cursor.y + 1.0f, cursor.z, 1.0f,
-			cursor.x, cursor.y + 9.0f, cursor.z, 1.0f,
-			cursor.x + 4.0f, cursor.y + 1.0f, cursor.z, 1.0f,
-			cursor.x + 4.0f, cursor.y + 1.0f, cursor.z, 1.0f,
-			cursor.x, cursor.y + 9.0f, cursor.z, 1.0f,
-			cursor.x + 4.0f, cursor.y + 9.0f, cursor.z, 1.0f,
-		};
-
-		//draw cursor
-		glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_object);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(cursor_triangles), cursor_triangles, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		glDisableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-	}
-	*/
+	sbg.draw(vertex_buffer_object, sb_color_ID, background_color);
 
 	glfwSwapBuffers(window);
 }
@@ -288,14 +257,14 @@ void display_handler::scrollSentibyteColor(int i)
 
 	switch (sentibyte_color_index)
 	{
-	case 0: text_color = vec4(1.0f, 0.0f, 0.0f, 1.0f); break;
-	case 1: text_color = vec4(1.0f, 1.0f, 0.0f, 1.0f); break;
-	case 2: text_color = vec4(1.0f, 0.0f, 1.0f, 1.0f); break;
-	case 3: text_color = vec4(1.0f, 1.0f, 1.0f, 1.0f); break;
-	case 4: text_color = vec4(0.0f, 1.0f, 0.0f, 1.0f); break;
-	case 5: text_color = vec4(0.0f, 1.0f, 1.0f, 1.0f); break;
-	case 6: text_color = vec4(0.0f, 0.0f, 1.0f, 1.0f); break;
-	case 7: text_color = vec4(0.0f, 0.0f, 0.0f, 1.0f); break;
+	case 0: sentibyte_color = vec4(1.0f, 0.0f, 0.0f, 1.0f); break;
+	case 1: sentibyte_color = vec4(1.0f, 1.0f, 0.0f, 1.0f); break;
+	case 2: sentibyte_color = vec4(1.0f, 0.0f, 1.0f, 1.0f); break;
+	case 3: sentibyte_color = vec4(1.0f, 1.0f, 1.0f, 1.0f); break;
+	case 4: sentibyte_color = vec4(0.0f, 1.0f, 0.0f, 1.0f); break;
+	case 5: sentibyte_color = vec4(0.0f, 1.0f, 1.0f, 1.0f); break;
+	case 6: sentibyte_color = vec4(0.0f, 0.0f, 1.0f, 1.0f); break;
+	case 7: sentibyte_color = vec4(0.0f, 0.0f, 0.0f, 1.0f); break;
 	}
 }
 
@@ -320,6 +289,8 @@ void display_handler::scrollBackgroundColor(int i)
 	case 5: background_color = vec4(0.0f, 0.4f, 0.4f, 1.0f); break;
 	case 6: background_color = vec4(0.0f, 0.0f, 0.4f, 1.0f); break;
 	case 7: background_color = vec4(0.0f, 0.0f, 0.0f, 1.0f); break;
+	case 8: background_color = vec4(1.0f, 1.0f, 1.0f, 1.0f); break;
+	case 9: background_color = vec4(0.5f, 0.5f, 0.5f, 1.0f); break;
 	}
 
 	glClearColor(background_color[0], background_color[1], background_color[2], 1.0f);

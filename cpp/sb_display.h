@@ -29,7 +29,7 @@ private:
 	GLint translation_matrix_ID;
 	GLint scaling_matrix_ID;
 	GLint sb_color_ID;
-	vec4 text_color;
+	vec4 sentibyte_color;
 	vec4 background_color;
 	GLFWwindow* window;
 	vector<string> display_errors;
