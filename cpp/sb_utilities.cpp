@@ -267,7 +267,7 @@ const vec4 combineColors(vec4 primary, vec4 secondary, float blend)
 
 const pair<float, float> calculateLineFormula(vec2 first, vec2 second)
 {
-	if (abs(first.y - second.y) < .00000001f)
+	if (floatsAreEqual(first.y, second.y))
 		return pair<float, float>(0.0f, second.y);
 
 	float multiplier = (second.y - first.y) / (second.x - first.x);
@@ -277,32 +277,101 @@ const pair<float, float> calculateLineFormula(vec2 first, vec2 second)
 
 const float getLineAngle(vec2 first, vec2 second)
 {
-	if (abs(first.x - second.x) < .00000001f)
-		return 90.0f;
-	vec2 left_most = (first.x < second.x ? first : second);
-	vec2 right_most = (first.x > second.x ? first : second);
+	//assumes line is going from first to second
+	//angle returned is counter-clockwise offset from horizontal axis to the right
+	if (floatsAreEqual(first.x, second.x))
+	{
+		if (first.y < second.y)
+			return 90.0f;
+
+		else return 270.0f;
+	}
+
+	if (floatsAreEqual(first.y, second.y))
+	{
+		if (first.x < second.x)
+			return 0.0f;
+
+		else return 180.0f;
+	}
+
+	float tangent = ((second.y - first.y) / (second.x - first.x));
 	float pi = 3.14159265;
-	float angle = atan(abs(right_most.y - left_most.y) / abs(right_most.x - left_most.x)) * (180 / pi);
-	if (left_most.y > right_most.y)
-		return 180.0f - angle;
-	else return angle;
+	float angle = atan(abs(tangent)) * (180 / pi);
+	
+	if (tangent < 0)
+	{
+		if (first.x < second.x)
+			return 360.0f - angle;
+
+		else return 180.0f - angle;
+	}
+
+	else
+	{
+		if (first.x < second.x)
+			return angle;
+
+		else return 180.0f + angle;
+	}
 }
 
-const pair<vec2, vec2> getOffsetPoints(vec2 first, vec2 second, float distance, bool below)
+const pair<vec2, vec2> getOffsetPoints(vec2 first, vec2 second, float distance, bool right_side)
 {
-	vec2 left_most = (first.x < second.x ? first : second);
-	vec2 right_most = (first.x > second.x ? first : second);
 	float line_angle = getLineAngle(first, second);
-	vec4 first_point(0.0f, 0.0f, 0.0f, 1.0f);
-
-	glm::mat4 distance_offset = glm::translate(mat4(1.0f), vec3(0.0f + distance, 0.0f, 0.0f));
 
 	float rotation_angle;
 	//rotation angles assume clockwise
-	if (below)
-		rotation_angle = (line_angle < 90.0f ? (90.0f - line_angle) : (270.0f - line_angle));
+	rotation_angle = (right_side ? line_angle - 90.0f : line_angle + 90.f);
 
-	else rotation_angle = -1.0f * (line_angle + 90.0f);
+	if (rotation_angle < 0.0f)
+		rotation_angle = 360.0f + rotation_angle;
+
+	if (rotation_angle > 360.0f)
+		rotation_angle = rotation_angle - 360.0f;
 
 	mat4 rotation_matrix = glm::rotate(mat4(1.0f), rotation_angle, vec3(0.0f, 0.0f, 1.0f));
+
+	vec4 first_offset(distance, 0.0f, 0.0f, 1.0f);
+	vec4 second_offset(distance, 0.0f, 0.0f, 1.0f);
+	glm::mat4 first_translation = glm::translate(mat4(1.0f), vec3(first.x, first.y, 0.0f));
+	glm::mat4 second_translation = glm::translate(mat4(1.0f), vec3(second.x, second.y, 0.0f));
+
+	first_offset = rotation_matrix * first_offset;
+	second_offset = rotation_matrix * second_offset;
+
+	first_offset = first_translation * first_offset;
+	second_offset = second_translation * second_offset;
+	return pair<vec2, vec2>(vec2(first_offset.x, first_offset.y), vec2(second_offset.x, second_offset.y));
+}
+
+const vec2 getIntersection(pair<vec2, vec2> line_one, pair<vec2, vec2> line_two)
+{
+	pair<float, float> line_one_formula = calculateLineFormula(line_one.first, line_one.second);
+	pair<float, float> line_two_formula = calculateLineFormula(line_two.first, line_two.second);
+
+	if (floatsAreEqual(line_one_formula.first, line_two_formula.first))
+		throw;
+
+	float lhs = line_one_formula.first - line_two_formula.first;
+	float rhs = line_two_formula.second - line_one_formula.second;
+
+	float x = rhs / lhs;
+	float y = (x * line_one_formula.first) + line_one_formula.second;
+	return vec2(x, y);
+}
+
+const bool floatsAreEqual(float first, float second)
+{
+	return abs(first - second) < .00000001f;
+}
+
+void drawQuadrangle(vector<vec2> points)
+{
+
+}
+
+void drawLine(vector<vec2> points, float thickness, bool closed, vec4 color, GLint color_ID)
+{
+
 }

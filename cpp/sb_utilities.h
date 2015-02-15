@@ -13,6 +13,9 @@ const float randomFloat(float min, float max, int precision);
 const vec4 combineColors(vec4 primary, vec4 secondary, float blend);
 const pair<float, float> calculateLineFormula(vec2 first, vec2 second);
 const float getLineAngle(vec2 first, vec2 second);
+const pair<vec2, vec2> getOffsetPoints(vec2 first, vec2 second, float distance, bool right_side);
+const vec2 getIntersection(pair<vec2, vec2> line_one, pair<vec2, vec2> line_two);
+const bool floatsAreEqual(float first, float second);
 
 typedef pair<float, float> floatpair;
 

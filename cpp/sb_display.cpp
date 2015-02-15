@@ -22,7 +22,7 @@ display_handler::display_handler(string title, string vert_file, string frag_fil
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-		window = glfwCreateWindow(1024, 1024, &window_title[0], NULL, NULL);
+		window = glfwCreateWindow(600, 600, &window_title[0], NULL, NULL);
 	}
 
 	//test window

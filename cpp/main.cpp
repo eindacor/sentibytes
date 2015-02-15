@@ -42,6 +42,11 @@ void printStrangers(const sentibyte &sb)
 	cout << endl;
 }
 
+void printPoint(vec2 point)
+{
+	cout << "x: " << point.x << ", y: " << point.y << endl;
+}
+
 void giveTraits(vector<sb_ptr> &sb_vec)
 {
 	for (vector<sb_ptr>::iterator it = sb_vec.begin(); it != sb_vec.end(); it++)
@@ -63,16 +68,40 @@ void giveTraits(vector<sb_ptr> &sb_vec)
 
 int main()
 {
-	vec2 first(2.0f, 4.0f);
-	vec2 second(1.0f, 4.0f);
+	vec2 zero_axis(0.0f, 0.0f);
+	vec2 point_A(-2.0f, -2.0f);
+	vec2 point_B(-1.5f, -1.0f);
+	vec2 point_C(1.0f, 1.0f);
+	vec2 point_D(3.0f, 2.0f);
+	vec2 point_E(0.0f, 4.0f);
 
-	pair<float, float> line = calculateLineFormula(first, second);
+	pair<float, float> line = calculateLineFormula(zero_axis, point_A);
 	cout << "line formula: " << line.first << "x ";
 	if (line.second >= 0.0f)
 		cout << "+ ";
 	cout << line.second << endl;
 
-	cout << "angle: " << getLineAngle(first, second) << endl;
+	cout << "zero -> A: " << getLineAngle(zero_axis, point_A) << endl;
+	cout << "zero -> B: " << getLineAngle(zero_axis, point_B) << endl;
+	cout << "zero -> C: " << getLineAngle(zero_axis, point_C) << endl;
+	cout << "zero -> D: " << getLineAngle(zero_axis, point_D) << endl;
+
+	cout << "zero: " << endl;
+	printPoint(zero_axis);
+	cout << "Point E: " << endl;
+	printPoint(point_E);
+	cout << "zero Right Offset:" << endl;
+	printPoint(getOffsetPoints(zero_axis, point_E, 1.0f, true).first);
+	cout << "E Right Offset:" << endl;
+	printPoint(getOffsetPoints(zero_axis, point_E, 1.0f, true).second);
+	cout << "zero Left Offset:" << endl;
+	printPoint(getOffsetPoints(zero_axis, point_E, 1.0f, false).first);
+	cout << "E Left Offset:" << endl;
+	printPoint(getOffsetPoints(zero_axis, point_E, 1.0f, false).second);
+
+	cout << "A -> B, C -> D intersection: " << endl;
+	printPoint(getIntersection(pair<vec2, vec2>(point_A, point_B), pair<vec2, vec2>(point_C, point_D)));
+
 
 	jep::init();
 
