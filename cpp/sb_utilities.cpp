@@ -297,6 +297,12 @@ const pair<vec2, vec2> getOffsetPoints(vec2 first, vec2 second, float distance, 
 
 	glm::mat4 distance_offset = glm::translate(mat4(1.0f), vec3(0.0f + distance, 0.0f, 0.0f));
 
-	float rotation_angle = -1.0f * (line_angle < 90.0f ? (90.0f - line_angle) : (270.0f - line_angle));
+	float rotation_angle;
+	//rotation angles assume clockwise
+	if (below)
+		rotation_angle = (line_angle < 90.0f ? (90.0f - line_angle) : (270.0f - line_angle));
+
+	else rotation_angle = -1.0f * (line_angle + 90.0f);
+
 	mat4 rotation_matrix = glm::rotate(mat4(1.0f), rotation_angle, vec3(0.0f, 0.0f, 1.0f));
 }
