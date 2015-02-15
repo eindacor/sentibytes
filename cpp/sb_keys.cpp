@@ -38,20 +38,29 @@ KEYRETURN key_handler::checkKeys(display_handler &display_context)
 
 	if (checkPress(GLFW_KEY_UP, window))
 	{
-		display_context.scrollSentibyteColor(1);
+		display_context.user_zoom(1);
 	}
 
 	if (checkPress(GLFW_KEY_DOWN, window))
 	{
-		display_context.scrollSentibyteColor(-1);
+		display_context.user_zoom(-1);
 	}
 
 	if (checkPress(GLFW_KEY_LEFT, window))
 	{
-		display_context.scrollBackgroundColor(1);
+		display_context.user_translate(1.0f);
 	}
 
 	if (checkPress(GLFW_KEY_RIGHT, window))
+	{
+		display_context.user_translate(-1.0f);
+	}
+
+	if (checkPress(GLFW_KEY_PERIOD, window))
+	{
+		display_context.scrollBackgroundColor(1);
+	}
+	if (checkPress(GLFW_KEY_COMMA, window))
 	{
 		display_context.scrollBackgroundColor(-1);
 	}

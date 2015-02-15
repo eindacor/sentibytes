@@ -52,13 +52,28 @@ void giveTraits(vector<sb_ptr> &sb_vec)
 		(*it)->addTrait("stamina", value_state(.1f, .9f));
 		(*it)->addTrait("sociability", value_state(.1f, .9f));
 		(*it)->addTrait("volatility", value_state(.1f, .9f));
-		(*it)->addTrait("gullability", value_state(.1f, .9f));
-		(*it)->addTrait("intellectual", value_state(.1f, .9f));
+		//(*it)->addTrait("gullability", value_state(.1f, .9f));
+		//(*it)->addTrait("intellectual", value_state(.1f, .9f));
+		//(*it)->addTrait("test1", value_state(.1f, .9f));
+		//(*it)->addTrait("test2", value_state(.1f, .9f));
+		//(*it)->addTrait("test3", value_state(.1f, .9f));
+		//(*it)->addTrait("test4", value_state(.1f, .9f));
 	}
 }
 
 int main()
 {
+	vec2 first(2.0f, 4.0f);
+	vec2 second(1.0f, 4.0f);
+
+	pair<float, float> line = calculateLineFormula(first, second);
+	cout << "line formula: " << line.first << "x ";
+	if (line.second >= 0.0f)
+		cout << "+ ";
+	cout << line.second << endl;
+
+	cout << "angle: " << getLineAngle(first, second) << endl;
+
 	jep::init();
 
 	population_ptr test_population(new population);
@@ -67,10 +82,10 @@ int main()
 
 	sb_vec.push_back(sb_ptr(new sentibyte("Joe Pollack", test_population)));
 	sb_vec.push_back(sb_ptr(new sentibyte("Carolyn Pollack", test_population)));
-	sb_vec.push_back(sb_ptr(new sentibyte("Alex Rost", test_population)));
-	sb_vec.push_back(sb_ptr(new sentibyte("Derek Lariviere", test_population)));
+	//sb_vec.push_back(sb_ptr(new sentibyte("Alex Rost", test_population)));
+	//sb_vec.push_back(sb_ptr(new sentibyte("Derek Lariviere", test_population)));
 
-	int others = 8;
+	int others = 60;
 	for (int i = 0; i < others; i++)
 	{
 		string random_name = generateID("random");
@@ -96,12 +111,9 @@ int main()
 	for (vector<sb_ptr>::iterator it = sb_vec.begin(); it != sb_vec.end(); it++)
 		geometry_group.addSBGeometry(*it);
 	
-
 	glfwSetTime(0);
-
 	std::ofstream log_file;
-
-	cout << sb_vec.size() << endl;
+	float fps = 30.0f;
 
 	do
 	{
@@ -109,10 +121,16 @@ int main()
 
 		KEYRETURN returned_key = keystates.checkKeys(display_context);
 
-		display_context.render(geometry_group);
+		if (glfwGetTime() > 1.0f / fps)
+		{
 
-		for (vector<sb_ptr>::iterator it = sb_vec.begin(); it != sb_vec.end(); it++)
-			(*it)->fluctuateTraits();
+			display_context.render(geometry_group);
+		
+			for (vector<sb_ptr>::iterator it = sb_vec.begin(); it != sb_vec.end(); it++)
+				(*it)->fluctuateTraits();
+
+			glfwSetTime(0.0f);
+		}
 
 	} while (glfwGetKey(display_context.getWindow(), GLFW_KEY_ESCAPE) != GLFW_PRESS &&
 		!glfwWindowShouldClose(display_context.getWindow()));

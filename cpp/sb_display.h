@@ -21,6 +21,8 @@ public:
 	void scrollBackgroundColor(int i);
 	int createProgram(string vert_file, string frag_file);
 	int createShader(GLenum type, string file);
+	void user_zoom(int i);
+	void user_translate(float f) { user_translate_factor += f; }
 
 private:
 	GLuint program_ID;
@@ -40,6 +42,8 @@ private:
 
 	GLuint vertex_buffer_object;
 	GLuint vertex_array_object;
+	int user_zoom_factor;
+	float user_translate_factor;
 };
 
 #endif

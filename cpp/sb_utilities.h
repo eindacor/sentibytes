@@ -11,6 +11,8 @@ const float getCoefficient(float min, float max);
 const string generateID(string name);
 const float randomFloat(float min, float max, int precision);
 const vec4 combineColors(vec4 primary, vec4 secondary, float blend);
+const pair<float, float> calculateLineFormula(vec2 first, vec2 second);
+const float getLineAngle(vec2 first, vec2 second);
 
 typedef pair<float, float> floatpair;
 
@@ -27,16 +29,19 @@ public:
 	const float fluctuate();
 	void update();
 	void influence(float value, float coefficient);
-	void setFlucCoefficient(float f) { fluctuation_coefficient = f; }
-	void setFlucSensitivity(float f) { fluctuation_sensitivity = f; }
 
 private:
+	void setFluctuationValues();
 	void setBounds(float lower_min, float upper_max);
 	void setBase();
 	void VSBoundsCheck();
 	map<value_state_data_type, float> params;
 	float fluctuation_coefficient;
 	float fluctuation_sensitivity;
+	//added so traits don't change immediately, but gradually over time
+	signed short fluctuation_cooldown;
+	float fluctuation_increment;
+	signed short default_fluctuation_duration;
 };
 
 class avg_container

@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include "jeploot.h"
+#include "cmath"
 
 class perception;
 class interaction;
@@ -49,6 +50,7 @@ using jep::catRoll;
 using glm::mat4;
 using glm::vec4;
 using glm::vec3;
+using glm::vec2;
 enum opengl_defs { MARGAINS = 1, DEFAULT_SB_WIDTH = 2, VERTICAL_PADDING = 2};
 enum KEYRETURN { NULL_RETURN, ENTER, BASE, OPTIONS };
 

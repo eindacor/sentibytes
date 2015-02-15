@@ -22,6 +22,10 @@ public:
 private:
 	map<string, glm::vec4> vertices;
 	vector<glm::vec4> max_levels;
+	vector<glm::vec4> outline;
+	map<string, glm::vec4> base_levels;
+	map<string, glm::vec4> upper_bounds;
+	map<string, glm::vec4> lower_bounds;
 	glm::vec4 base_point;
 	sb_ptr host;
 	vec4 sb_color;

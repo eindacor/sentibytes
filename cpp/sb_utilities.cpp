@@ -45,8 +45,7 @@ value_state::value_state()
 	setBounds(0.0f, 100.0f);
 	setBase();
 	params[VS_CURRENT] = params[VS_BASE];
-	fluctuation_coefficient = randomFloat(.1, .3, 2);
-	fluctuation_sensitivity = randomFloat(.1, .3, 2);
+	setFluctuationValues();
 	update();
 }
 
@@ -56,8 +55,7 @@ value_state::value_state(float lower_bound, float base, float upper_bound)
 	params[VS_BASE] = base;
 	params[VS_CURRENT] = base;
 	params[VS_UPPER] = upper_bound;
-	fluctuation_coefficient = randomFloat(.1, .3, 2);
-	fluctuation_sensitivity = randomFloat(.1, .3, 2);
+	setFluctuationValues();
 	update();
 }
 
@@ -66,9 +64,17 @@ value_state::value_state(float lower_min, float upper_max)
 	setBounds(lower_min, upper_max);
 	setBase();
 	params[VS_CURRENT] = params[VS_BASE];
-	fluctuation_coefficient = randomFloat(.1, .3, 2);
-	fluctuation_sensitivity = randomFloat(.1, .3, 2);
+	setFluctuationValues();
 	update();
+}
+
+void value_state::setFluctuationValues()
+{
+	fluctuation_coefficient = randomFloat(.08, .15, 2);
+	fluctuation_sensitivity = randomFloat(.2, .3, 2);
+	fluctuation_cooldown = 0;
+	fluctuation_increment = 0.0f;
+	default_fluctuation_duration = 64;
 }
 
 const bool value_state::proc() const
@@ -120,41 +126,55 @@ void value_state::setBase()
 		base_quadrants[floatpair(quadrant_range_lower, quadrant_range_upper)] = probability_array[i];
 	}
 	floatpair selected_base_quadrant = jep::catRoll<floatpair>(base_quadrants);
-	params[VS_BASE] = randomFloat(selected_base_quadrant.first, selected_base_quadrant.second, 2) * 100.0f;
+	params[VS_BASE] = randomFloat(selected_base_quadrant.first, selected_base_quadrant.second, 2);
 }
 
 const float value_state::fluctuate()
 {
-	float positive_chance;
-
-	//When current level is the base level, there's a 50/50 chance for the trait to fluctuate positively.
-	//The closer the current level is to upper bound, the less likely it is to change in the positive. Same
-	//mechanic when current is close to lower bound.
-
-	if (params.at(VS_CURRENT) >= params.at(VS_BASE))
+	if (fluctuation_cooldown == 0)
 	{
-		float distance_from_upper = params.at(VS_UPPER) - params.at(VS_CURRENT);
-		float upper_range = params.at(VS_UPPER) - params.at(VS_BASE);
-		positive_chance = (distance_from_upper / upper_range) * .5f;
+		float positive_chance;
+
+		//When current level is the base level, there's a 50/50 chance for the trait to fluctuate positively.
+		//The closer the current level is to upper bound, the less likely it is to change in the positive. Same
+		//mechanic when current is close to lower bound.
+		if (params.at(VS_CURRENT) >= params.at(VS_BASE))
+		{
+			float distance_from_upper = params.at(VS_UPPER) - params.at(VS_CURRENT);
+			float upper_range = params.at(VS_UPPER) - params.at(VS_BASE);
+			positive_chance = (distance_from_upper / upper_range) * .5f;
+		}
+
+		else
+		{
+			float distance_from_lower = params.at(VS_CURRENT) - params.at(VS_LOWER);
+			float lower_range = params.at(VS_BASE) - params.at(VS_LOWER);
+			positive_chance = 1 - ((distance_from_lower / lower_range) * .5f);
+		}
+
+		float total_range = params.at(VS_UPPER) - params.at(VS_LOWER);
+		float value_change = randomFloat(0.0f * fluctuation_coefficient, fluctuation_coefficient, 3) * total_range;
+
+		if (!booRoll(positive_chance))
+			value_change *= -1.0f;
+
+		// instead of changing value immediately, set the increment and change over time
+		fluctuation_increment = value_change / float(default_fluctuation_duration);
+		fluctuation_cooldown = default_fluctuation_duration;
+		params[VS_CURRENT] += fluctuation_increment;
+
+		update();
+		return fluctuation_increment;
 	}
 
 	else
 	{
-		float distance_from_lower = params.at(VS_CURRENT) - params.at(VS_LOWER);
-		float lower_range = params.at(VS_BASE) - params.at(VS_LOWER);
-		positive_chance = 1 - ((distance_from_lower / lower_range) * .5f);
+		fluctuation_cooldown--;
+		params[VS_CURRENT] += fluctuation_increment;
+
+		update();
+		return fluctuation_increment;
 	}
-
-	float value_change = randomFloat(0.5f * fluctuation_coefficient, fluctuation_coefficient, 3) * (params.at(VS_UPPER) - params.at(VS_LOWER));
-
-	if (!booRoll(positive_chance))
-		value_change *= -1.0f;
-
-	params[VS_CURRENT] = params[VS_CURRENT] += value_change;
-
-	update();
-
-	return value_change;
 }
 
 void value_state::update()
@@ -243,4 +263,40 @@ const vec4 combineColors(vec4 primary, vec4 secondary, float blend)
 	float combined_alpha = (primary[3] * primary_ratio) + (secondary[3] * secondary_ratio);
 
 	return vec4(combined_red, combined_green, combined_blue, combined_alpha);
+}
+
+const pair<float, float> calculateLineFormula(vec2 first, vec2 second)
+{
+	if (abs(first.y - second.y) < .00000001f)
+		return pair<float, float>(0.0f, second.y);
+
+	float multiplier = (second.y - first.y) / (second.x - first.x);
+	float y_offset = first.y - (first.x * multiplier);
+	return pair<float, float>(multiplier, y_offset);
+}
+
+const float getLineAngle(vec2 first, vec2 second)
+{
+	if (abs(first.x - second.x) < .00000001f)
+		return 90.0f;
+	vec2 left_most = (first.x < second.x ? first : second);
+	vec2 right_most = (first.x > second.x ? first : second);
+	float pi = 3.14159265;
+	float angle = atan(abs(right_most.y - left_most.y) / abs(right_most.x - left_most.x)) * (180 / pi);
+	if (left_most.y > right_most.y)
+		return 180.0f - angle;
+	else return angle;
+}
+
+const pair<vec2, vec2> getOffsetPoints(vec2 first, vec2 second, float distance, bool below)
+{
+	vec2 left_most = (first.x < second.x ? first : second);
+	vec2 right_most = (first.x > second.x ? first : second);
+	float line_angle = getLineAngle(first, second);
+	vec4 first_point(0.0f, 0.0f, 0.0f, 1.0f);
+
+	glm::mat4 distance_offset = glm::translate(mat4(1.0f), vec3(0.0f + distance, 0.0f, 0.0f));
+
+	float rotation_angle = -1.0f * (line_angle < 90.0f ? (90.0f - line_angle) : (270.0f - line_angle));
+	mat4 rotation_matrix = glm::rotate(mat4(1.0f), rotation_angle, vec3(0.0f, 0.0f, 1.0f));
 }

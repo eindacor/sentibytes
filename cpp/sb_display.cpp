@@ -4,6 +4,8 @@ display_handler::display_handler(string title, string vert_file, string frag_fil
 {
 	errors = false;
 	window_title = title;
+	user_translate_factor = 0.0f;
+	user_zoom_factor = 0;
 
 	//initialize GLFW
 	if (!glfwInit())
@@ -20,7 +22,7 @@ display_handler::display_handler(string title, string vert_file, string frag_fil
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-		window = glfwCreateWindow(800, 800, &window_title[0], NULL, NULL);
+		window = glfwCreateWindow(1024, 1024, &window_title[0], NULL, NULL);
 	}
 
 	//test window
@@ -218,10 +220,11 @@ void display_handler::render(sb_group &sbg)
 	float range = (float(count - 1) * 2.0f);
 
 	//default scale
-	float x_offset = range / -2.0f;
+	float x_offset = (range / -2.0f) + user_translate_factor;
 	float y_offset = 0.0f;
 	//3.0f adds a small buffer on each side of array
-	float scale = 2.0f / (float(range) + 3.0f);
+	float default_scale = (2.0f / (float(range) + 3.0f));
+	float scale = default_scale + (user_zoom_factor * .02);
 
 	//x_offset = -4.0f;
 	//scale = 1.0f;
@@ -236,6 +239,13 @@ void display_handler::render(sb_group &sbg)
 	sbg.draw(vertex_buffer_object, sb_color_ID, background_color);
 
 	glfwSwapBuffers(window);
+}
+
+void display_handler::user_zoom(int i)
+{
+	user_zoom_factor += i;
+	if (user_zoom_factor < 0)
+		user_zoom_factor = 0;
 }
 
 void display_handler::printErrors()
@@ -272,9 +282,9 @@ void display_handler::scrollSentibyteColor(int i)
 void display_handler::scrollBackgroundColor(int i)
 {
 	if (background_color_index == 0 && i == -1)
-		background_color_index = 7;
+		background_color_index = 8;
 
-	else if (background_color_index == 7 && i == 1)
+	else if (background_color_index == 8 && i == 1)
 		background_color_index = 0;
 
 	else background_color_index += i;
@@ -284,13 +294,12 @@ void display_handler::scrollBackgroundColor(int i)
 	case 0: background_color = vec4(0.4f, 0.0f, 0.0f, 0.4f); break;
 	case 1: background_color = vec4(0.4f, 0.4f, 0.0f, 1.0f); break;
 	case 2: background_color = vec4(0.4f, 0.0f, 0.4f, 1.0f); break;
-	case 3: background_color = vec4(0.4f, 0.4f, 0.4f, 1.0f); break;
+	case 3: background_color = vec4(0.6f, 0.6f, 0.6f, 1.0f); break;
 	case 4: background_color = vec4(0.0f, 0.4f, 0.0f, 1.0f); break;
 	case 5: background_color = vec4(0.0f, 0.4f, 0.4f, 1.0f); break;
 	case 6: background_color = vec4(0.0f, 0.0f, 0.4f, 1.0f); break;
 	case 7: background_color = vec4(0.0f, 0.0f, 0.0f, 1.0f); break;
 	case 8: background_color = vec4(1.0f, 1.0f, 1.0f, 1.0f); break;
-	case 9: background_color = vec4(0.5f, 0.5f, 0.5f, 1.0f); break;
 	}
 
 	glClearColor(background_color[0], background_color[1], background_color[2], 1.0f);
