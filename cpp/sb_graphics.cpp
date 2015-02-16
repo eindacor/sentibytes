@@ -105,6 +105,8 @@ void sentibyte_geometry::updateGeometry()
 
 		trait_number++;
 	}
+
+
 }
 
 void sentibyte_geometry::draw(GLuint VBO, GLint sb_color_ID, vec4 background_color)
@@ -263,6 +265,8 @@ void sentibyte_geometry::draw(GLuint VBO, GLint sb_color_ID, vec4 background_col
 		glDisableVertexAttribArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}	
+
+	return;
 }
 
 void sentibyte_geometry::moveBasePoint(mat4 tm) 

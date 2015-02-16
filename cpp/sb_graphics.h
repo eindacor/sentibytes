@@ -29,7 +29,11 @@ private:
 	glm::vec4 base_point;
 	sb_ptr host;
 	vec4 sb_color;
-
+	GLuint max_levels_VAO;
+	GLuint outline_VAO;
+	GLuint base_levels_VAO;
+	GLuint upper_bounds_VAO;
+	GLuint lower_bounds_VAO;
 };
 
 class sb_group

@@ -54,9 +54,7 @@ display_handler::display_handler(string title, string vert_file, string frag_fil
 
 	//create shaders/program
 	if (errors == false && createProgram(frag_file, vert_file) == 0)
-	{
 		errors = true;
-	}
 
 	//create vertex buffer object, set clear color
 	if (errors == false)
@@ -72,12 +70,6 @@ display_handler::display_handler(string title, string vert_file, string frag_fil
 		scaling_matrix_ID = glGetUniformLocation(program_ID, "scaling_matrix");
 		sb_color_ID = glGetUniformLocation(program_ID, "text_color");
 
-		sentibyte_color[0] = 1.0f;
-		sentibyte_color[1] = 1.0f;
-		sentibyte_color[2] = 1.0f;
-		sentibyte_color[3] = 1.0f;
-
-		sentibyte_color_index = 3;
 		background_color_index = 7;
 	}
 }
@@ -252,30 +244,6 @@ void display_handler::printErrors()
 {
 	for (vector<string>::iterator i = display_errors.begin(); i != display_errors.end(); i++)
 		cout << *i << endl;
-}
-
-//increments/decrements the text color index
-void display_handler::scrollSentibyteColor(int i)
-{
-	if (sentibyte_color_index == 0 && i == -1)
-		sentibyte_color_index = 7;
-
-	else if (sentibyte_color_index == 7 && i == 1)
-		sentibyte_color_index = 0;
-
-	else sentibyte_color_index += i;
-
-	switch (sentibyte_color_index)
-	{
-	case 0: sentibyte_color = vec4(1.0f, 0.0f, 0.0f, 1.0f); break;
-	case 1: sentibyte_color = vec4(1.0f, 1.0f, 0.0f, 1.0f); break;
-	case 2: sentibyte_color = vec4(1.0f, 0.0f, 1.0f, 1.0f); break;
-	case 3: sentibyte_color = vec4(1.0f, 1.0f, 1.0f, 1.0f); break;
-	case 4: sentibyte_color = vec4(0.0f, 1.0f, 0.0f, 1.0f); break;
-	case 5: sentibyte_color = vec4(0.0f, 1.0f, 1.0f, 1.0f); break;
-	case 6: sentibyte_color = vec4(0.0f, 0.0f, 1.0f, 1.0f); break;
-	case 7: sentibyte_color = vec4(0.0f, 0.0f, 0.0f, 1.0f); break;
-	}
 }
 
 //increments/decrements the background color index
