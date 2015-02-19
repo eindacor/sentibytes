@@ -57,12 +57,12 @@ void giveTraits(vector<sb_ptr> &sb_vec)
 		(*it)->addTrait("stamina", value_state(.1f, .9f));
 		(*it)->addTrait("sociability", value_state(.1f, .9f));
 		(*it)->addTrait("volatility", value_state(.1f, .9f));
-		//(*it)->addTrait("gullability", value_state(.1f, .9f));
-		//(*it)->addTrait("intellectual", value_state(.1f, .9f));
-		//(*it)->addTrait("test1", value_state(.1f, .9f));
-		//(*it)->addTrait("test2", value_state(.1f, .9f));
-		//(*it)->addTrait("test3", value_state(.1f, .9f));
-		//(*it)->addTrait("test4", value_state(.1f, .9f));
+		(*it)->addTrait("gullability", value_state(.1f, .9f));
+		(*it)->addTrait("intellectual", value_state(.1f, .9f));
+		(*it)->addTrait("test1", value_state(.1f, .9f));
+		(*it)->addTrait("test2", value_state(.1f, .9f));
+		(*it)->addTrait("test3", value_state(.1f, .9f));
+		(*it)->addTrait("test4", value_state(.1f, .9f));
 	}
 }
 
@@ -114,7 +114,7 @@ int main()
 	//sb_vec.push_back(sb_ptr(new sentibyte("Alex Rost", test_population)));
 	//sb_vec.push_back(sb_ptr(new sentibyte("Derek Lariviere", test_population)));
 
-	int others = 60;
+	int others = 12;
 	for (int i = 0; i < others; i++)
 	{
 		string random_name = generateID("random");
