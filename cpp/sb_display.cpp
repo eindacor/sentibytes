@@ -100,6 +100,7 @@ int display_handler::createShader(GLenum type, string file)
 		std::getline(shader_file, line);
 		code_string += line + '\n';
 	}
+	cout << "shader code_string: " << endl << code_string << endl;
 
 	//create const char* from string of code
 	const char* code_char = code_string.c_str();
@@ -153,7 +154,7 @@ int display_handler::createProgram(string vert_file, string frag_file)
 
 	if (createShader(GL_VERTEX_SHADER, vert_file) == 0)
 		return 0;
-
+	throw;
 	//attach shaders, link program
 	glAttachShader(program_ID, fragment_shader_ID);
 	glAttachShader(program_ID, vertex_shader_ID);

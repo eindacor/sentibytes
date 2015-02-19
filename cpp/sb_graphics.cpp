@@ -138,7 +138,6 @@ void sentibyte_geometry::draw(GLuint VBO, GLint sb_color_ID, vec4 background_col
 		//use vertex attrib pointer to instruct OpenGLU how to interpret the data on the buffer
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);
-		//draws vertices (2 triangles per "pixel")
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		//disable array/unbind vbo
