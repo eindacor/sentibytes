@@ -154,7 +154,7 @@ int display_handler::createProgram(string vert_file, string frag_file)
 
 	if (createShader(GL_VERTEX_SHADER, vert_file) == 0)
 		return 0;
-	throw;
+	
 	//attach shaders, link program
 	glAttachShader(program_ID, fragment_shader_ID);
 	glAttachShader(program_ID, vertex_shader_ID);
