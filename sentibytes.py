@@ -18,7 +18,7 @@ if platform.system() == 'Windows':
 else:
     population_count = 180
     
-cycles = 1000
+cycles = 100
 update_frequency = 100
 
 if len(argv) > 1:
@@ -52,7 +52,8 @@ for sb_ID in premade_sentibytes:
     test_community.addMember(sb_ID)
    
 random_sentibytes = createRandomSBs(population_count, the_truth)
-for sb_ID in random_sentibytes:
+for i, sb_ID in enumerate(random_sentibytes):
+    print("random %s" % i)
     test_community.addMember(sb_ID)
 
 time_string = currentTimeString()
@@ -64,9 +65,9 @@ config_file = script_location + '/traits_config.txt'
     
 try:
     for i in range(cycles):
-        print "cycle: %d" % i
+        print ("cycle: %d" % i)
         if i % update_frequency==0 and i != 0:
-            print "......updating summary"
+            print ("......updating summary")
             updateSummary(test_community, config_file, sb_summary, the_truth)
 
         test_community.cycle()
@@ -74,13 +75,13 @@ try:
         if len(test_community.members) == 0:
             break
      
-    print "......updating summary"   
+    print ("......updating summary"  ) 
     updateSummary(test_community, config_file, sb_summary, the_truth)
     updateSBData(test_community, sb_data)
         
     cleanup()
 
 except KeyboardInterrupt:
-    print "......updating summary"
+    print ("......updating summary")
     updateSummary(test_community, config_file, sb_summary, the_truth)
     cleanup()

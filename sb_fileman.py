@@ -118,7 +118,7 @@ def traitsFromFile(sb_file):
     
 def readSB(sb_ID, community=None):
     sb_file = getPath() + '/sb_data/' + sb_ID + '.sb'
-    file = open(sb_file, 'r')
+    file = open(sb_file, 'rb')
     sb = pickle.load(file)
     sb.community = community
     if sb.current_session_ID and community:
@@ -131,7 +131,7 @@ def writeSB(sb):
     sb.community = None
     if sb.current_session:
         sb.current_session = None
-    file = open(sb_file, 'w')
+    file = open(sb_file, 'wb')
     pickle.dump(sb, file)
     file.close()
     

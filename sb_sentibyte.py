@@ -67,7 +67,7 @@ class sentibyte(object):
         self.i_traits = traits[1]
         self.d_traits = traits[2]
         
-        desired_list = self.d_traits.keys()
+        desired_list = list(self.d_traits.keys())
         shuffle(desired_list)
         self.desire_priority = {}
         for i in range(len(desired_list)):
@@ -109,7 +109,7 @@ class sentibyte(object):
     # this function analyzes transmissions even if self was not one of the targets
     # for better accuracty of guessing traits
     def interpretTransmission(self, sent):
-        source = sent.source_ID7
+        source = sent.source_ID
         
         # add modifiers for interpretation
         if sent.t_type == 'statement' or self.proc('observant'):
@@ -235,7 +235,7 @@ class sentibyte(object):
         positivity_co = self['positivity']['coefficient']
         positivity = calcAccuracy(positivity_current, positivity_co)
         energy_current = self['energy']['current']
-        energy_co = self['energy range']['coefficient']
+        energy_co = self['energy_range']['coefficient']
         energy = calcAccuracy(energy_current, energy_co)
         knowledge = None
         gossip = None
@@ -243,7 +243,7 @@ class sentibyte(object):
         if self.proc('talkative'):
             t_type = 'statement'
             
-            all_knowledge = self.accurate_knowledge + self.false_knowledge.keys()
+            all_knowledge = self.accurate_knowledge + list(self.false_knowledge.keys())
             if self.proc('intellectual') and len(all_knowledge) > 0:
                 knowledge = list()
                 index = choice(all_knowledge)
@@ -260,7 +260,7 @@ class sentibyte(object):
                     
             if self.proc('confident'):
                 brag = {}
-                trait = choice(self.p_traits.keys())
+                trait = choice(list(self.p_traits.keys()))
                 brag[trait] = self[trait]['current']
       
         else:
@@ -284,7 +284,7 @@ class sentibyte(object):
     def reflect(self):
         # add modifier for positivity
         if len(self.memory) > 0:
-            other_ID = choice(self.memory.keys())
+            other_ID = choice(list(self.memory.keys()))
             if other_ID not in self.community.members:
                 # add negative effect for mourning
                 pass
@@ -294,7 +294,7 @@ class sentibyte(object):
             self.updateContacts()
     
     def learn(self):
-        all_knowledge = (self.accurate_knowledge + self.false_knowledge.keys())
+        all_knowledge = (self.accurate_knowledge + list(self.false_knowledge.keys()))
         
         the_truth = getTruth()
         if self.proc('inquisitive') and len(all_knowledge) != len(the_truth):
@@ -302,7 +302,7 @@ class sentibyte(object):
             index = choice(unknown)
             
         else:
-            index = choice(the_truth.keys())
+            index = choice(list(the_truth.keys()))
         
 
         if self.proc('intelligence'):
@@ -727,7 +727,7 @@ def createRandomSBs(quantity, the_truth):
     member_counter = 0
     namefile = open(getPath() + '/names.txt')
     for i, line in enumerate(namefile):
-        if i % (4946 / quantity) == 0:
+        if i % int(4946 / quantity) == 0:
             name = line.replace('\n', '')
             traits = traitsFromConfig(config_file)
             random_sentibytes.append(sentibyte(name, traits))
@@ -798,7 +798,7 @@ def createChild(sb1, sb2):
     sentibaby.family.append(str(sb2))
     writeSB(sentibaby)
     
-    print "a sentibaby, %s, is born to %s and %s" % (sentibaby, sb1, sb2)
+    print ("a sentibaby, %s, is born to %s and %s" % (sentibaby, sb1, sb2))
     return sentibaby.sentibyte_ID
 
         

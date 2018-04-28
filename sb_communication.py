@@ -117,20 +117,18 @@ class interaction(object):
         # received transmissions
         
         # COMMUNICATIVE
-        communicative_guess = float(self.data['total']['count']) / \
-                            (float(cycles_present) * communications_per_cycle)
-        self.trait_guesses['communicative'] = boundsCheck(communicative_guess * 100)
+        if (cycles_present > 0):
+            communicative_guess = float(self.data['total']['count']) / (float(cycles_present) * communications_per_cycle)
+            self.trait_guesses['communicative'] = boundsCheck(communicative_guess * 100)
                         
         # TALKATIVE
         if self.data['total']['count'] > 0:
-            talkative_guess = float(self.data['total']['statements']) / \
-                                float(self.data['total']['count']) * 100
+            talkative_guess = float(self.data['total']['statements']) / float(self.data['total']['count']) * 100
             self.trait_guesses['talkative'] = boundsCheck(talkative_guess)
             
         # INTELLECTUAL
         if self.data['total']['statements'] > 0:
-            intellectual_guess = float(self.data['total']['knowledge']) / \
-                                float(self.data['total']['statements']) * 100
+            intellectual_guess = float(self.data['total']['knowledge']) / float(self.data['total']['statements']) * 100
             self.trait_guesses['intellectual'] = boundsCheck(intellectual_guess)
             
         # GOSSIPY
@@ -435,9 +433,9 @@ class community(object):
         cycle_end = datetime.now()
         time_spent = cycle_end - cycle_start
         actual_time = float(time_spent.seconds) + (time_spent.microseconds/float(1000000))
-        self.seconds_per_cycle.addValue(actual_time)
-        print "cycle duration: %f" % actual_time
-        print "average seconds per cycle: %f" % self.seconds_per_cycle
-        print "-----"
+        print("actual_time: %s" % actual_time)
+        print ("cycle duration: %f" % actual_time)
+        print ("average seconds per cycle: %f" % self.seconds_per_cycle)
+        print ("-----")
         
         return self.status_log
